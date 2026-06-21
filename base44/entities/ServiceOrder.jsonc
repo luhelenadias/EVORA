@@ -1,0 +1,157 @@
+{
+  "name": "ServiceOrder",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "description": "C\u00f3digo da OS (gerado automaticamente)"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "Preventiva",
+        "Corretiva",
+        "Calibra\u00e7\u00e3o",
+        "Instala\u00e7\u00e3o"
+      ],
+      "description": "Tipo de servi\u00e7o"
+    },
+    "origin": {
+      "type": "string",
+      "enum": [
+        "Manual",
+        "Agendada",
+        "Sugerida por IA"
+      ],
+      "default": "Manual",
+      "description": "Origem do chamado"
+    },
+    "equipment_id": {
+      "type": "string",
+      "description": "ID do equipamento vinculado"
+    },
+    "equipment_name": {
+      "type": "string",
+      "description": "Nome do equipamento (cache)"
+    },
+    "requester_id": {
+      "type": "string",
+      "description": "ID do solicitante"
+    },
+    "requester_name": {
+      "type": "string",
+      "description": "Nome do solicitante"
+    },
+    "technician_id": {
+      "type": "string",
+      "description": "ID do t\u00e9cnico respons\u00e1vel"
+    },
+    "technician_name": {
+      "type": "string",
+      "description": "Nome do t\u00e9cnico respons\u00e1vel"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Novo",
+        "Em Andamento",
+        "Aguardando Pe\u00e7a",
+        "Aguardando Fornecedor",
+        "Pendente",
+        "Conclu\u00eddo"
+      ],
+      "default": "Novo",
+      "description": "Status da OS"
+    },
+    "priority": {
+      "type": "string",
+      "enum": [
+        "Baixa",
+        "M\u00e9dia",
+        "Alta",
+        "Cr\u00edtica"
+      ],
+      "default": "M\u00e9dia",
+      "description": "Prioridade"
+    },
+    "open_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora de abertura"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora de agendamento"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora do in\u00edcio do atendimento"
+    },
+    "completion_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora da conclus\u00e3o"
+    },
+    "problem_description": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o do problema"
+    },
+    "technical_report": {
+      "type": "string",
+      "description": "Laudo t\u00e9cnico"
+    },
+    "parts_used": {
+      "type": "array",
+      "description": "Pe\u00e7as e insumos utilizados",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "cost": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "total_cost": {
+      "type": "number",
+      "description": "Custo total"
+    },
+    "execution_by": {
+      "type": "string",
+      "enum": [
+        "Equipe Interna",
+        "Fornecedor Externo"
+      ],
+      "default": "Equipe Interna",
+      "description": "Execu\u00e7\u00e3o por"
+    },
+    "supplier_rating": {
+      "type": "number",
+      "description": "Nota do fornecedor (1-5)"
+    },
+    "attachments": {
+      "type": "array",
+      "description": "Anexos e fotos",
+      "items": {
+        "type": "string"
+      }
+    },
+    "sector": {
+      "type": "string",
+      "description": "Setor de origem"
+    }
+  },
+  "required": [
+    "type",
+    "equipment_id",
+    "problem_description"
+  ]
+}

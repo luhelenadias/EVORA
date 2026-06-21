@@ -1,0 +1,190 @@
+import React, { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { useOutletContext } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Monitor, Search, Eye } from 'lucide-react';
+import StatusBadge from '@/components/shared/StatusBadge';
+import PageHeader from '@/components/shared/PageHeader';
+import EmptyState from '@/components/shared/EmptyState';
+import EquipmentForm from '@/components/equipment/EquipmentForm';
+import EquipmentDetail from '@/components/equipment/EquipmentDetail';
+import { Skeleton } from '@/components/ui/skeleton';
+
+export default function Equipment() {
+  const { user } = useOutletContext();
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [criticalityFilter, setCriticalityFilter] = useState('all');
+  const [showForm, setShowForm] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [viewingItem, setViewingItem] = useState(null);
+  const queryClient = useQueryClient();
+
+  const isReadOnly = user?.role === 'tecnico' || user?.role === 'gestor';
+
+  const { data: equipment = [], isLoading } = useQuery({
+    queryKey: ['equipment'],
+    queryFn: () => base44.entities.Equipment.list(),
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (data) => base44.entities.Equipment.create(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['equipment'] }); setShowForm(false); },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => base44.entities.Equipment.update(id, data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['equipment'] }); setShowForm(false); setEditingItem(null); },
+  });
+
+  const filtered = equipment.filter(e => {
+    const matchSearch = !search || 
+      e.name?.toLowerCase().includes(search.toLowerCase()) ||
+      e.serial_number?.toLowerCase().includes(search.toLowerCase()) ||
+      e.patrimony_number?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === 'all' || e.operational_status === statusFilter;
+    const matchCrit = criticalityFilter === 'all' || e.criticality === criticalityFilter;
+    return matchSearch && matchStatus && matchCrit;
+  });
+
+  const handleSubmit = (data) => {
+    if (editingItem) {
+      updateMutation.mutate({ id: editingItem.id, data });
+    } else {
+      createMutation.mutate(data);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-12 w-full" />
+        {[1,2,3].map(i => <Skeleton key={i} className="h-16 w-full" />)}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Equipamentos"
+        subtitle={`${equipment.length} equipamentos cadastrados`}
+        onAdd={isReadOnly ? undefined : () => { setEditingItem(null); setShowForm(true); }}
+        addLabel="Novo Equipamento"
+      />
+
+      {/* Filters */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input placeholder="Buscar por nome, série ou patrimônio..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos Status</SelectItem>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Em Manutenção">Em Manutenção</SelectItem>
+                <SelectItem value="Parado">Parado</SelectItem>
+                <SelectItem value="Inativo/Baixado">Inativo/Baixado</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={criticalityFilter} onValueChange={setCriticalityFilter}>
+              <SelectTrigger className="w-full sm:w-44">
+                <SelectValue placeholder="Criticidade" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todas</SelectItem>
+                <SelectItem value="Suporte à Vida">Suporte à Vida</SelectItem>
+                <SelectItem value="Terapêutico">Terapêutico</SelectItem>
+                <SelectItem value="Diagnóstico">Diagnóstico</SelectItem>
+                <SelectItem value="Apoio">Apoio</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <EmptyState icon={Monitor} title="Nenhum equipamento encontrado" description="Ajuste os filtros ou cadastre um novo equipamento." />
+      ) : (
+        <Card>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/50">
+                  <TableHead className="text-xs font-semibold">Nome</TableHead>
+                  <TableHead className="text-xs font-semibold">Patrimônio</TableHead>
+                  <TableHead className="text-xs font-semibold hidden md:table-cell">Fabricante</TableHead>
+                  <TableHead className="text-xs font-semibold hidden lg:table-cell">Setor</TableHead>
+                  <TableHead className="text-xs font-semibold">Criticidade</TableHead>
+                  <TableHead className="text-xs font-semibold">Status</TableHead>
+                  <TableHead className="text-xs font-semibold w-16">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(eq => (
+                  <TableRow key={eq.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setViewingItem(eq)}>
+                    <TableCell className="font-medium text-sm">{eq.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{eq.patrimony_number || '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{eq.manufacturer || '—'}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{eq.location_sector || '—'}</TableCell>
+                    <TableCell><StatusBadge value={eq.criticality} type="criticality" /></TableCell>
+                    <TableCell><StatusBadge value={eq.operational_status} /></TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={e => { e.stopPropagation(); setViewingItem(eq); }}>
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
+
+      {/* Form dialog */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display">{editingItem ? 'Editar Equipamento' : 'Novo Equipamento'}</DialogTitle>
+          </DialogHeader>
+          <EquipmentForm
+            equipment={editingItem}
+            onSubmit={handleSubmit}
+            onCancel={() => { setShowForm(false); setEditingItem(null); }}
+            isLoading={createMutation.isPending || updateMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Detail dialog */}
+      <Dialog open={!!viewingItem} onOpenChange={() => setViewingItem(null)}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-display">Detalhes do Equipamento</DialogTitle>
+          </DialogHeader>
+          {viewingItem && (
+            <EquipmentDetail
+              equipment={viewingItem}
+              onEdit={isReadOnly ? undefined : () => { setViewingItem(null); setEditingItem(viewingItem); setShowForm(true); }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}

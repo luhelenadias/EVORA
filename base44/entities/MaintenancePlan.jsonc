@@ -1,0 +1,70 @@
+{
+  "name": "MaintenancePlan",
+  "type": "object",
+  "properties": {
+    "equipment_id": {
+      "type": "string",
+      "description": "ID do equipamento"
+    },
+    "equipment_name": {
+      "type": "string",
+      "description": "Nome do equipamento (cache)"
+    },
+    "frequency": {
+      "type": "string",
+      "enum": [
+        "Mensal",
+        "Trimestral",
+        "Semestral",
+        "Anual"
+      ],
+      "description": "Periodicidade"
+    },
+    "last_execution_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data da \u00faltima execu\u00e7\u00e3o"
+    },
+    "next_execution_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Data prevista da pr\u00f3xima execu\u00e7\u00e3o"
+    },
+    "corrective_count_12m": {
+      "type": "number",
+      "default": 0,
+      "description": "N\u00famero de corretivas nos \u00faltimos 12 meses"
+    },
+    "mtbf_hours": {
+      "type": "number",
+      "description": "Tempo m\u00e9dio entre falhas (horas)"
+    },
+    "mttr_hours": {
+      "type": "number",
+      "description": "Tempo m\u00e9dio de reparo (horas)"
+    },
+    "ai_suggestion": {
+      "type": "string",
+      "description": "Sugest\u00e3o da IA"
+    },
+    "ai_suggestion_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data da \u00faltima sugest\u00e3o de IA"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Ativo",
+        "Suspenso",
+        "Conclu\u00eddo"
+      ],
+      "default": "Ativo",
+      "description": "Status do plano"
+    }
+  },
+  "required": [
+    "equipment_id",
+    "frequency"
+  ]
+}

@@ -1,0 +1,53 @@
+{
+  "name": "SparePart",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Nome da pe\u00e7a"
+    },
+    "code": {
+      "type": "string",
+      "description": "C\u00f3digo da pe\u00e7a"
+    },
+    "current_stock": {
+      "type": "number",
+      "default": 0,
+      "description": "Estoque atual"
+    },
+    "minimum_stock": {
+      "type": "number",
+      "default": 1,
+      "description": "Estoque m\u00ednimo"
+    },
+    "unit_cost": {
+      "type": "number",
+      "description": "Custo unit\u00e1rio (R$)"
+    },
+    "compatible_equipment_ids": {
+      "type": "array",
+      "description": "IDs dos equipamentos compat\u00edveis",
+      "items": {
+        "type": "string"
+      }
+    },
+    "supplier": {
+      "type": "string",
+      "description": "Fornecedor"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Em Estoque",
+        "Estoque Baixo",
+        "Sem Estoque"
+      ],
+      "default": "Em Estoque",
+      "description": "Status do estoque"
+    }
+  },
+  "required": [
+    "name",
+    "code"
+  ]
+}

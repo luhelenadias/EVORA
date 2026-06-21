@@ -1,0 +1,25 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "tecnico",
+        "clinico",
+        "gestor"
+      ],
+      "default": "clinico",
+      "description": "Perfil de acesso do usu\u00e1rio"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Telefone de contato"
+    },
+    "department": {
+      "type": "string",
+      "description": "Setor/Departamento"
+    }
+  }
+}
