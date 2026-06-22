@@ -90,9 +90,9 @@ export default function Login() {
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">Senha</Label>
             <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-              Forgot password?
+              Esqueceu a senha?
             </Link>
           </div>
           <div className="relative">
@@ -113,10 +113,10 @@ export default function Login() {
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Logging in...
+              Entrando...
             </>
           ) : (
-            "Log in"
+            "Entrar"
           )}
         </Button>
       </form>

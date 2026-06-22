@@ -5,6 +5,7 @@ import Sidebar from './Sidebar';
 
 export default function AppLayout() {
   const [user, setUser] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -12,8 +13,11 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar user={user} />
-      <main className="lg:ml-60 min-h-screen transition-all duration-300">
+      <Sidebar user={user} onCollapsedChange={setSidebarCollapsed} />
+      <main
+        className="min-h-screen transition-all duration-300"
+        style={{ marginLeft: sidebarCollapsed ? '4rem' : '15rem' }}
+      >
         <div className="p-4 sm:p-6 lg:p-8 pt-14 lg:pt-8">
           <Outlet context={{ user }} />
         </div>

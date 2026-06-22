@@ -26,10 +26,16 @@ const allMenuItems = {
   usuarios: { label: 'Usuários', icon: Settings, path: '/usuarios' },
 };
 
-export default function Sidebar({ user }) {
+export default function Sidebar({ user, onCollapsedChange }) {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    onCollapsedChange?.(next);
+  };
 
   const userRole = user?.role || ROLES.CLINICO;
   const roleMenuKeys = {
@@ -121,7 +127,7 @@ export default function Sidebar({ user }) {
 
       {/* Collapse button - desktop only */}
       <button
-        onClick={() => setCollapsed(!collapsed)}
+        onClick={toggleCollapsed}
         className="hidden lg:flex items-center justify-center py-3 border-t border-sidebar-border text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors"
       >
         {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
