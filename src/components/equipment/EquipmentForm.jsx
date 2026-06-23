@@ -21,6 +21,9 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
     warranty_end: equipment?.warranty_end || '',
     criticality: equipment?.criticality || '',
     operational_status: equipment?.operational_status || 'Ativo',
+    weekly_usage_hours: equipment?.weekly_usage_hours || '',
+    total_operators: equipment?.total_operators || '',
+    trained_operators: equipment?.trained_operators || '',
   });
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
@@ -29,6 +32,9 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
     e.preventDefault();
     const data = { ...form };
     if (data.acquisition_value) data.acquisition_value = parseFloat(data.acquisition_value);
+    if (data.weekly_usage_hours) data.weekly_usage_hours = parseFloat(data.weekly_usage_hours);
+    if (data.total_operators) data.total_operators = parseInt(data.total_operators);
+    if (data.trained_operators) data.trained_operators = parseInt(data.trained_operators);
     onSubmit(data);
   };
 
@@ -106,6 +112,18 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
               <SelectItem value="Inativo/Baixado">Inativo/Baixado</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Horas de Uso / Semana</Label>
+          <Input type="number" step="0.5" placeholder="Ex: 40" value={form.weekly_usage_hours} onChange={e => update('weekly_usage_hours', e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Nº de Operadores</Label>
+          <Input type="number" placeholder="Ex: 10" value={form.total_operators} onChange={e => update('total_operators', e.target.value)} />
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Operadores Treinados</Label>
+          <Input type="number" placeholder="Ex: 8" value={form.trained_operators} onChange={e => update('trained_operators', e.target.value)} />
         </div>
       </div>
 

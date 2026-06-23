@@ -180,6 +180,7 @@ export default function Equipment() {
           {viewingItem && (
             <EquipmentDetail
               equipment={viewingItem}
+              allEquipment={equipment}
               onEdit={isReadOnly ? undefined : () => { setViewingItem(null); setEditingItem(viewingItem); setShowForm(true); }}
             />
           )}

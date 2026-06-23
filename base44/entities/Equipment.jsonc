@@ -98,6 +98,18 @@
     "image_url": {
       "type": "string",
       "description": "Foto do equipamento"
+    },
+    "weekly_usage_hours": {
+      "type": "number",
+      "description": "Horas m\u00e9dias de uso por semana"
+    },
+    "total_operators": {
+      "type": "number",
+      "description": "N\u00famero de operadores que utilizam o equipamento"
+    },
+    "trained_operators": {
+      "type": "number",
+      "description": "N\u00famero de operadores treinados"
     }
   },
   "required": [
