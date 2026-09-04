@@ -1,57 +1,146 @@
 {
   "name": "ServiceOrder",
-  "type": "object",
   "properties": {
-    "code": {
-      "type": "string",
-      "description": "C\u00f3digo da OS (gerado automaticamente)"
+    "attachments": {
+      "description": "Anexos e fotos",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     },
-    "type": {
-      "type": "string",
+    "code": {
+      "description": "C\u00f3digo da OS (gerado automaticamente)",
+      "type": "string"
+    },
+    "completion_date": {
+      "description": "Data/hora da conclus\u00e3o",
+      "format": "date-time",
+      "type": "string"
+    },
+    "equipment_criticality": {
+      "description": "Criticidade do equipamento (copiada do cadastro no momento da abertura) \u2014 usada para sugerir a prioridade automaticamente. N\u00e3o editar manualmente.",
       "enum": [
-        "Preventiva",
-        "Corretiva",
-        "Calibra\u00e7\u00e3o",
-        "Instala\u00e7\u00e3o"
+        "Suporte \u00e0 Vida",
+        "Terap\u00eautico",
+        "Diagn\u00f3stico",
+        "Apoio"
       ],
-      "description": "Tipo de servi\u00e7o"
+      "type": "string"
+    },
+    "equipment_id": {
+      "description": "ID do equipamento vinculado",
+      "type": "string"
+    },
+    "equipment_name": {
+      "description": "Nome do equipamento (cache)",
+      "type": "string"
+    },
+    "execution_by": {
+      "default": "Equipe Interna",
+      "description": "Execu\u00e7\u00e3o por",
+      "enum": [
+        "Equipe Interna",
+        "Fornecedor Externo"
+      ],
+      "type": "string"
+    },
+    "open_date": {
+      "description": "Data/hora de abertura",
+      "format": "date-time",
+      "type": "string"
     },
     "origin": {
-      "type": "string",
+      "default": "Manual",
+      "description": "Origem do chamado",
       "enum": [
         "Manual",
         "Agendada",
         "Sugerida por IA"
       ],
-      "default": "Manual",
-      "description": "Origem do chamado"
+      "type": "string"
     },
-    "equipment_id": {
-      "type": "string",
-      "description": "ID do equipamento vinculado"
+    "parts_used": {
+      "description": "Pe\u00e7as e insumos utilizados nesta OS",
+      "items": {
+        "properties": {
+          "cost": {
+            "type": "number"
+          },
+          "name": {
+            "description": "Nome da pe\u00e7a (cache, copiado de SparePart no momento do uso)",
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number"
+          },
+          "spare_part_id": {
+            "description": "ID da pe\u00e7a \u2014 deve referenciar um registro real da entidade SparePart. Ao salvar, o current_stock dessa pe\u00e7a deve ser decrementado pela quantity informada.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
     },
-    "equipment_name": {
-      "type": "string",
-      "description": "Nome do equipamento (cache)"
+    "priority": {
+      "default": "M\u00e9dia",
+      "description": "Prioridade \u2014 sugerida automaticamente a partir de equipment_criticality, mas pode ser sobrescrita manualmente (registrar motivo em priority_override_reason)",
+      "enum": [
+        "Baixa",
+        "M\u00e9dia",
+        "Alta",
+        "Cr\u00edtica"
+      ],
+      "type": "string"
+    },
+    "priority_override_reason": {
+      "description": "Justificativa obrigat\u00f3ria quando a prioridade \u00e9 alterada manualmente e diverge da sugest\u00e3o baseada na criticidade do equipamento",
+      "type": "string"
+    },
+    "problem_description": {
+      "description": "Descri\u00e7\u00e3o do problema",
+      "type": "string"
     },
     "requester_id": {
-      "type": "string",
-      "description": "ID do solicitante"
+      "description": "ID do solicitante \u2014 deve referenciar um registro real da entidade User (n\u00e3o usar texto livre)",
+      "type": "string"
     },
     "requester_name": {
-      "type": "string",
-      "description": "Nome do solicitante"
+      "description": "Nome do solicitante (cache)",
+      "type": "string"
     },
-    "technician_id": {
-      "type": "string",
-      "description": "ID do t\u00e9cnico respons\u00e1vel"
+    "scheduled_date": {
+      "description": "Data/hora de agendamento",
+      "format": "date-time",
+      "type": "string"
     },
-    "technician_name": {
-      "type": "string",
-      "description": "Nome do t\u00e9cnico respons\u00e1vel"
+    "sector": {
+      "description": "Setor de origem",
+      "type": "string"
+    },
+    "sla_deadline": {
+      "description": "Prazo limite calculado (open_date + sla_response_hours/sla_resolution_hours do Contract vinculado ao equipamento). Null quando n\u00e3o h\u00e1 contrato/SLA aplic\u00e1vel.",
+      "format": "date-time",
+      "type": "string"
+    },
+    "sla_status": {
+      "default": "Sem SLA Definido",
+      "description": "Status do cumprimento do SLA, calculado comparando a data atual (ou completion_date) com sla_deadline",
+      "enum": [
+        "Dentro do Prazo",
+        "Atrasado",
+        "Sem SLA Definido"
+      ],
+      "type": "string"
+    },
+    "start_date": {
+      "description": "Data/hora do in\u00edcio do atendimento",
+      "format": "date-time",
+      "type": "string"
     },
     "status": {
-      "type": "string",
+      "default": "Novo",
+      "description": "Status da OS",
       "enum": [
         "Novo",
         "Em Andamento",
@@ -60,98 +149,43 @@
         "Pendente",
         "Conclu\u00eddo"
       ],
-      "default": "Novo",
-      "description": "Status da OS"
-    },
-    "priority": {
-      "type": "string",
-      "enum": [
-        "Baixa",
-        "M\u00e9dia",
-        "Alta",
-        "Cr\u00edtica"
-      ],
-      "default": "M\u00e9dia",
-      "description": "Prioridade"
-    },
-    "open_date": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Data/hora de abertura"
-    },
-    "scheduled_date": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Data/hora de agendamento"
-    },
-    "start_date": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Data/hora do in\u00edcio do atendimento"
-    },
-    "completion_date": {
-      "type": "string",
-      "format": "date-time",
-      "description": "Data/hora da conclus\u00e3o"
-    },
-    "problem_description": {
-      "type": "string",
-      "description": "Descri\u00e7\u00e3o do problema"
-    },
-    "technical_report": {
-      "type": "string",
-      "description": "Laudo t\u00e9cnico"
-    },
-    "parts_used": {
-      "type": "array",
-      "description": "Pe\u00e7as e insumos utilizados",
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "quantity": {
-            "type": "number"
-          },
-          "cost": {
-            "type": "number"
-          }
-        }
-      }
-    },
-    "total_cost": {
-      "type": "number",
-      "description": "Custo total"
-    },
-    "execution_by": {
-      "type": "string",
-      "enum": [
-        "Equipe Interna",
-        "Fornecedor Externo"
-      ],
-      "default": "Equipe Interna",
-      "description": "Execu\u00e7\u00e3o por"
+      "type": "string"
     },
     "supplier_rating": {
-      "type": "number",
-      "description": "Nota do fornecedor (1-5)"
+      "description": "Nota do fornecedor (1-5)",
+      "type": "number"
     },
-    "attachments": {
-      "type": "array",
-      "description": "Anexos e fotos",
-      "items": {
-        "type": "string"
-      }
+    "technical_report": {
+      "description": "Laudo t\u00e9cnico",
+      "type": "string"
     },
-    "sector": {
-      "type": "string",
-      "description": "Setor de origem"
+    "technician_id": {
+      "description": "ID do t\u00e9cnico respons\u00e1vel \u2014 deve referenciar um registro real da entidade TechTeam (n\u00e3o usar c\u00f3digos avulsos como 'tech-001')",
+      "type": "string"
+    },
+    "technician_name": {
+      "description": "Nome do t\u00e9cnico respons\u00e1vel (cache)",
+      "type": "string"
+    },
+    "total_cost": {
+      "description": "Custo total",
+      "type": "number"
+    },
+    "type": {
+      "description": "Tipo de servi\u00e7o",
+      "enum": [
+        "Preventiva",
+        "Corretiva",
+        "Calibra\u00e7\u00e3o",
+        "Instala\u00e7\u00e3o"
+      ],
+      "type": "string"
     }
   },
   "required": [
     "type",
     "equipment_id",
     "problem_description"
-  ]
+  ],
+  "type": "object"
 }
