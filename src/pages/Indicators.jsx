@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useOutletContext } from 'react-router-dom';
@@ -6,12 +6,14 @@ import { differenceInDays, parseISO, subMonths } from 'date-fns';
 import KpiCards from '@/components/indicators/KpiCards';
 import CostBySector from '@/components/indicators/CostBySector';
 import PreventiveCompliance from '@/components/indicators/PreventiveCompliance';
-import EquipmentPerformanceTable from '@/components/indicators/EquipmentPerformanceTable';
+import EquipmentIndicatorsTable from '@/components/indicators/EquipmentIndicatorsTable';
+import IndicatorDetailDialog from '@/components/indicators/IndicatorDetailDialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { computeMTTR, computeMTBF } from '@/lib/maintenance';
+import { computeMTTR } from '@/lib/maintenance';
 
 export default function Indicators() {
   useOutletContext();
+  const [dialog, setDialog] = useState({ open: false, view: null, equipmentId: null, equipmentName: null });
 
   const { data: equipment = [], isLoading: loadingEq } = useQuery({
     queryKey: ['equipment'],
@@ -28,24 +30,44 @@ export default function Indicators() {
 
   const isLoading = loadingEq || loadingOrders || loadingPlans;
 
-  const kpis = useMemo(() => {
-    const mttr = computeMTTR(orders);
+  // Indicadores por equipamento vindos do MaintenancePlan (mttr_hours / mtbf_hours)
+  const equipmentIndicators = useMemo(() => {
+    return plans
+      .map((p) => {
+        const eq = equipment.find((e) => e.id === p.equipment_id);
+        return {
+          equipment_id: p.equipment_id,
+          equipment_name: p.equipment_name || eq?.name || '—',
+          criticality: eq?.criticality,
+          mttr_hours: p.mttr_hours,
+          mtbf_hours: p.mtbf_hours,
+          operational_status: eq?.operational_status,
+        };
+      })
+      .filter((r) => r.mttr_hours != null || r.mtbf_hours != null);
+  }, [plans, equipment]);
 
-    const mtbfValues = equipment
-      .map((eq) => computeMTBF(eq, orders))
-      .filter((v) => v != null);
-    const avgMtbf = mtbfValues.length ? mtbfValues.reduce((a, b) => a + b, 0) / mtbfValues.length : null;
+  const avgMttr = useMemo(() => {
+    const vals = equipmentIndicators.map((r) => r.mttr_hours).filter((v) => v != null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }, [equipmentIndicators]);
 
-    const activeEq = equipment.filter((e) => e.operational_status === 'Ativo').length;
-    const availability = equipment.length ? Math.round((activeEq / equipment.length) * 100) : 0;
+  const avgMtbf = useMemo(() => {
+    const vals = equipmentIndicators.map((r) => r.mtbf_hours).filter((v) => v != null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }, [equipmentIndicators]);
 
+  const availability = useMemo(() => {
+    if (!equipment.length) return 0;
+    return Math.round((equipment.filter((e) => e.operational_status === 'Ativo').length / equipment.length) * 100);
+  }, [equipment]);
+
+  const totalCost12m = useMemo(() => {
     const twelveMonthsAgo = subMonths(new Date(), 12);
-    const totalCost12m = orders
+    return orders
       .filter((o) => o.open_date && parseISO(o.open_date) > twelveMonthsAgo)
       .reduce((sum, o) => sum + (o.total_cost || 0), 0);
-
-    return { mttr, avgMtbf, availability, totalCost12m };
-  }, [equipment, orders]);
+  }, [orders]);
 
   const costBySector = useMemo(() => {
     const map = {};
@@ -54,9 +76,7 @@ export default function Indicators() {
       const sector = o.sector || 'Não informado';
       map[sector] = (map[sector] || 0) + o.total_cost;
     });
-    return Object.entries(map)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
   }, [orders]);
 
   const costByEquipment = useMemo(() => {
@@ -65,10 +85,7 @@ export default function Indicators() {
       if (!o.total_cost || !o.equipment_name) return;
       map[o.equipment_name] = (map[o.equipment_name] || 0) + o.total_cost;
     });
-    return Object.entries(map)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 10);
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value).slice(0, 10);
   }, [orders]);
 
   const preventive = useMemo(() => {
@@ -84,28 +101,9 @@ export default function Indicators() {
     return { onSchedule, atRisk, overdue, total: activePlans.length };
   }, [plans]);
 
-  const perfRows = useMemo(() => {
-    return equipment.map((eq) => {
-      const eqOrders = orders.filter((o) => o.equipment_id === eq.id);
-      const completed = eqOrders.filter((o) => o.status === 'Concluído' && o.start_date && o.completion_date);
-      const eqMttr = completed.length
-        ? completed.reduce((s, o) => s + (parseISO(o.completion_date) - parseISO(o.start_date)) / (1000 * 60 * 60), 0) / completed.length
-        : null;
-      const correctiveCount = eqOrders.filter((o) => o.type === 'Corretiva').length;
-      const cost = eqOrders.reduce((s, o) => s + (o.total_cost || 0), 0);
-      return {
-        id: eq.id,
-        name: eq.name,
-        criticality: eq.criticality,
-        mttr: eqMttr,
-        mtbf: computeMTBF(eq, orders),
-        correctiveCount,
-        cost,
-        status: eq.operational_status,
-      };
-    }).filter((r) => r.correctiveCount > 0 || r.mttr != null || r.cost > 0)
-      .sort((a, b) => b.correctiveCount - a.correctiveCount);
-  }, [equipment, orders]);
+  const openDialog = (view, equipmentId = null, equipmentName = null) =>
+    setDialog({ open: true, view, equipmentId, equipmentName });
+  const closeDialog = () => setDialog({ open: false, view: null, equipmentId: null, equipmentName: null });
 
   if (isLoading) {
     return (
@@ -123,16 +121,38 @@ export default function Indicators() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold font-display">Indicadores</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">KPIs de engenharia clínica — MTTR, MTBF, disponibilidade e custos</p>
+        <p className="text-sm text-muted-foreground mt-0.5">KPIs de engenharia clínica por equipamento — MTTR, MTBF, disponibilidade e custos</p>
       </div>
 
-      <KpiCards {...kpis} />
+      <KpiCards
+        mttr={avgMttr}
+        avgMtbf={avgMtbf}
+        availability={availability}
+        totalCost12m={totalCost12m}
+        onCardClick={(key) => openDialog(key)}
+      />
+
+      <EquipmentIndicatorsTable
+        rows={equipmentIndicators}
+        avgMttr={avgMttr}
+        avgMtbf={avgMtbf}
+        onRowClick={(id, name) => openDialog('equipment-orders', id, name)}
+      />
 
       <PreventiveCompliance {...preventive} />
 
       <CostBySector costBySector={costBySector} costByEquipment={costByEquipment} />
 
-      <EquipmentPerformanceTable rows={perfRows} />
+      <IndicatorDetailDialog
+        open={dialog.open}
+        onOpenChange={(o) => !o && closeDialog()}
+        view={dialog.view}
+        equipmentId={dialog.equipmentId}
+        equipmentName={dialog.equipmentName}
+        indicators={equipmentIndicators}
+        equipment={equipment}
+        orders={orders}
+      />
     </div>
   );
 }
