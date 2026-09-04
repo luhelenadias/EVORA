@@ -62,6 +62,18 @@
         "type": "string"
       }
     },
+    "sla_response_hours": {
+      "type": "number",
+      "description": "Tempo de resposta contratual (horas)"
+    },
+    "sla_resolution_hours": {
+      "type": "number",
+      "description": "Tempo de resolu\u00e7\u00e3o contratual / SLA (horas)"
+    },
+    "warranty_terms": {
+      "type": "string",
+      "description": "Termos de garantia"
+    },
     "status": {
       "type": "string",
       "enum": [

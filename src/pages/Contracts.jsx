@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { FileText, Search, Pencil, AlertTriangle } from 'lucide-react';
+import { FileText, Search, Pencil, AlertTriangle, Clock } from 'lucide-react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
@@ -53,6 +53,9 @@ export default function Contracts() {
       monthly_value: item?.monthly_value || '',
       total_value: item?.total_value || '',
       preventive_frequency: item?.preventive_frequency || '',
+      sla_response_hours: item?.sla_response_hours || '',
+      sla_resolution_hours: item?.sla_resolution_hours || '',
+      warranty_terms: item?.warranty_terms || '',
       status: item?.status || 'Ativo',
       notes: item?.notes || '',
     });
@@ -64,6 +67,8 @@ export default function Contracts() {
     const data = { ...form };
     if (data.monthly_value) data.monthly_value = parseFloat(data.monthly_value);
     if (data.total_value) data.total_value = parseFloat(data.total_value);
+    if (data.sla_response_hours) data.sla_response_hours = parseFloat(data.sla_response_hours);
+    if (data.sla_resolution_hours) data.sla_resolution_hours = parseFloat(data.sla_resolution_hours);
     if (editingItem) {
       updateMutation.mutate({ id: editingItem.id, data });
     } else {
@@ -221,6 +226,23 @@ export default function Contracts() {
                     <SelectItem value="Cancelado">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            </div>
+            <div className="col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 rounded-lg bg-muted/40 border">
+              <div className="col-span-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <Clock className="w-3.5 h-3.5" /> SLA Contratual
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tempo de Resposta (horas)</Label>
+                <Input type="number" step="1" placeholder="Ex: 4" value={form.sla_response_hours} onChange={e => setForm(p => ({...p, sla_response_hours: e.target.value}))} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tempo de Resolução / SLA (horas)</Label>
+                <Input type="number" step="1" placeholder="Ex: 48" value={form.sla_resolution_hours} onChange={e => setForm(p => ({...p, sla_resolution_hours: e.target.value}))} />
+              </div>
+              <div className="col-span-2 space-y-1.5">
+                <Label className="text-xs">Termos de Garantia</Label>
+                <Input value={form.warranty_terms} onChange={e => setForm(p => ({...p, warranty_terms: e.target.value}))} placeholder="Ex: 12 meses sobre peças e mão de obra" />
               </div>
             </div>
             <div className="space-y-1.5">

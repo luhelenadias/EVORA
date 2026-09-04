@@ -14,8 +14,8 @@ export const ROLE_LABELS = {
 };
 
 export const MENU_BY_ROLE = {
-  admin: ['dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes', 'contratos', 'pecas', 'usuarios'],
-  gestor: ['dashboard', 'chamados', 'manutencoes', 'equipamentos', 'contratos_readonly'],
+  admin: ['dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes', 'contratos', 'pecas', 'usuarios', 'indicadores'],
+  gestor: ['dashboard', 'chamados', 'manutencoes', 'equipamentos', 'contratos_readonly', 'indicadores'],
   tecnico: ['meus_chamados', 'agenda_manutencoes', 'equipamentos_readonly'],
   clinico: ['abrir_chamado', 'meus_chamados'],
 };

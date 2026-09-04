@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Wrench, Monitor, Users, FileText,
   ClipboardList, Settings, ChevronLeft, ChevronRight,
-  PlusCircle, Calendar, Package, LogOut, Menu, X, Activity
+  PlusCircle, Calendar, Package, LogOut, Menu, X, Activity, BarChart2
 } from 'lucide-react';
 import { ROLES, ROLE_LABELS } from '@/lib/roles';
 import { base44 } from '@/api/base44Client';
@@ -23,6 +23,7 @@ const allMenuItems = {
   contratos: { label: 'Contratos', icon: FileText, path: '/contratos' },
   contratos_readonly: { label: 'Contratos', icon: FileText, path: '/contratos' },
   pecas: { label: 'Peças', icon: Package, path: '/pecas' },
+  indicadores: { label: 'Indicadores', icon: BarChart2, path: '/indicadores' },
   usuarios: { label: 'Usuários', icon: Settings, path: '/usuarios' },
 };
 
@@ -39,8 +40,8 @@ export default function Sidebar({ user, onCollapsedChange }) {
 
   const userRole = user?.role || ROLES.CLINICO;
   const roleMenuKeys = {
-    admin: ['dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes', 'contratos', 'pecas', 'usuarios'],
-    gestor: ['dashboard', 'chamados', 'equipamentos_readonly', 'manutencoes', 'contratos_readonly'],
+    admin: ['dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes', 'contratos', 'pecas', 'indicadores', 'usuarios'],
+    gestor: ['dashboard', 'chamados', 'equipamentos_readonly', 'manutencoes', 'contratos_readonly', 'indicadores'],
     tecnico: ['meus_chamados', 'agenda_manutencoes', 'equipamentos_readonly'],
     clinico: ['abrir_chamado', 'meus_chamados'],
   };

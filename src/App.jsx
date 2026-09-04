@@ -24,6 +24,7 @@ import Contracts from '@/pages/Contracts';
 import TechTeam from '@/pages/TechTeam';
 import SpareParts from '@/pages/SpareParts';
 import Users from '@/pages/Users';
+import Indicators from '@/pages/Indicators';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -65,6 +66,7 @@ const AuthenticatedApp = () => {
           <Route path="/equipe" element={<TechTeam />} />
           <Route path="/pecas" element={<SpareParts />} />
           <Route path="/usuarios" element={<Users />} />
+          <Route path="/indicadores" element={<Indicators />} />
         </Route>
       </Route>
 

@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { suggestPriority } from '@/lib/maintenance';
 
 export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }) {
   const { data: equipment = [] } = useQuery({
@@ -39,14 +40,18 @@ export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }
 
   const handleEquipmentChange = (eqId) => {
     const eq = equipment.find(e => e.id === eqId);
-    update('equipment_id', eqId);
     if (eq) {
+      // Priorização inteligente: sugere prioridade com base na criticidade (apenas em novo chamado)
+      const suggested = !order ? suggestPriority(eq.criticality) : undefined;
       setForm(prev => ({
         ...prev,
         equipment_id: eqId,
         equipment_name: eq.name,
         sector: eq.location_sector || prev.sector,
+        ...(suggested ? { priority: suggested } : {}),
       }));
+    } else {
+      update('equipment_id', eqId);
     }
   };
 
