@@ -1,0 +1,21 @@
+{
+  "name": "ConfiguracaoInstituicao",
+  "properties": {
+    "avancado_usa_utilizacao": {
+      "default": false,
+      "description": "Se verdadeiro, o modelo avan\u00e7ado passa a exigir e usar o campo utilizacao_u no c\u00e1lculo do EMR",
+      "type": "boolean"
+    },
+    "modelo_priorizacao": {
+      "default": "simples",
+      "description": "Modelo de prioriza\u00e7\u00e3o de manuten\u00e7\u00e3o adotado pela institui\u00e7\u00e3o",
+      "enum": [
+        "simples",
+        "avancado"
+      ],
+      "type": "string"
+    }
+  },
+  "required": [],
+  "type": "object"
+}

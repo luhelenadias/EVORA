@@ -1,120 +1,175 @@
 {
   "name": "Equipment",
-  "type": "object",
   "properties": {
-    "name": {
-      "type": "string",
-      "description": "Nome do equipamento"
-    },
-    "manufacturer": {
-      "type": "string",
-      "description": "Fabricante"
-    },
-    "model": {
-      "type": "string",
-      "description": "Modelo"
-    },
-    "serial_number": {
-      "type": "string",
-      "description": "N\u00famero de s\u00e9rie"
-    },
-    "anvisa_registry": {
-      "type": "string",
-      "description": "Registro ANVISA"
-    },
-    "patrimony_number": {
-      "type": "string",
-      "description": "N\u00famero de patrim\u00f4nio"
-    },
-    "location_unit": {
-      "type": "string",
-      "description": "Unidade de localiza\u00e7\u00e3o"
-    },
-    "location_sector": {
-      "type": "string",
-      "description": "Setor de localiza\u00e7\u00e3o"
-    },
     "acquisition_date": {
-      "type": "string",
+      "description": "Data de aquisi\u00e7\u00e3o",
       "format": "date",
-      "description": "Data de aquisi\u00e7\u00e3o"
-    },
-    "installation_date": {
-      "type": "string",
-      "format": "date",
-      "description": "Data de instala\u00e7\u00e3o"
+      "type": "string"
     },
     "acquisition_value": {
-      "type": "number",
-      "description": "Valor de aquisi\u00e7\u00e3o (R$)"
+      "description": "Valor de aquisi\u00e7\u00e3o (R$)",
+      "type": "number"
     },
-    "warranty_end": {
-      "type": "string",
-      "format": "date",
-      "description": "Fim da garantia"
+    "anvisa_registry": {
+      "description": "Registro ANVISA",
+      "type": "string"
+    },
+    "attachments": {
+      "description": "Anexos (manuais, certificados, fotos)",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "contract_id": {
+      "description": "ID do contrato vinculado",
+      "type": "string"
     },
     "criticality": {
-      "type": "string",
+      "description": "N\u00edvel de criticidade",
       "enum": [
         "Suporte \u00e0 Vida",
         "Terap\u00eautico",
         "Diagn\u00f3stico",
         "Apoio"
       ],
-      "description": "N\u00edvel de criticidade"
+      "type": "string"
+    },
+    "funcao_f": {
+      "description": "Modelo Simples (Fennigkoh & Smith) \u2014 Fun\u00e7\u00e3o (F). Sempre obrigat\u00f3rio, independente do modelo de prioriza\u00e7\u00e3o ativo.",
+      "type": "number"
+    },
+    "image_url": {
+      "description": "Foto do equipamento",
+      "type": "string"
+    },
+    "installation_date": {
+      "description": "Data de instala\u00e7\u00e3o",
+      "format": "date",
+      "type": "string"
+    },
+    "last_calibration_date": {
+      "description": "Data da \u00faltima calibra\u00e7\u00e3o",
+      "format": "date",
+      "type": "string"
+    },
+    "location_sector": {
+      "description": "Setor de localiza\u00e7\u00e3o",
+      "type": "string"
+    },
+    "location_unit": {
+      "description": "Unidade de localiza\u00e7\u00e3o",
+      "type": "string"
+    },
+    "manufacturer": {
+      "description": "Fabricante",
+      "type": "string"
+    },
+    "manutencao_m": {
+      "description": "Modelo Avan\u00e7ado \u2014 Manuten\u00e7\u00e3o (M), mesma escala de requisitos_manutencao_mr. Obrigat\u00f3rio apenas no modelo avan\u00e7ado.",
+      "type": "number"
+    },
+    "mission_critical_mc": {
+      "description": "Modelo Avan\u00e7ado \u2014 Mission Critical (MC), escala 1 a 10. Obrigat\u00f3rio apenas se ConfiguracaoInstituicao.modelo_priorizacao = 'avancado'.",
+      "maximum": 10,
+      "minimum": 1,
+      "type": "number"
+    },
+    "model": {
+      "description": "Modelo",
+      "type": "string"
+    },
+    "name": {
+      "description": "Nome do equipamento",
+      "type": "string"
+    },
+    "next_calibration_date": {
+      "description": "Data da pr\u00f3xima calibra\u00e7\u00e3o",
+      "format": "date",
+      "type": "string"
     },
     "operational_status": {
-      "type": "string",
+      "default": "Ativo",
+      "description": "Status operacional",
       "enum": [
         "Ativo",
         "Em Manuten\u00e7\u00e3o",
         "Parado",
         "Inativo/Baixado"
       ],
-      "default": "Ativo",
-      "description": "Status operacional"
+      "type": "string"
     },
-    "contract_id": {
-      "type": "string",
-      "description": "ID do contrato vinculado"
+    "patrimony_number": {
+      "description": "N\u00famero de patrim\u00f4nio",
+      "type": "string"
     },
-    "attachments": {
-      "type": "array",
-      "description": "Anexos (manuais, certificados, fotos)",
-      "items": {
-        "type": "string"
-      }
+    "prioridade_alta": {
+      "default": false,
+      "description": "Verdadeiro se prioridade_score atingir o limiar de alta prioridade (EM >= 12 no modelo simples).",
+      "type": "boolean"
     },
-    "last_calibration_date": {
-      "type": "string",
-      "format": "date",
-      "description": "Data da \u00faltima calibra\u00e7\u00e3o"
+    "prioridade_score": {
+      "description": "Resultado do c\u00e1lculo de prioriza\u00e7\u00e3o (EM no modelo simples, EMR no avan\u00e7ado). Calculado pelo sistema ao salvar/editar o equipamento.",
+      "type": "number"
     },
-    "next_calibration_date": {
-      "type": "string",
-      "format": "date",
-      "description": "Data da pr\u00f3xima calibra\u00e7\u00e3o"
+    "requisitos_manutencao_mr": {
+      "description": "Modelo Simples (Fennigkoh & Smith) \u2014 Requisitos de Manuten\u00e7\u00e3o (MR). Sempre obrigat\u00f3rio.",
+      "type": "number"
     },
-    "image_url": {
-      "type": "string",
-      "description": "Foto do equipamento"
+    "risco_fisico_pr": {
+      "description": "Modelo Simples (Fennigkoh & Smith) \u2014 Risco F\u00edsico (PR). Sempre obrigat\u00f3rio.",
+      "type": "number"
     },
-    "weekly_usage_hours": {
-      "type": "number",
-      "description": "Horas m\u00e9dias de uso por semana"
+    "risco_r": {
+      "description": "Modelo Avan\u00e7ado \u2014 Risco (R), crit\u00e9rio ECRI: Baixo=1, M\u00e9dio=3, Alto=5. Obrigat\u00f3rio apenas no modelo avan\u00e7ado.",
+      "enum": [
+        "Baixo",
+        "M\u00e9dio",
+        "Alto"
+      ],
+      "type": "string"
+    },
+    "serial_number": {
+      "description": "N\u00famero de s\u00e9rie",
+      "type": "string"
+    },
+    "status_priorizacao": {
+      "default": "pendente_atualizacao",
+      "description": "Calculado pelo sistema, n\u00e3o edit\u00e1vel pelo usu\u00e1rio. 'pendente_atualizacao' quando faltam campos obrigat\u00f3rios do modelo ativo.",
+      "enum": [
+        "calculado",
+        "pendente_atualizacao"
+      ],
+      "type": "string"
     },
     "total_operators": {
-      "type": "number",
-      "description": "N\u00famero de operadores que utilizam o equipamento"
+      "description": "N\u00famero de operadores que utilizam o equipamento",
+      "type": "number"
     },
     "trained_operators": {
-      "type": "number",
-      "description": "N\u00famero de operadores treinados"
+      "description": "N\u00famero de operadores treinados",
+      "type": "number"
+    },
+    "utilizacao_u": {
+      "description": "Modelo Avan\u00e7ado \u2014 Utiliza\u00e7\u00e3o (U), 0.0 a 1.0. Obrigat\u00f3rio apenas se avancado_usa_utilizacao = true.",
+      "maximum": 1,
+      "minimum": 0,
+      "type": "number"
+    },
+    "warranty_end": {
+      "description": "Fim da garantia",
+      "format": "date",
+      "type": "string"
+    },
+    "weekly_usage_hours": {
+      "description": "Horas m\u00e9dias de uso por semana",
+      "type": "number"
     }
   },
   "required": [
     "name",
     "serial_number",
     "criticality"
-  ]
+  ],
+  "type": "object"
 }
