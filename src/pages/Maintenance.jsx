@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Wrench, Sparkles, AlertTriangle, Calendar, Search } from 'lucide-react';
+import { Wrench, Sparkles, AlertTriangle, Calendar, Search, BarChart2, AlertCircle } from 'lucide-react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
@@ -19,14 +19,40 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import MaintenanceIndicators from '@/components/maintenance/MaintenanceIndicators';
+import MaintenancePending from '@/components/maintenance/MaintenancePending';
+import { useConfiguracao } from '@/hooks/useConfiguracao';
 
 export default function Maintenance() {
   const { user } = useOutletContext();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [search, setSearch] = useState('');
   const queryClient = useQueryClient();
   const isReadOnly = user?.role === 'tecnico';
+  const { config } = useConfiguracao();
+
+  const viewParam = searchParams.get('view');
+  const equipmentParam = searchParams.get('equipment');
+  const pendingCount = useQuery({
+    queryKey: ['equipment'],
+    queryFn: () => base44.entities.Equipment.list(),
+  }).data?.filter((e) => e.status_priorizacao === 'pendente_atualizacao').length || 0;
+  const showPendingTab = config?.modelo_priorizacao === 'avancado' && pendingCount > 0;
+  const activeTab = viewParam === 'indicators'
+    ? 'indicators'
+    : (viewParam === 'pendencias' && showPendingTab)
+      ? 'pending'
+      : 'plans';
+
+
+
+  const handleTabChange = (value) => {
+    if (value === 'plans') setSearchParams({});
+    else if (value === 'indicators') setSearchParams({ view: 'indicators' });
+    else if (value === 'pending') setSearchParams({ view: 'pendencias' });
+  };
 
   const { data: plans = [], isLoading } = useQuery({
     queryKey: ['maintenancePlans'],
@@ -136,15 +162,24 @@ export default function Maintenance() {
         </Card>
       </div>
 
-      <Tabs defaultValue="plans">
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
         <TabsList>
           <TabsTrigger value="plans">Planos de Manutenção</TabsTrigger>
+          <TabsTrigger value="indicators" className="gap-1.5">
+            <BarChart2 className="w-3.5 h-3.5" /> Indicadores por Equipamento
+          </TabsTrigger>
           <TabsTrigger value="ai" className="gap-1.5">
             <Sparkles className="w-3.5 h-3.5" /> Sugestões IA
             {aiSuggestions.length > 0 && (
               <Badge className="ml-1 h-5 text-[10px]">{aiSuggestions.length}</Badge>
             )}
           </TabsTrigger>
+          {showPendingTab && (
+            <TabsTrigger value="pending" className="gap-1.5">
+              <AlertCircle className="w-3.5 h-3.5" /> Pendências
+              <Badge className="ml-1 h-5 text-[10px] bg-amber-100 text-amber-700">{pendingCount}</Badge>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="plans" className="space-y-4 mt-4">
@@ -235,6 +270,16 @@ export default function Maintenance() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="indicators" className="space-y-4 mt-4">
+          <MaintenanceIndicators initialEquipmentId={equipmentParam} />
+        </TabsContent>
+
+        {showPendingTab && (
+          <TabsContent value="pending" className="space-y-4 mt-4">
+            <MaintenancePending />
+          </TabsContent>
+        )}
       </Tabs>
 
       {/* Form Dialog */}

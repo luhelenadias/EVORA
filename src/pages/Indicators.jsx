@@ -1,19 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { differenceInDays, parseISO, subMonths } from 'date-fns';
 import KpiCards from '@/components/indicators/KpiCards';
 import CostBySector from '@/components/indicators/CostBySector';
 import PreventiveCompliance from '@/components/indicators/PreventiveCompliance';
 import EquipmentIndicatorsTable from '@/components/indicators/EquipmentIndicatorsTable';
-import IndicatorDetailDialog from '@/components/indicators/IndicatorDetailDialog';
 import { Skeleton } from '@/components/ui/skeleton';
-import { computeMTTR } from '@/lib/maintenance';
 
 export default function Indicators() {
   useOutletContext();
-  const [dialog, setDialog] = useState({ open: false, view: null, equipmentId: null, equipmentName: null });
+  const navigate = useNavigate();
 
   const { data: equipment = [], isLoading: loadingEq } = useQuery({
     queryKey: ['equipment'],
@@ -101,10 +99,6 @@ export default function Indicators() {
     return { onSchedule, atRisk, overdue, total: activePlans.length };
   }, [plans]);
 
-  const openDialog = (view, equipmentId = null, equipmentName = null) =>
-    setDialog({ open: true, view, equipmentId, equipmentName });
-  const closeDialog = () => setDialog({ open: false, view: null, equipmentId: null, equipmentName: null });
-
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -129,30 +123,19 @@ export default function Indicators() {
         avgMtbf={avgMtbf}
         availability={availability}
         totalCost12m={totalCost12m}
-        onCardClick={(key) => openDialog(key)}
+        onCardClick={() => navigate('/manutencoes?view=indicators')}
       />
 
       <EquipmentIndicatorsTable
         rows={equipmentIndicators}
         avgMttr={avgMttr}
         avgMtbf={avgMtbf}
-        onRowClick={(id, name) => openDialog('equipment-orders', id, name)}
+        onRowClick={(id) => navigate(`/manutencoes?view=indicators&equipment=${id}`)}
       />
 
       <PreventiveCompliance {...preventive} />
 
       <CostBySector costBySector={costBySector} costByEquipment={costByEquipment} />
-
-      <IndicatorDetailDialog
-        open={dialog.open}
-        onOpenChange={(o) => !o && closeDialog()}
-        view={dialog.view}
-        equipmentId={dialog.equipmentId}
-        equipmentName={dialog.equipmentName}
-        indicators={equipmentIndicators}
-        equipment={equipment}
-        orders={orders}
-      />
     </div>
   );
 }

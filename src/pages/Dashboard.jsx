@@ -166,7 +166,7 @@ export default function Dashboard() {
 
       {showPendingCard && (
         <button
-          onClick={() => navigate('/equipamentos?filter=pendente')}
+          onClick={() => navigate('/manutencoes?view=pendencias')}
           className="flex items-center gap-3 w-full p-4 rounded-xl bg-amber-50 border border-amber-200 text-left hover:bg-amber-100/70 transition-colors"
         >
           <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
@@ -176,7 +176,7 @@ export default function Dashboard() {
             <p className="text-sm font-semibold text-amber-900">
               {pendingCount} equipamento{pendingCount !== 1 ? 's' : ''} pendente{pendingCount !== 1 ? 's' : ''} de atualização para o modelo avançado
             </p>
-            <p className="text-xs text-amber-700">Clique para ver a lista filtrada e completar os dados de priorização.</p>
+            <p className="text-xs text-amber-700">Clique para ver a lista na aba de Manutenção e completar os dados de priorização.</p>
           </div>
         </button>
       )}
