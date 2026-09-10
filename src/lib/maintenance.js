@@ -97,3 +97,64 @@ export function formatHours(hours) {
   if (hours < 24) return `${hours.toFixed(1)}h`;
   return `${(hours / 24).toFixed(1)} dias`;
 }
+
+// ── Priorização de manutenção (Fennigkoh & Smith / ECRI) ──────────
+export const RISCO_R_NUMERICO = { 'Baixo': 1, 'Médio': 3, 'Alto': 5 };
+export const LIMIAR_PRIORIDADE_ALTA = 12;
+
+/**
+ * Calcula status_priorizacao, prioridade_score e prioridade_alta conforme
+ * o modelo ativo da instituição (ConfiguracaoInstituicao).
+ * - Simples: EM = funcao_f + risco_fisico_pr + requisitos_manutencao_mr
+ * - Avançado s/ utilização: EMR = mission_critical_mc + 2*risco_r + 2*manutencao_m
+ * - Avançado c/ utilização: EMR = (mission_critical_mc + 2*manutencao_m) * utilizacao_u + 2*risco_r
+ * Se faltar campo obrigatório do modelo ativo → pendente_atualizacao (mantém último score).
+ */
+export function computePriorizacao(eq, config) {
+  const modelo = config?.modelo_priorizacao || 'simples';
+  const hasSimple =
+    eq.funcao_f != null && eq.risco_fisico_pr != null && eq.requisitos_manutencao_mr != null;
+
+  if (modelo === 'simples') {
+    if (!hasSimple) {
+      return {
+        status_priorizacao: 'pendente_atualizacao',
+        prioridade_score: eq.prioridade_score ?? null,
+        prioridade_alta: false,
+      };
+    }
+    const EM = eq.funcao_f + eq.risco_fisico_pr + eq.requisitos_manutencao_mr;
+    return {
+      status_priorizacao: 'calculado',
+      prioridade_score: EM,
+      prioridade_alta: EM >= LIMIAR_PRIORIDADE_ALTA,
+    };
+  }
+
+  // avancado
+  const hasAdvancedBase =
+    eq.mission_critical_mc != null && eq.risco_r != null && eq.manutencao_m != null;
+  const needsUtil = config?.avancado_usa_utilizacao === true;
+  const hasUtil = !needsUtil || eq.utilizacao_u != null;
+
+  if (!hasAdvancedBase || !hasUtil) {
+    return {
+      status_priorizacao: 'pendente_atualizacao',
+      prioridade_score: eq.prioridade_score ?? null,
+      prioridade_alta: eq.prioridade_alta ?? false,
+    };
+  }
+
+  const riscoNum = RISCO_R_NUMERICO[eq.risco_r] || 0;
+  let EMR;
+  if (needsUtil) {
+    EMR = (eq.mission_critical_mc + 2 * eq.manutencao_m) * eq.utilizacao_u + 2 * riscoNum;
+  } else {
+    EMR = eq.mission_critical_mc + 2 * riscoNum + 2 * eq.manutencao_m;
+  }
+  return {
+    status_priorizacao: 'calculado',
+    prioridade_score: EMR,
+    prioridade_alta: EMR >= LIMIAR_PRIORIDADE_ALTA,
+  };
+}

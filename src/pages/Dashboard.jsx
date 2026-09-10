@@ -1,19 +1,22 @@
 import React, { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import {
   Monitor, ClipboardList, AlertTriangle, FileText, Wrench,
-  CheckCircle, Clock, Activity
+  CheckCircle, Clock, Activity, AlertCircle
 } from 'lucide-react';
 import StatsGrid from '@/components/dashboard/StatsGrid';
 import ChartSection from '@/components/dashboard/ChartSection';
 import AlertsList from '@/components/dashboard/AlertsList';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { differenceInDays, parseISO } from 'date-fns';
 
 export default function Dashboard() {
   const { user } = useOutletContext();
+  const navigate = useNavigate();
+  const { config } = useConfiguracao();
 
   const { data: equipment = [], isLoading: loadingEq } = useQuery({
     queryKey: ['equipment'],
@@ -70,6 +73,12 @@ export default function Dashboard() {
       .sort((a, b) => b.value - a.value)
       .slice(0, 8);
   }, [orders]);
+
+  const pendingCount = useMemo(
+    () => equipment.filter(e => e.status_priorizacao === 'pendente_atualizacao').length,
+    [equipment]
+  );
+  const showPendingCard = config?.modelo_priorizacao === 'avancado' && pendingCount > 0;
 
   const alerts = useMemo(() => {
     const result = [];
@@ -154,6 +163,23 @@ export default function Dashboard() {
       </div>
 
       <StatsGrid stats={stats} />
+
+      {showPendingCard && (
+        <button
+          onClick={() => navigate('/equipamentos?filter=pendente')}
+          className="flex items-center gap-3 w-full p-4 rounded-xl bg-amber-50 border border-amber-200 text-left hover:bg-amber-100/70 transition-colors"
+        >
+          <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+            <AlertCircle className="w-5 h-5 text-amber-600" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-amber-900">
+              {pendingCount} equipamento{pendingCount !== 1 ? 's' : ''} pendente{pendingCount !== 1 ? 's' : ''} de atualização para o modelo avançado
+            </p>
+            <p className="text-xs text-amber-700">Clique para ver a lista filtrada e completar os dados de priorização.</p>
+          </div>
+        </button>
+      )}
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2">

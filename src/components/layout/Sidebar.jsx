@@ -25,6 +25,7 @@ const allMenuItems = {
   pecas: { label: 'Peças', icon: Package, path: '/pecas' },
   indicadores: { label: 'Indicadores', icon: BarChart2, path: '/indicadores' },
   usuarios: { label: 'Usuários', icon: Settings, path: '/usuarios' },
+  configuracoes: { label: 'Configurações', icon: Settings, path: '/configuracoes' },
 };
 
 export default function Sidebar({ user, onCollapsedChange }) {
@@ -40,7 +41,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
 
   const userRole = user?.role || ROLES.CLINICO;
   const roleMenuKeys = {
-    admin: ['dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes', 'contratos', 'pecas', 'indicadores', 'usuarios'],
+    admin: ['dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes', 'contratos', 'pecas', 'indicadores', 'usuarios', 'configuracoes'],
     gestor: ['dashboard', 'chamados', 'equipamentos_readonly', 'manutencoes', 'contratos_readonly', 'indicadores'],
     tecnico: ['meus_chamados', 'agenda_manutencoes', 'equipamentos_readonly'],
     clinico: ['abrir_chamado', 'meus_chamados'],

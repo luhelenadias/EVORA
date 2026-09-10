@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Monitor, Search, Eye } from 'lucide-react';
+import { Monitor, Search, Eye, AlertTriangle, Flame } from 'lucide-react';
+import { useConfiguracao } from '@/hooks/useConfiguracao';
+import { cn } from '@/lib/utils';
 import StatusBadge from '@/components/shared/StatusBadge';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
@@ -18,6 +21,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Equipment() {
   const { user } = useOutletContext();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pendingOnly = searchParams.get('filter') === 'pendente';
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [criticalityFilter, setCriticalityFilter] = useState('all');
@@ -25,6 +30,8 @@ export default function Equipment() {
   const [editingItem, setEditingItem] = useState(null);
   const [viewingItem, setViewingItem] = useState(null);
   const queryClient = useQueryClient();
+  const { config } = useConfiguracao();
+  const modeloAvancado = config?.modelo_priorizacao === 'avancado';
 
   const isReadOnly = user?.role === 'tecnico' || user?.role === 'gestor';
 
@@ -43,15 +50,21 @@ export default function Equipment() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['equipment'] }); setShowForm(false); setEditingItem(null); },
   });
 
-  const filtered = equipment.filter(e => {
-    const matchSearch = !search || 
-      e.name?.toLowerCase().includes(search.toLowerCase()) ||
-      e.serial_number?.toLowerCase().includes(search.toLowerCase()) ||
-      e.patrimony_number?.toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === 'all' || e.operational_status === statusFilter;
-    const matchCrit = criticalityFilter === 'all' || e.criticality === criticalityFilter;
-    return matchSearch && matchStatus && matchCrit;
-  });
+  const filtered = useMemo(() => {
+    const result = equipment.filter(e => {
+      const matchSearch = !search || 
+        e.name?.toLowerCase().includes(search.toLowerCase()) ||
+        e.serial_number?.toLowerCase().includes(search.toLowerCase()) ||
+        e.patrimony_number?.toLowerCase().includes(search.toLowerCase());
+      const matchStatus = statusFilter === 'all' || e.operational_status === statusFilter;
+      const matchCrit = criticalityFilter === 'all' || e.criticality === criticalityFilter;
+      const matchPending = !pendingOnly || e.status_priorizacao === 'pendente_atualizacao';
+      return matchSearch && matchStatus && matchCrit && matchPending;
+    });
+    // ordena por prioridade_score (maior primeiro); nulos por último
+    result.sort((a, b) => (b.prioridade_score ?? -1) - (a.prioridade_score ?? -1));
+    return result;
+  }, [equipment, search, statusFilter, criticalityFilter, pendingOnly]);
 
   const handleSubmit = (data) => {
     if (editingItem) {
@@ -79,6 +92,16 @@ export default function Equipment() {
         onAdd={isReadOnly ? undefined : () => { setEditingItem(null); setShowForm(true); }}
         addLabel="Novo Equipamento"
       />
+
+      {pendingOnly && (
+        <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+          <div className="flex items-center gap-2 text-sm text-amber-800">
+            <AlertTriangle className="w-4 h-4" />
+            <span>Mostrando apenas equipamentos pendentes de atualização para o modelo avançado.</span>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setSearchParams({})}>Ver todos</Button>
+        </div>
+      )}
 
       {/* Filters */}
       <Card>
@@ -126,22 +149,36 @@ export default function Equipment() {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="text-xs font-semibold">Nome</TableHead>
-                  <TableHead className="text-xs font-semibold">Patrimônio</TableHead>
-                  <TableHead className="text-xs font-semibold hidden md:table-cell">Fabricante</TableHead>
+                  <TableHead className="text-xs font-semibold hidden md:table-cell">Patrimônio</TableHead>
                   <TableHead className="text-xs font-semibold hidden lg:table-cell">Setor</TableHead>
                   <TableHead className="text-xs font-semibold">Criticidade</TableHead>
+                  <TableHead className="text-xs font-semibold text-center">Score</TableHead>
                   <TableHead className="text-xs font-semibold">Status</TableHead>
                   <TableHead className="text-xs font-semibold w-16">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map(eq => (
-                  <TableRow key={eq.id} className="cursor-pointer hover:bg-muted/30" onClick={() => setViewingItem(eq)}>
-                    <TableCell className="font-medium text-sm">{eq.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{eq.patrimony_number || '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{eq.manufacturer || '—'}</TableCell>
+                  <TableRow
+                    key={eq.id}
+                    className={cn('cursor-pointer hover:bg-muted/30', eq.prioridade_alta && 'bg-amber-50/60 border-l-4 border-l-amber-400')}
+                    onClick={() => setViewingItem(eq)}
+                  >
+                    <TableCell className="font-medium text-sm">
+                      <div className="flex items-center gap-1.5">
+                        {eq.prioridade_alta && <Flame className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
+                        {eq.name}
+                        {eq.status_priorizacao === 'pendente_atualizacao' && modeloAvancado && (
+                          <Badge variant="outline" className="ml-1 text-[10px] border-amber-300 text-amber-700 bg-amber-50">Pendente</Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{eq.patrimony_number || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{eq.location_sector || '—'}</TableCell>
                     <TableCell><StatusBadge value={eq.criticality} type="criticality" /></TableCell>
+                    <TableCell className="text-sm text-center tabular-nums font-semibold">
+                      {eq.prioridade_score != null ? eq.prioridade_score : '—'}
+                    </TableCell>
                     <TableCell><StatusBadge value={eq.operational_status} /></TableCell>
                     <TableCell>
                       <Button variant="ghost" size="icon" className="h-8 w-8" onClick={e => { e.stopPropagation(); setViewingItem(eq); }}>
