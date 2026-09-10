@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Wrench, Monitor, Users, FileText,
   ClipboardList, Settings, ChevronLeft, ChevronRight,
-  PlusCircle, Calendar, Package, LogOut, Menu, X, Activity, BarChart2
+  PlusCircle, Calendar, Package, LogOut, Menu, X, Activity, BarChart2, UserCog
 } from 'lucide-react';
 import { ROLES, ROLE_LABELS } from '@/lib/roles';
 import { base44 } from '@/api/base44Client';
@@ -24,7 +24,7 @@ const allMenuItems = {
   contratos_readonly: { label: 'Contratos', icon: FileText, path: '/contratos' },
   pecas: { label: 'Peças', icon: Package, path: '/pecas' },
   indicadores: { label: 'Indicadores', icon: BarChart2, path: '/indicadores' },
-  usuarios: { label: 'Usuários', icon: Settings, path: '/usuarios' },
+  usuarios: { label: 'Usuários', icon: UserCog, path: '/usuarios' },
   configuracoes: { label: 'Configurações', icon: Settings, path: '/configuracoes' },
 };
 
