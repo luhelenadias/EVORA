@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -6,12 +8,28 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { computePriorizacao } from '@/lib/maintenance';
-import { AlertTriangle } from 'lucide-react';
+import { buildEquipmentCode, computeNextSequencial } from '@/lib/equipmentCode';
+import { useToast } from '@/components/ui/use-toast';
+import { AlertTriangle, Hash } from 'lucide-react';
 
 export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading }) {
   const { config } = useConfiguracao();
   const modelo = config?.modelo_priorizacao || 'simples';
   const usaUtil = modelo === 'avancado' && config?.avancado_usa_utilizacao === true;
+  const { toast } = useToast();
+
+  const { data: setores = [] } = useQuery({
+    queryKey: ['CodigoSetor'],
+    queryFn: () => base44.entities.CodigoSetor.list(),
+  });
+  const { data: tipos = [] } = useQuery({
+    queryKey: ['CodigoTipoEquipamento'],
+    queryFn: () => base44.entities.CodigoTipoEquipamento.list(),
+  });
+  const { data: allEquipment = [] } = useQuery({
+    queryKey: ['equipment'],
+    queryFn: () => base44.entities.Equipment.list(),
+  });
 
   const [form, setForm] = useState({
     name: equipment?.name || '',
@@ -24,6 +42,8 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
     location_sector: equipment?.location_sector || '',
     acquisition_date: equipment?.acquisition_date || '',
     installation_date: equipment?.installation_date || '',
+    setor_id: equipment?.setor_id || '',
+    tipo_equipamento_id: equipment?.tipo_equipamento_id || '',
     acquisition_value: equipment?.acquisition_value || '',
     warranty_end: equipment?.warranty_end || '',
     criticality: equipment?.criticality || '',
@@ -46,8 +66,61 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
 
   const numOrUndef = (v) => (v === '' || v == null ? undefined : Number(v));
 
+  // ── Codificação técnica (padrão Calil) ──────────────────────────
+  // Opções ativas + o registro atual, caso tenha sido desativado depois do cadastro.
+  const setorOptions = useMemo(() => {
+    const active = setores.filter((s) => s.ativo !== false);
+    const current = setores.find((s) => s.id === form.setor_id);
+    return current && !active.some((s) => s.id === current.id) ? [current, ...active] : active;
+  }, [setores, form.setor_id]);
+
+  const tipoOptions = useMemo(() => {
+    const active = tipos.filter((t) => t.ativo !== false);
+    const current = tipos.find((t) => t.id === form.tipo_equipamento_id);
+    return current && !active.some((t) => t.id === current.id) ? [current, ...active] : active;
+  }, [tipos, form.tipo_equipamento_id]);
+
+  // Sequencial: mantém o existente se setor/tipo não mudaram; senão, próxima posição livre.
+  const sequencial = useMemo(() => {
+    if (!form.setor_id || !form.tipo_equipamento_id) return null;
+    const unchanged =
+      equipment?.id &&
+      equipment.setor_id === form.setor_id &&
+      equipment.tipo_equipamento_id === form.tipo_equipamento_id &&
+      equipment.sequencial_unidade != null;
+    if (unchanged) return equipment.sequencial_unidade;
+    return computeNextSequencial(allEquipment, form.setor_id, form.tipo_equipamento_id, equipment?.id);
+  }, [allEquipment, form.setor_id, form.tipo_equipamento_id, equipment]);
+
+  const codigoEquipamento = useMemo(
+    () =>
+      buildEquipmentCode({
+        setorSigla: setores.find((s) => s.id === form.setor_id)?.sigla,
+        tipoSigla: tipos.find((t) => t.id === form.tipo_equipamento_id)?.sigla,
+        sequencial,
+        acquisitionDate: form.acquisition_date,
+      }),
+    [setores, tipos, form.setor_id, form.tipo_equipamento_id, sequencial, form.acquisition_date]
+  );
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!form.setor_id || !form.tipo_equipamento_id) {
+      toast({
+        title: 'Setor e tipo obrigatórios',
+        description: 'Selecione o setor e o tipo de equipamento para gerar o código técnico.',
+        variant: 'destructive',
+      });
+      return;
+    }
+    if (!form.acquisition_date) {
+      toast({
+        title: 'Data de aquisição obrigatória',
+        description: 'A data de aquisição é usada para compor o código técnico.',
+        variant: 'destructive',
+      });
+      return;
+    }
     const data = { ...form };
     if (data.acquisition_value) data.acquisition_value = parseFloat(data.acquisition_value);
     if (data.weekly_usage_hours) data.weekly_usage_hours = parseFloat(data.weekly_usage_hours);
@@ -62,6 +135,12 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
     data.manutencao_m = numOrUndef(form.manutencao_m);
     data.utilizacao_u = numOrUndef(form.utilizacao_u);
     data.risco_r = form.risco_r || undefined;
+
+    // codificação técnica (padrão Calil)
+    data.setor_id = form.setor_id;
+    data.tipo_equipamento_id = form.tipo_equipamento_id;
+    data.sequencial_unidade = sequencial ?? undefined;
+    data.codigo_equipamento = codigoEquipamento || undefined;
 
     // cálculo automático de priorização
     const result = computePriorizacao(data, config);
@@ -108,8 +187,8 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
           <Input value={form.location_sector} onChange={e => update('location_sector', e.target.value)} />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">Data Aquisição</Label>
-          <Input type="date" value={form.acquisition_date} onChange={e => update('acquisition_date', e.target.value)} />
+          <Label className="text-xs">Data Aquisição *</Label>
+          <Input type="date" value={form.acquisition_date} onChange={e => update('acquisition_date', e.target.value)} required />
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs">Data Instalação</Label>
@@ -158,6 +237,52 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
         <div className="space-y-1.5">
           <Label className="text-xs">Operadores Treinados</Label>
           <Input type="number" placeholder="Ex: 8" value={form.trained_operators} onChange={e => update('trained_operators', e.target.value)} />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Codificação técnica — padrão Calil */}
+      <div>
+        <h4 className="text-sm font-semibold mb-1 flex items-center gap-1.5">
+          <Hash className="w-4 h-4 text-primary" /> Identificação Técnica (padrão Calil)
+        </h4>
+        <p className="text-xs text-muted-foreground mb-3">
+          O código é gerado automaticamente a partir do setor, do tipo e do ano de aquisição.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Setor *</Label>
+            <Select value={form.setor_id} onValueChange={v => update('setor_id', v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {setorOptions.map(s => (
+                  <SelectItem key={s.id} value={s.id}>{s.sigla} — {s.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Tipo de Equipamento *</Label>
+            <Select value={form.tipo_equipamento_id} onValueChange={v => update('tipo_equipamento_id', v)}>
+              <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <SelectContent>
+                {tipoOptions.map(t => (
+                  <SelectItem key={t.id} value={t.id}>{t.sigla} — {t.nome}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Código do Equipamento</Label>
+            <Input
+              value={codigoEquipamento}
+              readOnly
+              placeholder="Gerado automaticamente"
+              className="font-mono bg-muted cursor-default text-primary font-semibold"
+            />
+            <p className="text-[11px] text-muted-foreground">Somente leitura — gerado pelo sistema.</p>
+          </div>
         </div>
       </div>
 

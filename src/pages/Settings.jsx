@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import PageHeader from '@/components/shared/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ShieldCheck, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import CodigoManager from '@/components/settings/CodigoManager';
+import { ShieldCheck, AlertTriangle, Building2, Stethoscope } from 'lucide-react';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -99,9 +101,23 @@ export default function Settings() {
   }
 
   return (
-    <div className="space-y-6 max-w-2xl">
-      <PageHeader title="Configurações da Instituição" subtitle="Modelo de priorização de manutenção" />
+    <div className="space-y-6 max-w-4xl">
+      <PageHeader title="Configurações da Instituição" subtitle="Modelo de priorização e codificação de equipamentos" />
 
+      <Tabs defaultValue="priorizacao" className="space-y-4">
+        <TabsList className="flex-wrap h-auto">
+          <TabsTrigger value="priorizacao" className="gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5" /> Modelo de Priorização
+          </TabsTrigger>
+          <TabsTrigger value="setores" className="gap-1.5">
+            <Building2 className="w-3.5 h-3.5" /> Setores
+          </TabsTrigger>
+          <TabsTrigger value="tipos" className="gap-1.5">
+            <Stethoscope className="w-3.5 h-3.5" /> Tipos de Equipamento
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="priorizacao">
       <Card>
         <CardHeader>
           <CardTitle className="text-base font-display flex items-center gap-2">
@@ -147,6 +163,16 @@ export default function Settings() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="setores">
+          <CodigoManager kind="CodigoSetor" />
+        </TabsContent>
+
+        <TabsContent value="tipos">
+          <CodigoManager kind="CodigoTipoEquipamento" />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
         <DialogContent className="max-w-md">
