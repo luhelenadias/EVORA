@@ -2,7 +2,7 @@
   "name": "Equipment",
   "properties": {
     "acquisition_date": {
-      "description": "Data de aquisi\u00e7\u00e3o",
+      "description": "Data de aquisi\u00e7\u00e3o. Usada tamb\u00e9m como origem do bloco 4 (ano) do codigo_equipamento.",
       "format": "date",
       "type": "string"
     },
@@ -20,6 +20,10 @@
         "type": "string"
       },
       "type": "array"
+    },
+    "codigo_equipamento": {
+      "description": "C\u00f3digo t\u00e9cnico gerado automaticamente (padr\u00e3o Calil): {sigla_setor}-{sigla_tipo}{sequencial}{ano_aquisicao_2digitos}, ex: CC-VT0394. Somente leitura \u2014 n\u00e3o editar diretamente. \u00danico por institui\u00e7\u00e3o.",
+      "type": "string"
     },
     "contract_id": {
       "description": "ID do contrato vinculado",
@@ -54,7 +58,7 @@
       "type": "string"
     },
     "location_sector": {
-      "description": "Setor de localiza\u00e7\u00e3o",
+      "description": "Setor de localiza\u00e7\u00e3o (texto livre, descritivo \u2014 diferente de setor_id, que \u00e9 o setor codificado usado no c\u00f3digo t\u00e9cnico)",
       "type": "string"
     },
     "location_unit": {
@@ -100,7 +104,7 @@
       "type": "string"
     },
     "patrimony_number": {
-      "description": "N\u00famero de patrim\u00f4nio",
+      "description": "N\u00famero de patrim\u00f4nio \u2014 uso cont\u00e1bil/invent\u00e1rio, texto livre, editado manualmente. Sem rela\u00e7\u00e3o com codigo_equipamento (o c\u00f3digo t\u00e9cnico gerado automaticamente).",
       "type": "string"
     },
     "prioridade_alta": {
@@ -129,8 +133,16 @@
       ],
       "type": "string"
     },
+    "sequencial_unidade": {
+      "description": "Sequencial de 2 d\u00edgitos (bloco 3 do codigo_equipamento), calculado automaticamente contando os equipamentos j\u00e1 cadastrados com o mesmo setor_id + tipo_equipamento_id",
+      "type": "number"
+    },
     "serial_number": {
       "description": "N\u00famero de s\u00e9rie",
+      "type": "string"
+    },
+    "setor_id": {
+      "description": "Refer\u00eancia \u00e0 entidade CodigoSetor. Obrigat\u00f3rio \u2014 usado no bloco 1 do codigo_equipamento.",
       "type": "string"
     },
     "status_priorizacao": {
@@ -140,6 +152,10 @@
         "calculado",
         "pendente_atualizacao"
       ],
+      "type": "string"
+    },
+    "tipo_equipamento_id": {
+      "description": "Refer\u00eancia \u00e0 entidade CodigoTipoEquipamento. Obrigat\u00f3rio \u2014 usado no bloco 2 do codigo_equipamento.",
       "type": "string"
     },
     "total_operators": {

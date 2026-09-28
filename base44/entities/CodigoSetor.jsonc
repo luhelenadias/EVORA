@@ -1,0 +1,30 @@
+{
+  "name": "CodigoSetor",
+  "properties": {
+    "ativo": {
+      "default": true,
+      "description": "Permite desativar sem excluir \u2014 equipamentos j\u00e1 cadastrados mant\u00eam hist\u00f3rico",
+      "type": "boolean"
+    },
+    "nome": {
+      "description": "Nome do setor/servi\u00e7o, ex: 'Centro Cir\u00fargico'",
+      "type": "string"
+    },
+    "padrao_sistema": {
+      "default": false,
+      "description": "true = veio do modelo default pr\u00e9-carregado, false = criado pelo hospital",
+      "type": "boolean"
+    },
+    "sigla": {
+      "description": "2 caracteres, mai\u00fasculo, \u00fanica por institui\u00e7\u00e3o. Usada no bloco 1 do c\u00f3digo do equipamento.",
+      "maxLength": 2,
+      "minLength": 2,
+      "type": "string"
+    }
+  },
+  "required": [
+    "sigla",
+    "nome"
+  ],
+  "type": "object"
+}
