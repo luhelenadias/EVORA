@@ -149,7 +149,6 @@ export default function Equipment() {
               <TableHeader>
                 <TableRow className="bg-muted/50">
                   <TableHead className="text-xs font-semibold">Nome</TableHead>
-                  <TableHead className="text-xs font-semibold hidden md:table-cell">Patrimônio</TableHead>
                   <TableHead className="text-xs font-semibold hidden lg:table-cell">Setor</TableHead>
                   <TableHead className="text-xs font-semibold">Criticidade</TableHead>
                   <TableHead className="text-xs font-semibold text-center">Score</TableHead>
@@ -164,16 +163,32 @@ export default function Equipment() {
                     className={cn('cursor-pointer hover:bg-muted/30', eq.prioridade_alta && 'bg-amber-50/60 border-l-4 border-l-amber-400')}
                     onClick={() => setViewingItem(eq)}
                   >
-                    <TableCell className="font-medium text-sm">
-                      <div className="flex items-center gap-1.5">
+                    <TableCell>
+                      <div className="flex items-center gap-2 flex-wrap">
                         {eq.prioridade_alta && <Flame className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
-                        {eq.name}
+                        <span className="font-medium text-sm">{eq.name}</span>
+                        {eq.codigo_equipamento ? (
+                          <Badge
+                            variant="outline"
+                            className="font-mono text-xs font-bold tracking-wide border-primary/30 text-primary bg-primary/5"
+                          >
+                            {eq.codigo_equipamento}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px] font-normal border-slate-200 text-slate-400 bg-slate-50">
+                            Sem código
+                          </Badge>
+                        )}
                         {eq.status_priorizacao === 'pendente_atualizacao' && modeloAvancado && (
-                          <Badge variant="outline" className="ml-1 text-[10px] border-amber-300 text-amber-700 bg-amber-50">Pendente</Badge>
+                          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50">Pendente</Badge>
                         )}
                       </div>
+                      {eq.patrimony_number && (
+                        <p className="text-[11px] text-muted-foreground/70 mt-0.5 font-mono">
+                          Patrimônio {eq.patrimony_number}
+                        </p>
+                      )}
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{eq.patrimony_number || '—'}</TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{eq.location_sector || '—'}</TableCell>
                     <TableCell><StatusBadge value={eq.criticality} type="criticality" /></TableCell>
                     <TableCell className="text-sm text-center tabular-nums font-semibold">
