@@ -13,9 +13,13 @@
       "type": "string"
     },
     "completion_date": {
-      "description": "Data/hora da conclus\u00e3o",
+      "description": "Data/hora da conclus\u00e3o. Equivale a hora_fim da Parte C \u2014 preenchido automaticamente ao clicar 'Finalizar Manuten\u00e7\u00e3o'.",
       "format": "date-time",
       "type": "string"
+    },
+    "duracao_total_minutos": {
+      "description": "Calculado a partir de completion_date - start_date ao finalizar. Edit\u00e1vel manualmente em caso de ajuste. Usado no c\u00e1lculo autom\u00e1tico de MTTR (MaintenancePlan.mttr_hours).",
+      "type": "number"
     },
     "equipment_criticality": {
       "description": "Criticidade do equipamento (copiada do cadastro no momento da abertura) \u2014 usada para sugerir a prioridade automaticamente. N\u00e3o editar manualmente.",
@@ -51,7 +55,7 @@
     },
     "origin": {
       "default": "Manual",
-      "description": "Origem do chamado",
+      "description": "Origem do chamado. 'Agendada' = gerada automaticamente pelo job de preventiva quando Equipment.data_proxima_preventiva vence (Parte C.5); nesse caso type deve ser fixado em 'Preventiva' automaticamente, sem escolha do usu\u00e1rio.",
       "enum": [
         "Manual",
         "Agendada",
@@ -60,7 +64,7 @@
       "type": "string"
     },
     "parts_used": {
-      "description": "Pe\u00e7as e insumos utilizados nesta OS",
+      "description": "Pe\u00e7as e insumos utilizados nesta OS (equivale a pecas_utilizadas da Parte C). Ao salvar, current_stock da SparePart referenciada deve ser decrementado pela quantity.",
       "items": {
         "properties": {
           "cost": {
@@ -81,6 +85,14 @@
         "type": "object"
       },
       "type": "array"
+    },
+    "periodicidade_referencia": {
+      "description": "Preenchido apenas quando type = Preventiva: guarda o valor de Equipment.periodicidade_preventiva_dias vigente no momento em que esta OS preventiva foi gerada (hist\u00f3rico, caso a periodicidade mude depois).",
+      "type": "number"
+    },
+    "prioridade_score_equipamento": {
+      "description": "Cache do Equipment.prioridade_score (Fennigkoh & Smith/EMR) no momento da abertura desta OS. Usado para ordenar a Central de Manuten\u00e7\u00f5es por prioridade (Parte C.6).",
+      "type": "number"
     },
     "priority": {
       "default": "M\u00e9dia",
@@ -134,13 +146,13 @@
       "type": "string"
     },
     "start_date": {
-      "description": "Data/hora do in\u00edcio do atendimento",
+      "description": "Data/hora do in\u00edcio do atendimento. Equivale a hora_inicio da Parte C \u2014 preenchido automaticamente ao clicar 'Iniciar Manuten\u00e7\u00e3o'.",
       "format": "date-time",
       "type": "string"
     },
     "status": {
       "default": "Novo",
-      "description": "Status da OS",
+      "description": "Status da OS. Mapeamento para a vis\u00e3o simplificada da Central de Manuten\u00e7\u00f5es (Parte C.6): 'pendente' = Novo/Aguardando Pe\u00e7a/Aguardando Fornecedor/Pendente; 'em_andamento' = Em Andamento; 'concluida' = Conclu\u00eddo.",
       "enum": [
         "Novo",
         "Em Andamento",
@@ -156,7 +168,7 @@
       "type": "number"
     },
     "technical_report": {
-      "description": "Laudo t\u00e9cnico",
+      "description": "Laudo t\u00e9cnico. Equivale a descricao_realizada da Parte C \u2014 obrigat\u00f3rio ao finalizar a manuten\u00e7\u00e3o.",
       "type": "string"
     },
     "technician_id": {
@@ -172,7 +184,7 @@
       "type": "number"
     },
     "type": {
-      "description": "Tipo de servi\u00e7o",
+      "description": "Tipo de servi\u00e7o. Para Preventiva/Corretiva, equivale a tipo_manutencao da Parte C: deve ser definido automaticamente pela origem (Preventiva = gerada pelo job de periodicidade; Corretiva = chamado reportado por usu\u00e1rio), n\u00e3o escolhido livremente pelo usu\u00e1rio quando origin for 'Agendada'. Calibra\u00e7\u00e3o e Instala\u00e7\u00e3o continuam de sele\u00e7\u00e3o manual.",
       "enum": [
         "Preventiva",
         "Corretiva",
