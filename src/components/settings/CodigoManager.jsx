@@ -178,8 +178,8 @@ export default function CodigoManager({ kind }) {
                         <Badge
                           variant="outline"
                           className={item.ativo === false
-                            ? 'bg-slate-100 text-slate-500 border-slate-200 text-[11px]'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200 text-[11px]'}
+                            ? 'bg-muted text-muted-foreground border-border text-[11px]'
+                            : 'bg-primary/10 text-primary border-primary/25 text-[11px]'}
                         >
                           {item.ativo === false ? 'Desativado' : 'Ativo'}
                         </Badge>

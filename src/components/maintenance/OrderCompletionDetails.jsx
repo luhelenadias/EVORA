@@ -1,6 +1,7 @@
 import React from 'react';
 import { Star } from 'lucide-react';
 import InfoField from '@/components/shared/InfoField';
+import { ResponseTimeValue } from '@/components/maintenance/ResponseTimeInfo';
 import { formatarDataHora, formatarDuracao, formatarMoeda, totalPecas } from '@/lib/orderDetail';
 
 /** Ordem concluída: laudo, tempos, peças utilizadas e avaliação do fornecedor. */
@@ -21,7 +22,10 @@ export default function OrderCompletionDetails({ order }) {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <InfoField label="Início do atendimento" value={formatarDataHora(order.start_date)} />
         <InfoField label="Conclusão" value={formatarDataHora(order.completion_date)} />
-        <InfoField label="Duração" value={formatarDuracao(order.duracao_total_minutos)} />
+        <InfoField label="Duração do reparo" value={formatarDuracao(order.duracao_total_minutos)} />
+        {order.response_time_minutes != null && (
+          <InfoField label="Tempo de atendimento" value={<ResponseTimeValue order={order} />} />
+        )}
       </div>
 
       {pecas.length > 0 && (
@@ -63,7 +67,7 @@ export default function OrderCompletionDetails({ order }) {
                 key={n}
                 className={
                   n <= order.supplier_rating
-                    ? 'w-4 h-4 fill-amber-400 text-amber-400'
+                    ? 'w-4 h-4 fill-warning text-warning'
                     : 'w-4 h-4 text-muted-foreground/40'
                 }
               />

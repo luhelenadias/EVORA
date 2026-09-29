@@ -103,7 +103,7 @@ export default function Contracts() {
         addLabel="Novo Contrato"
       >
         {expiringSoon > 0 && (
-          <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full">
+          <div className="flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 px-3 py-1.5 rounded-full">
             <AlertTriangle className="w-3.5 h-3.5" />
             {expiringSoon} vencendo em 60 dias
           </div>
@@ -141,7 +141,7 @@ export default function Contracts() {
                   const daysToExpire = c.end_date ? differenceInDays(parseISO(c.end_date), new Date()) : null;
                   const expiring = daysToExpire !== null && daysToExpire <= 60 && daysToExpire > 0;
                   return (
-                    <TableRow key={c.id} className={cn(expiring && "bg-amber-50/50")}>
+                    <TableRow key={c.id} className={cn(expiring && "bg-destructive/5")}>
                       <TableCell className="font-medium text-sm">{c.supplier_name}</TableCell>
                       <TableCell className="text-sm font-mono">{c.contract_number}</TableCell>
                       <TableCell className="text-sm text-muted-foreground hidden md:table-cell">

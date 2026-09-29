@@ -78,7 +78,7 @@ export default function SpareParts() {
     <div className="space-y-6">
       <PageHeader title="Peças de Reposição" subtitle={`${parts.length} itens`} onAdd={() => openForm(null)} addLabel="Nova Peça">
         {lowStock > 0 && (
-          <div className="flex items-center gap-1.5 text-xs text-amber-600 bg-amber-50 px-3 py-1.5 rounded-full">
+          <div className="flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 px-3 py-1.5 rounded-full">
             <AlertTriangle className="w-3.5 h-3.5" />
             {lowStock} com estoque baixo
           </div>
@@ -114,7 +114,7 @@ export default function SpareParts() {
               </TableHeader>
               <TableBody>
                 {filtered.map(p => (
-                  <TableRow key={p.id} className={cn(p.current_stock <= p.minimum_stock && "bg-amber-50/50")}>
+                  <TableRow key={p.id} className={cn(p.current_stock <= p.minimum_stock && "bg-destructive/5")}>
                     <TableCell className="font-medium text-sm">{p.name}</TableCell>
                     <TableCell className="text-sm font-mono">{p.code}</TableCell>
                     <TableCell className={cn("text-sm font-semibold", p.current_stock <= p.minimum_stock && "text-destructive")}>{p.current_stock}</TableCell>

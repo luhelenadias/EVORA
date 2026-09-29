@@ -18,9 +18,9 @@ import { toast } from 'sonner';
 
 const roleBadgeColors = {
   admin: 'bg-primary/10 text-primary border-primary/20',
-  tecnico: 'bg-amber-50 text-amber-700 border-amber-200',
-  clinico: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-  gestor: 'bg-purple-50 text-purple-700 border-purple-200',
+  tecnico: 'bg-warning/20 text-warning-foreground border-warning/40',
+  clinico: 'bg-primary/10 text-primary border-primary/25',
+  gestor: 'bg-muted text-muted-foreground border-border',
 };
 
 export default function Users() {

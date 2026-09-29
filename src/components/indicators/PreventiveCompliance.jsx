@@ -20,24 +20,24 @@ export default function PreventiveCompliance({ onSchedule, atRisk, overdue, tota
           <Progress value={compliancePct} className="h-2.5" />
         </div>
         <div className="grid grid-cols-3 gap-3">
-          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-green-50">
-            <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-primary/5">
+            <CheckCircle className="w-4 h-4 text-primary flex-shrink-0" />
             <div>
-              <p className="text-lg font-bold text-green-700">{onSchedule}</p>
+              <p className="text-lg font-bold text-primary">{onSchedule}</p>
               <p className="text-[10px] text-muted-foreground">Em dia</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-amber-50">
-            <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-warning/10">
+            <AlertTriangle className="w-4 h-4 text-warning flex-shrink-0" />
             <div>
-              <p className="text-lg font-bold text-amber-700">{atRisk}</p>
+              <p className="text-lg font-bold text-warning-foreground">{atRisk}</p>
               <p className="text-[10px] text-muted-foreground">Próximos</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-red-50">
-            <XCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+          <div className="flex items-center gap-2 p-2.5 rounded-lg bg-destructive/10">
+            <XCircle className="w-4 h-4 text-destructive flex-shrink-0" />
             <div>
-              <p className="text-lg font-bold text-red-700">{overdue}</p>
+              <p className="text-lg font-bold text-destructive">{overdue}</p>
               <p className="text-[10px] text-muted-foreground">Atrasados</p>
             </div>
           </div>

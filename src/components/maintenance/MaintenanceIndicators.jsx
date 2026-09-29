@@ -44,10 +44,11 @@ export default function MaintenanceIndicators({ initialEquipmentId }) {
           criticality: eq?.criticality,
           mttr_hours: p.mttr_hours,
           mtbf_hours: p.mtbf_hours,
+          avg_response_time_hours: p.avg_response_time_hours,
           operational_status: eq?.operational_status,
         };
       })
-      .filter((r) => r.mttr_hours != null || r.mtbf_hours != null);
+      .filter((r) => r.mttr_hours != null || r.mtbf_hours != null || r.avg_response_time_hours != null);
   }, [plans, equipment]);
 
   const avgMttr = useMemo(() => {

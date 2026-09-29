@@ -22,8 +22,8 @@ export default function KpiCards({ mttr, avgMtbf, availability, totalCost12m, on
       value: formatHours(avgMtbf),
       icon: Clock,
       subtitle: 'Tempo Médio Entre Falhas — clique p/ ver por equipamento',
-      color: 'text-accent',
-      bg: 'bg-accent/10',
+      color: 'text-foreground',
+      bg: 'bg-muted',
       secondary: true,
     },
     {

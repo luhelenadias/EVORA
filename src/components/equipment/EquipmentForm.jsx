@@ -353,7 +353,7 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
       )}
 
       {equipment?.status_priorizacao === 'pendente_atualizacao' && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-xs">
+        <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/40 text-warning-foreground text-xs">
           <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span>Este equipamento está marcado como "Pendente de atualização" para o modelo ativo. Preencha os campos obrigatórios acima para recalcular a prioridade.</span>
         </div>

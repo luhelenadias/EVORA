@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motivoDaOrdem } from '@/lib/central';
+import ResponseTimeInfo from '@/components/maintenance/ResponseTimeInfo';
 
 const ESTILOS = {
   Preventiva: {
@@ -80,6 +81,7 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
             {concluida && order.duracao_total_minutos != null && (
               <span>{Math.round(order.duracao_total_minutos)} min</span>
             )}
+            <ResponseTimeInfo order={order} />
           </div>
         </div>
 

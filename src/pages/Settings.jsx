@@ -178,7 +178,7 @@ export default function Settings() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="font-display flex items-center gap-2">
-              <AlertTriangle className="w-5 h-5 text-amber-500" /> Confirmar mudança de modelo
+              <AlertTriangle className="w-5 h-5 text-warning" /> Confirmar mudança de modelo
             </DialogTitle>
             <DialogDescription className="text-sm text-left pt-2 leading-relaxed">
               ⚠️ Atenção: o modelo avançado exige informações adicionais em cada equipamento (criticidade institucional, classificação de risco ECRI, e opcionalmente taxa de utilização). Equipamentos já cadastrados ficarão marcados como "Pendente de atualização" até que esses dados sejam preenchidos.

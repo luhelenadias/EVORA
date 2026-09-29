@@ -5,10 +5,10 @@ import { AlertTriangle, Clock, FileWarning, Wrench } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const typeConfig = {
-  contract: { icon: FileWarning, color: 'text-orange-500', bg: 'bg-orange-50', label: 'Contrato' },
-  maintenance: { icon: Wrench, color: 'text-blue-500', bg: 'bg-blue-50', label: 'Manutenção' },
-  critical: { icon: AlertTriangle, color: 'text-red-500', bg: 'bg-red-50', label: 'Crítico' },
-  calibration: { icon: Clock, color: 'text-purple-500', bg: 'bg-purple-50', label: 'Calibração' },
+  contract: { icon: FileWarning, color: 'text-warning', bg: 'bg-warning/10', label: 'Contrato' },
+  maintenance: { icon: Wrench, color: 'text-primary', bg: 'bg-primary/10', label: 'Manutenção' },
+  critical: { icon: AlertTriangle, color: 'text-destructive', bg: 'bg-destructive/10', label: 'Crítico' },
+  calibration: { icon: Clock, color: 'text-muted-foreground', bg: 'bg-muted', label: 'Calibração' },
 };
 
 export default function AlertsList({ alerts }) {

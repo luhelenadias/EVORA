@@ -94,8 +94,8 @@ export default function Equipment() {
       />
 
       {pendingOnly && (
-        <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
-          <div className="flex items-center gap-2 text-sm text-amber-800">
+        <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/30">
+          <div className="flex items-center gap-2 text-sm text-foreground">
             <AlertTriangle className="w-4 h-4" />
             <span>Mostrando apenas equipamentos pendentes de atualização para o modelo avançado.</span>
           </div>
@@ -160,12 +160,12 @@ export default function Equipment() {
                 {filtered.map(eq => (
                   <TableRow
                     key={eq.id}
-                    className={cn('cursor-pointer hover:bg-muted/30', eq.prioridade_alta && 'bg-amber-50/60 border-l-4 border-l-amber-400')}
+                    className={cn('cursor-pointer hover:bg-muted/30', eq.prioridade_alta && 'bg-destructive/5 border-l-4 border-l-destructive')}
                     onClick={() => setViewingItem(eq)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-2 flex-wrap">
-                        {eq.prioridade_alta && <Flame className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />}
+                        {eq.prioridade_alta && <Flame className="w-3.5 h-3.5 text-destructive flex-shrink-0" />}
                         <span className="font-medium text-sm">{eq.name}</span>
                         {eq.codigo_equipamento ? (
                           <Badge
@@ -175,12 +175,12 @@ export default function Equipment() {
                             {eq.codigo_equipamento}
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-[10px] font-normal border-slate-200 text-slate-400 bg-slate-50">
+                          <Badge variant="outline" className="text-[10px] font-normal border-border text-muted-foreground bg-muted">
                             Sem código
                           </Badge>
                         )}
                         {eq.status_priorizacao === 'pendente_atualizacao' && modeloAvancado && (
-                          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700 bg-amber-50">Pendente</Badge>
+                          <Badge variant="outline" className="text-[10px] border-warning/40 text-warning-foreground bg-warning/20">Pendente</Badge>
                         )}
                       </div>
                       {eq.patrimony_number && (

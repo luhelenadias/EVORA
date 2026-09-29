@@ -167,16 +167,16 @@ export default function Dashboard() {
       {showPendingCard && (
         <button
           onClick={() => navigate('/manutencoes?view=pendencias')}
-          className="flex items-center gap-3 w-full p-4 rounded-xl bg-amber-50 border border-amber-200 text-left hover:bg-amber-100/70 transition-colors"
+          className="flex items-center gap-3 w-full p-4 rounded-xl bg-destructive/5 border border-destructive/30 text-left hover:bg-destructive/10 transition-colors"
         >
-          <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-            <AlertCircle className="w-5 h-5 text-amber-600" />
+          <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
+            <AlertCircle className="w-5 h-5 text-destructive" />
           </div>
           <div>
-            <p className="text-sm font-semibold text-amber-900">
+            <p className="text-sm font-semibold text-foreground">
               {pendingCount} equipamento{pendingCount !== 1 ? 's' : ''} pendente{pendingCount !== 1 ? 's' : ''} de atualização para o modelo avançado
             </p>
-            <p className="text-xs text-amber-700">Clique para ver a lista na aba de Manutenção e completar os dados de priorização.</p>
+            <p className="text-xs text-muted-foreground">Clique para ver a lista na aba de Manutenção e completar os dados de priorização.</p>
           </div>
         </button>
       )}

@@ -21,6 +21,11 @@ export default function EquipmentIndicatorsTable({ rows, avgMttr, avgMtbf, onRow
     }
   };
 
+  const avgAtendimento = useMemo(() => {
+    const vals = rows.map((r) => r.avg_response_time_hours).filter((v) => v != null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }, [rows]);
+
   const sorted = useMemo(() => {
     const arr = [...rows];
     arr.sort((a, b) => {
@@ -50,14 +55,14 @@ export default function EquipmentIndicatorsTable({ rows, avgMttr, avgMtbf, onRow
   const mttrColor = (v) => {
     if (v == null) return 'text-muted-foreground';
     if (avgMttr && v > avgMttr * 1.5) return 'text-destructive font-bold';
-    if (avgMttr && v > avgMttr) return 'text-amber-600 font-semibold';
-    return 'text-green-600';
+    if (avgMttr && v > avgMttr) return 'text-warning font-semibold';
+    return 'text-success';
   };
   const mtbfColor = (v) => {
     if (v == null) return 'text-muted-foreground';
     if (avgMtbf && v < avgMtbf * 0.5) return 'text-destructive font-bold';
-    if (avgMtbf && v < avgMtbf) return 'text-amber-600 font-semibold';
-    return 'text-green-600';
+    if (avgMtbf && v < avgMtbf) return 'text-warning font-semibold';
+    return 'text-success';
   };
 
   return (
@@ -65,13 +70,14 @@ export default function EquipmentIndicatorsTable({ rows, avgMttr, avgMtbf, onRow
       <div className="p-4 border-b flex items-center justify-between">
         <div>
           <h3 className="text-sm font-semibold flex items-center gap-1.5">
-            <AlertTriangle className="w-4 h-4 text-amber-500" /> MTTR / MTBF por Equipamento
+            <AlertTriangle className="w-4 h-4 text-warning" /> MTTR / MTBF por Equipamento
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Ordenado por {sortKey === 'mttr' ? 'MTTR (maior = pior)' : sortKey === 'mtbf' ? 'MTBF (menor = pior)' : 'criticidade'}. Clique numa linha para ver os chamados.
+            Ordenado por {sortKey === 'mttr' ? 'MTTR (maior = pior)' : sortKey === 'mtbf' ? 'MTBF (menor = pior)' : 'criticidade'} · MTTR = duração do reparo · Atendimento = espera até o início do reparo · MTBF = intervalo entre falhas.
           </p>
         </div>
         <div className="hidden sm:flex gap-4 text-xs text-muted-foreground">
+          <span>Tempo médio de atendimento: <strong className="text-foreground">{formatHours(avgAtendimento)}</strong></span>
           <span>Média MTTR: <strong className="text-foreground">{formatHours(avgMttr)}</strong></span>
           <span>Média MTBF: <strong className="text-foreground">{formatHours(avgMtbf)}</strong></span>
         </div>
@@ -84,14 +90,15 @@ export default function EquipmentIndicatorsTable({ rows, avgMttr, avgMtbf, onRow
               <SortHeader label="Criticidade" k="criticality" />
               <SortHeader label="MTTR" k="mttr" align="right" />
               <SortHeader label="MTBF" k="mtbf" align="right" />
+              <TableHead className="text-xs font-semibold text-right">Atendimento</TableHead>
               <TableHead className="text-xs font-semibold">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sorted.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-8">
-                  Nenhum plano com MTTR/MTBF registrado.
+                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">
+                  Nenhum plano com indicadores registrados.
                 </TableCell>
               </TableRow>
             ) : (
@@ -113,6 +120,9 @@ export default function EquipmentIndicatorsTable({ rows, avgMttr, avgMtbf, onRow
                   </TableCell>
                   <TableCell className={cn('text-sm text-right tabular-nums', mtbfColor(r.mtbf_hours))}>
                     {formatHours(r.mtbf_hours)}
+                  </TableCell>
+                  <TableCell className="text-sm text-right tabular-nums text-foreground">
+                    {formatHours(r.avg_response_time_hours)}
                   </TableCell>
                   <TableCell><StatusBadge value={r.operational_status} /></TableCell>
                 </TableRow>

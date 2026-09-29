@@ -30,15 +30,15 @@ export default function MaintenancePending() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
-        <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-          <AlertTriangle className="w-5 h-5 text-amber-600" />
+      <div className="flex items-center gap-3 p-4 rounded-xl bg-destructive/5 border border-destructive/30">
+        <div className="w-10 h-10 rounded-lg bg-destructive/10 flex items-center justify-center flex-shrink-0">
+          <AlertTriangle className="w-5 h-5 text-destructive" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-amber-900">
+          <p className="text-sm font-semibold text-foreground">
             {pending.length} equipamento{pending.length !== 1 ? 's' : ''} pendente{pending.length !== 1 ? 's' : ''} de atualização para o modelo avançado
           </p>
-          <p className="text-xs text-amber-700">
+          <p className="text-xs text-muted-foreground">
             {config?.modelo_priorizacao === 'avancado'
               ? 'Complete os campos de criticidade institucional, risco ECRI e manutenção em cada equipamento.'
               : 'Ative o modelo avançado nas configurações para visualizar as pendências.'}

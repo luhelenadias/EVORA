@@ -269,7 +269,7 @@ export default function Maintenance() {
           <TabsTrigger value="andamento" className="gap-1.5">
             <Clock className="w-3.5 h-3.5" /> Em Andamento
             {grupos.andamento.length > 0 && (
-              <Badge className="ml-1 h-5 text-[10px] bg-amber-100 text-amber-700">
+              <Badge className="ml-1 h-5 text-[10px] bg-warning/20 text-warning-foreground">
                 {grupos.andamento.length}
               </Badge>
             )}
@@ -283,7 +283,7 @@ export default function Maintenance() {
           {showPendingTab && (
             <TabsTrigger value="pending" className="gap-1.5">
               <AlertCircle className="w-3.5 h-3.5" /> Pendências
-              <Badge className="ml-1 h-5 text-[10px] bg-amber-100 text-amber-700">{pendingCount}</Badge>
+              <Badge className="ml-1 h-5 text-[10px] bg-destructive/15 text-destructive">{pendingCount}</Badge>
             </TabsTrigger>
           )}
         </TabsList>
