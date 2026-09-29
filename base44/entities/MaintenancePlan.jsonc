@@ -10,6 +10,10 @@
       "format": "date-time",
       "type": "string"
     },
+    "avg_response_time_hours": {
+      "description": "Tempo m\u00e9dio de atendimento (horas) \u2014 m\u00e9dia de response_time_minutes/60 das ServiceOrder Corretiva deste equipamento. Distinto de mttr_hours: mede o tempo at\u00e9 come\u00e7ar o reparo, n\u00e3o a dura\u00e7\u00e3o do reparo em si. Recalculado automaticamente.",
+      "type": "number"
+    },
     "contract_id": {
       "description": "ID do contrato de manuten\u00e7\u00e3o vinculado (quando a preventiva \u00e9 executada por fornecedor externo).",
       "type": "string"
@@ -52,7 +56,7 @@
       "type": "number"
     },
     "mttr_hours": {
-      "description": "Tempo m\u00e9dio de reparo (horas). Deve ser recalculado automaticamente a partir de duracao_total_minutos das ServiceOrder tipo Corretiva conclu\u00eddas do mesmo equipamento (Parte C.8), n\u00e3o preenchido manualmente.",
+      "description": "Tempo m\u00e9dio de reparo (horas) \u2014 dura\u00e7\u00e3o do trabalho em si (duracao_total_minutos). Deve ser recalculado automaticamente a partir das ServiceOrder tipo Corretiva conclu\u00eddas do mesmo equipamento, n\u00e3o preenchido manualmente.",
       "type": "number"
     },
     "next_execution_date": {
