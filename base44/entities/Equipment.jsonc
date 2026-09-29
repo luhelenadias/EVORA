@@ -39,6 +39,16 @@
       ],
       "type": "string"
     },
+    "data_proxima_preventiva": {
+      "description": "Calculado: data_ultima_preventiva + periodicidade_preventiva_dias. Fonte de verdade para a gera\u00e7\u00e3o autom\u00e1tica de manuten\u00e7\u00e3o preventiva (ServiceOrder tipo Preventiva). Substitui MaintenancePlan.next_execution_date, que fica como campo legado.",
+      "format": "date",
+      "type": "string"
+    },
+    "data_ultima_preventiva": {
+      "description": "Atualizado automaticamente ao concluir uma ServiceOrder do tipo Preventiva para este equipamento.",
+      "format": "date",
+      "type": "string"
+    },
     "funcao_f": {
       "description": "Modelo Simples (Fennigkoh & Smith) \u2014 Fun\u00e7\u00e3o (F). Sempre obrigat\u00f3rio, independente do modelo de prioriza\u00e7\u00e3o ativo.",
       "type": "number"
@@ -106,6 +116,10 @@
     "patrimony_number": {
       "description": "N\u00famero de patrim\u00f4nio \u2014 uso cont\u00e1bil/invent\u00e1rio, texto livre, editado manualmente. Sem rela\u00e7\u00e3o com codigo_equipamento (o c\u00f3digo t\u00e9cnico gerado automaticamente).",
       "type": "string"
+    },
+    "periodicidade_preventiva_dias": {
+      "description": "Periodicidade da manuten\u00e7\u00e3o preventiva em dias (ex: 90 = trimestral), idealmente vinda do manual do fabricante. Fonte de verdade da periodicidade \u2014 substitui MaintenancePlan.frequency, que fica como campo legado.",
+      "type": "number"
     },
     "prioridade_alta": {
       "default": false,
