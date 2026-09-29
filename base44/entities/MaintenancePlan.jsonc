@@ -11,7 +11,7 @@
       "type": "string"
     },
     "contract_id": {
-      "description": "ID do contrato de manuten\u00e7\u00e3o vinculado (quando a preventiva \u00e9 executada por fornecedor externo). Se preenchido, 'frequency' deve ser mantido sincronizado com Contract.preventive_frequency \u2014 divergir os dois indica inconsist\u00eancia a ser revisada.",
+      "description": "ID do contrato de manuten\u00e7\u00e3o vinculado (quando a preventiva \u00e9 executada por fornecedor externo).",
       "type": "string"
     },
     "corrective_count_12m": {
@@ -28,7 +28,7 @@
       "type": "string"
     },
     "frequency": {
-      "description": "Periodicidade",
+      "description": "[LEGADO] Periodicidade em categorias. A fonte de verdade agora \u00e9 Equipment.periodicidade_preventiva_dias (em dias). N\u00e3o usar para novos c\u00e1lculos de gera\u00e7\u00e3o de preventiva.",
       "enum": [
         "Mensal",
         "Trimestral",
@@ -43,20 +43,20 @@
       "type": "boolean"
     },
     "last_execution_date": {
-      "description": "Data da \u00faltima execu\u00e7\u00e3o",
+      "description": "[LEGADO] A fonte de verdade agora \u00e9 Equipment.data_ultima_preventiva.",
       "format": "date",
       "type": "string"
     },
     "mtbf_hours": {
-      "description": "Tempo m\u00e9dio entre falhas (horas)",
+      "description": "Tempo m\u00e9dio entre falhas (horas). Deve ser recalculado automaticamente a partir do intervalo entre conclus\u00f5es de ServiceOrder tipo Corretiva do mesmo equipamento (Parte C.8), n\u00e3o preenchido manualmente.",
       "type": "number"
     },
     "mttr_hours": {
-      "description": "Tempo m\u00e9dio de reparo (horas)",
+      "description": "Tempo m\u00e9dio de reparo (horas). Deve ser recalculado automaticamente a partir de duracao_total_minutos das ServiceOrder tipo Corretiva conclu\u00eddas do mesmo equipamento (Parte C.8), n\u00e3o preenchido manualmente.",
       "type": "number"
     },
     "next_execution_date": {
-      "description": "Data prevista da pr\u00f3xima execu\u00e7\u00e3o",
+      "description": "[LEGADO] A fonte de verdade agora \u00e9 Equipment.data_proxima_preventiva.",
       "format": "date",
       "type": "string"
     },
