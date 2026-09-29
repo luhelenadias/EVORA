@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
+import { cn } from '@/lib/utils';
 import Sidebar from './Sidebar';
 
 export default function AppLayout() {
@@ -15,8 +16,7 @@ export default function AppLayout() {
     <div className="min-h-screen bg-background">
       <Sidebar user={user} onCollapsedChange={setSidebarCollapsed} />
       <main
-        className="min-h-screen transition-all duration-300"
-        style={{ marginLeft: sidebarCollapsed ? '4rem' : '15rem' }}
+        className={cn('min-h-screen transition-all duration-300', sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60')}
       >
         <div className="p-4 sm:p-6 lg:p-8 pt-14 lg:pt-8">
           <Outlet context={{ user }} />
