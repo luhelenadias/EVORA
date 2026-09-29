@@ -18,7 +18,8 @@ import MaintenanceIndicators from '@/components/maintenance/MaintenanceIndicator
 import MaintenancePending from '@/components/maintenance/MaintenancePending';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { calcularPreventivasAGerar, calcularProximaPreventiva } from '@/lib/preventiva';
-import { calcularMtbf, calcularMttr, frequenciaPorDias } from '@/lib/indicadores';
+import { calcularMtbf, calcularMttr, calcularTempoMedioAtendimento, frequenciaPorDias } from '@/lib/indicadores';
+import { minutosDeAtendimento, slaDeAtendimento } from '@/lib/atendimento';
 import { GRUPOS_CENTRAL, ORDENACOES } from '@/lib/central';
 
 export default function Maintenance() {
@@ -44,6 +45,11 @@ export default function Maintenance() {
   const { data: orders = [], isLoading: carregandoOrdens } = useQuery({
     queryKey: ['serviceOrders'],
     queryFn: () => base44.entities.ServiceOrder.list('-created_date'),
+  });
+
+  const { data: contracts = [] } = useQuery({
+    queryKey: ['contracts'],
+    queryFn: () => base44.entities.Contract.list(),
   });
 
   // ── 1. Geração automática de preventivas ────────────────────────
@@ -113,9 +119,14 @@ export default function Maintenance() {
   const iniciar = async (order) => {
     setIniciandoId(order.id);
     try {
+      const inicio = new Date();
+      const resposta = slaDeAtendimento(order, contracts);
       await base44.entities.ServiceOrder.update(order.id, {
         status: 'Em Andamento',
-        start_date: new Date().toISOString(),
+        start_date: inicio.toISOString(),
+        response_time_minutes: minutosDeAtendimento(order.open_date, inicio),
+        ...(resposta.deadline ? { sla_response_deadline: resposta.deadline.toISOString() } : {}),
+        sla_response_status: resposta.status,
       });
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
       toast.success('Manutenção iniciada');
@@ -169,6 +180,7 @@ export default function Maintenance() {
         const indicadores = {
           mttr_hours: calcularMttr(doEquipamento),
           mtbf_hours: calcularMtbf(doEquipamento),
+          avg_response_time_hours: calcularTempoMedioAtendimento(doEquipamento),
           equipment_name: order.equipment_name || eq?.name || '',
         };
         const planos = await base44.entities.MaintenancePlan.filter({

@@ -27,6 +27,18 @@ export function calcularMtbf(orders) {
   return Number((soma / (concluidas.length - 1)).toFixed(2));
 }
 
+/**
+ * Tempo médio de ATENDIMENTO (horas): média de response_time_minutes/60 das
+ * corretivas concluídas. Mede quanto o chamado esperou até ser iniciado —
+ * diferente do MTTR (mttr_hours), que mede a duração do reparo em si.
+ */
+export function calcularTempoMedioAtendimento(orders) {
+  const concluidas = corretivasConcluidas(orders).filter((o) => o.response_time_minutes != null);
+  if (!concluidas.length) return null;
+  const soma = concluidas.reduce((total, o) => total + o.response_time_minutes / 60, 0);
+  return Number((soma / concluidas.length).toFixed(2));
+}
+
 /** Frequência do MaintenancePlan derivada da periodicidade em dias do equipamento. */
 export function frequenciaPorDias(dias) {
   if (!dias) return 'Anual';

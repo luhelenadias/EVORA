@@ -3,8 +3,9 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Wrench, Monitor, Users, FileText,
   ClipboardList, Settings, ChevronLeft, ChevronRight,
-  PlusCircle, Calendar, Package, LogOut, Menu, X, Activity, BarChart2, UserCog } from
+  PlusCircle, Calendar, Package, LogOut, Menu, X, BarChart2, UserCog } from
 'lucide-react';
+import EvoraLogo from '@/components/brand/EvoraLogo';
 import { ROLES, ROLE_LABELS } from '@/lib/roles';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -66,15 +67,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
       "flex items-center gap-3 px-4 py-5 border-b border-sidebar-border",
       collapsed && "justify-center px-2"
     )}>
-        <div className="w-9 h-9 rounded-lg bg-sidebar-primary flex items-center justify-center flex-shrink-0">
-          <Activity className="w-5 h-5 text-white" />
-        </div>
-        {!collapsed &&
-      <div className="min-w-0">
-            <h1 className="text-sm font-bold text-sidebar-primary-foreground font-display truncate">EVORA</h1>
-            <p className="text-[10px] text-sidebar-foreground/60 uppercase tracking-wider">Manager</p>
-          </div>
-      }
+        <EvoraLogo tone="light" compact={collapsed} className="min-w-0 text-sidebar-foreground" symbolClassName={collapsed ? 'h-7 w-[45px]' : 'h-9 w-[58px]'} />
       </div>
 
       {/* Navigation */}
