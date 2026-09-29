@@ -11,6 +11,7 @@ export default function CentralList({
   iniciandoId,
   onStart,
   onFinish,
+  onOpen,
   title,
   description,
 }) {
@@ -29,6 +30,7 @@ export default function CentralList({
           equipment={equipmentById[order.equipment_id]}
           onStart={onStart}
           onFinish={onFinish}
+          onOpen={onOpen}
           isStarting={iniciandoId === order.id}
         />
       ))}

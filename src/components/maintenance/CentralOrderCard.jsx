@@ -29,14 +29,17 @@ const ESTILO_PADRAO = {
   chip: 'border-border text-muted-foreground bg-muted',
 };
 
-export default function CentralOrderCard({ order, equipment, onStart, onFinish, isStarting }) {
+export default function CentralOrderCard({ order, equipment, onStart, onFinish, onOpen, isStarting }) {
   const estilo = ESTILOS[order.type] || ESTILO_PADRAO;
   const Icon = estilo.icon;
   const concluida = order.status === 'Concluído';
   const score = order.prioridade_score_equipamento;
 
   return (
-    <Card className={cn('p-4 border-l-4', estilo.barra)}>
+    <Card
+      className={cn('p-4 border-l-4 cursor-pointer transition-colors hover:bg-muted/40', estilo.barra)}
+      onClick={() => onOpen?.(order)}
+    >
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
         <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0', estilo.box)}>
           <Icon className="w-5 h-5" />
@@ -81,7 +84,7 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
         </div>
 
         {!concluida && (
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             {order.status === 'Em Andamento' ? (
               <Button size="sm" className="gap-1.5 w-full sm:w-auto" onClick={() => onFinish(order)}>
                 <CheckCircle2 className="w-3.5 h-3.5" /> Finalizar Manutenção

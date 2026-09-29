@@ -12,6 +12,7 @@ import { AlertCircle, BarChart2, CheckCircle2, Clock, Search } from 'lucide-reac
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import CentralList from '@/components/maintenance/CentralList';
+import OrderDetailDialog from '@/components/maintenance/OrderDetailDialog';
 import FinalizarManutencaoDialog from '@/components/maintenance/FinalizarManutencaoDialog';
 import MaintenanceIndicators from '@/components/maintenance/MaintenanceIndicators';
 import MaintenancePending from '@/components/maintenance/MaintenancePending';
@@ -31,6 +32,7 @@ export default function Maintenance() {
   const [abaCentral, setAbaCentral] = useState('pendentes');
   const [iniciandoId, setIniciandoId] = useState(null);
   const [finalizando, setFinalizando] = useState(null);
+  const [detalhe, setDetalhe] = useState(null);
   const [salvando, setSalvando] = useState(false);
   const geradasRef = useRef(new Set());
 
@@ -104,6 +106,8 @@ export default function Maintenance() {
     andamento: filtradas.filter((o) => GRUPOS_CENTRAL.andamento.includes(o.status)),
     concluidas: filtradas.filter((o) => GRUPOS_CENTRAL.concluidas.includes(o.status)),
   }), [filtradas]);
+
+  const ordemDetalhe = detalhe ? orders.find((o) => o.id === detalhe.id) || detalhe : null;
 
   // ── 5. Fluxo de execução ────────────────────────────────────────
   const iniciar = async (order) => {
@@ -280,6 +284,7 @@ export default function Maintenance() {
             iniciandoId={iniciandoId}
             onStart={iniciar}
             onFinish={setFinalizando}
+            onOpen={setDetalhe}
             title="Nenhuma manutenção pendente"
             description="As preventivas são agendadas automaticamente conforme a periodicidade de cada equipamento."
           />
@@ -293,6 +298,7 @@ export default function Maintenance() {
             iniciandoId={iniciandoId}
             onStart={iniciar}
             onFinish={setFinalizando}
+            onOpen={setDetalhe}
             title="Nenhuma manutenção em andamento"
             description="Inicie uma manutenção na aba Pendentes para acompanhá-la aqui."
           />
@@ -306,6 +312,7 @@ export default function Maintenance() {
             iniciandoId={iniciandoId}
             onStart={iniciar}
             onFinish={setFinalizando}
+            onOpen={setDetalhe}
             title="Nenhuma manutenção concluída"
             description="As manutenções finalizadas aparecem aqui com o laudo técnico."
           />
@@ -330,6 +337,15 @@ export default function Maintenance() {
         onConfirm={concluir}
         isSaving={salvando}
       />
+
+      {ordemDetalhe && (
+        <OrderDetailDialog
+          order={ordemDetalhe}
+          equipment={equipmentById[ordemDetalhe.equipment_id]}
+          orders={orders}
+          onClose={() => setDetalhe(null)}
+        />
+      )}
     </div>
   );
 }
