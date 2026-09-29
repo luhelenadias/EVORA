@@ -3,11 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
 
 const COLORS = [
-  'hsl(215, 80%, 48%)',
-  'hsl(168, 60%, 42%)',
-  'hsl(43, 96%, 56%)',
-  'hsl(0, 72%, 51%)',
-  'hsl(262, 60%, 55%)',
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
 ];
 
 export default function ChartSection({ ordersByType, ordersBySector }) {
@@ -76,7 +76,7 @@ export default function ChartSection({ ordersByType, ordersBySector }) {
                     fontSize: '12px',
                   }}
                 />
-                <Bar dataKey="value" fill="hsl(215, 80%, 48%)" radius={[0, 6, 6, 0]} barSize={20} />
+                <Bar dataKey="value" fill="hsl(var(--chart-1))" radius={[0, 6, 6, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
