@@ -121,6 +121,10 @@
       "description": "Nome do solicitante (cache)",
       "type": "string"
     },
+    "response_time_minutes": {
+      "description": "Tempo de atendimento/resposta: start_date - open_date, em minutos. Calculado automaticamente ao clicar 'Iniciar Manuten\u00e7\u00e3o'. Diferente de duracao_total_minutos (que mede a execu\u00e7\u00e3o do reparo em si) \u2014 este mede quanto tempo o chamado ficou esperando ser iniciado.",
+      "type": "number"
+    },
     "scheduled_date": {
       "description": "Data/hora de agendamento",
       "format": "date-time",
@@ -131,13 +135,28 @@
       "type": "string"
     },
     "sla_deadline": {
-      "description": "Prazo limite calculado (open_date + sla_response_hours/sla_resolution_hours do Contract vinculado ao equipamento). Null quando n\u00e3o h\u00e1 contrato/SLA aplic\u00e1vel.",
+      "description": "Prazo limite de RESOLU\u00c7\u00c3O calculado (open_date + sla_resolution_hours do Contract vinculado ao equipamento). Null quando n\u00e3o h\u00e1 contrato/SLA aplic\u00e1vel.",
       "format": "date-time",
+      "type": "string"
+    },
+    "sla_response_deadline": {
+      "description": "Prazo limite de PRIMEIRO ATENDIMENTO calculado (open_date + sla_response_hours do Contract vinculado ao equipamento). Distinto de sla_deadline, que \u00e9 o prazo de resolu\u00e7\u00e3o completa. Null quando n\u00e3o h\u00e1 contrato/SLA aplic\u00e1vel.",
+      "format": "date-time",
+      "type": "string"
+    },
+    "sla_response_status": {
+      "default": "Sem SLA Definido",
+      "description": "Status do cumprimento do SLA de primeiro atendimento, comparando start_date (ou agora, se ainda n\u00e3o iniciado) com sla_response_deadline.",
+      "enum": [
+        "Dentro do Prazo",
+        "Atrasado",
+        "Sem SLA Definido"
+      ],
       "type": "string"
     },
     "sla_status": {
       "default": "Sem SLA Definido",
-      "description": "Status do cumprimento do SLA, calculado comparando a data atual (ou completion_date) com sla_deadline",
+      "description": "Status do cumprimento do SLA de resolu\u00e7\u00e3o, calculado comparando a data atual (ou completion_date) com sla_deadline",
       "enum": [
         "Dentro do Prazo",
         "Atrasado",
