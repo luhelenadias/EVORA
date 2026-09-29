@@ -1,178 +1,268 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Wrench, Sparkles, AlertTriangle, Calendar, Search, BarChart2, AlertCircle } from 'lucide-react';
-import StatusBadge from '@/components/shared/StatusBadge';
-import PageHeader from '@/components/shared/PageHeader';
-import EmptyState from '@/components/shared/EmptyState';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { AlertCircle, BarChart2, CheckCircle2, Clock, Search } from 'lucide-react';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
+import PageHeader from '@/components/shared/PageHeader';
+import CentralList from '@/components/maintenance/CentralList';
+import FinalizarManutencaoDialog from '@/components/maintenance/FinalizarManutencaoDialog';
 import MaintenanceIndicators from '@/components/maintenance/MaintenanceIndicators';
 import MaintenancePending from '@/components/maintenance/MaintenancePending';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
+import { calcularPreventivasAGerar, calcularProximaPreventiva } from '@/lib/preventiva';
+import { calcularMtbf, calcularMttr, frequenciaPorDias } from '@/lib/indicadores';
+import { GRUPOS_CENTRAL, ORDENACOES } from '@/lib/central';
 
 export default function Maintenance() {
-  const { user } = useOutletContext();
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [showForm, setShowForm] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
-  const [search, setSearch] = useState('');
   const queryClient = useQueryClient();
-  const isReadOnly = user?.role === 'tecnico';
   const { config } = useConfiguracao();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [busca, setBusca] = useState('');
+  const [tipo, setTipo] = useState('Todas');
+  const [ordem, setOrdem] = useState('prioridade');
+  const [abaCentral, setAbaCentral] = useState('pendentes');
+  const [iniciandoId, setIniciandoId] = useState(null);
+  const [finalizando, setFinalizando] = useState(null);
+  const [salvando, setSalvando] = useState(false);
+  const geradasRef = useRef(new Set());
+
+  const { data: equipment = [], isLoading: carregandoEquip } = useQuery({
+    queryKey: ['equipment'],
+    queryFn: () => base44.entities.Equipment.list(),
+  });
+
+  const { data: orders = [], isLoading: carregandoOrdens } = useQuery({
+    queryKey: ['serviceOrders'],
+    queryFn: () => base44.entities.ServiceOrder.list('-created_date'),
+  });
+
+  // ── 1. Geração automática de preventivas ────────────────────────
+  useEffect(() => {
+    if (carregandoEquip || carregandoOrdens) return;
+    const novas = calcularPreventivasAGerar(equipment, orders).filter(
+      (p) => !geradasRef.current.has(p.equipment_id)
+    );
+    if (!novas.length) return;
+    novas.forEach((p) => geradasRef.current.add(p.equipment_id));
+    base44.entities.ServiceOrder.bulkCreate(novas).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      toast.success(`${novas.length} manutenção(ões) preventiva(s) agendada(s)`);
+    });
+  }, [equipment, orders, carregandoEquip, carregandoOrdens, queryClient]);
+
+  const equipmentById = useMemo(() => {
+    const mapa = {};
+    equipment.forEach((e) => { mapa[e.id] = e; });
+    return mapa;
+  }, [equipment]);
+
+  const pendingCount = equipment.filter((e) => e.status_priorizacao === 'pendente_atualizacao').length;
+  const showPendingTab = config?.modelo_priorizacao === 'avancado' && pendingCount > 0;
 
   const viewParam = searchParams.get('view');
   const equipmentParam = searchParams.get('equipment');
-  const pendingCount = useQuery({
-    queryKey: ['equipment'],
-    queryFn: () => base44.entities.Equipment.list(),
-  }).data?.filter((e) => e.status_priorizacao === 'pendente_atualizacao').length || 0;
-  const showPendingTab = config?.modelo_priorizacao === 'avancado' && pendingCount > 0;
-  const activeTab = viewParam === 'indicators'
-    ? 'indicators'
-    : (viewParam === 'pendencias' && showPendingTab)
-      ? 'pending'
-      : 'plans';
-
-
+  const activeTab =
+    viewParam === 'indicators' ? 'indicators'
+      : viewParam === 'pendencias' && showPendingTab ? 'pending'
+        : abaCentral;
 
   const handleTabChange = (value) => {
-    if (value === 'plans') setSearchParams({});
-    else if (value === 'indicators') setSearchParams({ view: 'indicators' });
-    else if (value === 'pending') setSearchParams({ view: 'pendencias' });
-  };
-
-  const { data: plans = [], isLoading } = useQuery({
-    queryKey: ['maintenancePlans'],
-    queryFn: () => base44.entities.MaintenancePlan.list(),
-  });
-
-  const { data: equipment = [] } = useQuery({
-    queryKey: ['equipment'],
-    queryFn: () => base44.entities.Equipment.list(),
-  });
-
-  const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.MaintenancePlan.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['maintenancePlans'] }); setShowForm(false); },
-  });
-
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.MaintenancePlan.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['maintenancePlans'] }); setShowForm(false); setEditingItem(null); },
-  });
-
-  const [form, setForm] = useState({});
-
-  const openForm = (item) => {
-    setEditingItem(item);
-    setForm({
-      equipment_id: item?.equipment_id || '',
-      equipment_name: item?.equipment_name || '',
-      frequency: item?.frequency || 'Trimestral',
-      last_execution_date: item?.last_execution_date || '',
-      next_execution_date: item?.next_execution_date || '',
-      status: item?.status || 'Ativo',
-    });
-    setShowForm(true);
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const data = { ...form };
-    if (!editingItem && data.equipment_id) {
-      const eq = equipment.find(eq => eq.id === data.equipment_id);
-      if (eq) data.equipment_name = eq.name;
-    }
-    if (editingItem) {
-      updateMutation.mutate({ id: editingItem.id, data });
+    if (value === 'indicators') {
+      setSearchParams({ view: 'indicators' });
+    } else if (value === 'pending') {
+      setSearchParams({ view: 'pendencias' });
     } else {
-      createMutation.mutate(data);
+      setAbaCentral(value);
+      setSearchParams({});
     }
   };
 
-  const filtered = plans.filter(p =>
-    !search || p.equipment_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtradas = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+    return orders.filter((o) => {
+      if (tipo !== 'Todas' && o.type !== tipo) return false;
+      if (!termo) return true;
+      return (
+        (o.equipment_name || '').toLowerCase().includes(termo) ||
+        (o.problem_description || '').toLowerCase().includes(termo) ||
+        (o.code || '').toLowerCase().includes(termo) ||
+        (equipmentById[o.equipment_id]?.codigo_equipamento || '').toLowerCase().includes(termo)
+      );
+    });
+  }, [orders, tipo, busca, equipmentById]);
 
-  const aiSuggestions = plans.filter(p => p.ai_suggestion);
-  const overduePlans = plans.filter(p => {
-    if (!p.next_execution_date) return false;
-    return differenceInDays(parseISO(p.next_execution_date), new Date()) < 0;
-  });
-  const upcomingPlans = plans.filter(p => {
-    if (!p.next_execution_date) return false;
-    const days = differenceInDays(parseISO(p.next_execution_date), new Date());
-    return days >= 0 && days <= 30;
-  });
+  const grupos = useMemo(() => ({
+    pendentes: filtradas.filter((o) => GRUPOS_CENTRAL.pendentes.includes(o.status)),
+    andamento: filtradas.filter((o) => GRUPOS_CENTRAL.andamento.includes(o.status)),
+    concluidas: filtradas.filter((o) => GRUPOS_CENTRAL.concluidas.includes(o.status)),
+  }), [filtradas]);
 
-  if (isLoading) {
-    return <div className="space-y-6"><Skeleton className="h-8 w-48" /><Skeleton className="h-72" /></div>;
+  // ── 5. Fluxo de execução ────────────────────────────────────────
+  const iniciar = async (order) => {
+    setIniciandoId(order.id);
+    try {
+      await base44.entities.ServiceOrder.update(order.id, {
+        status: 'Em Andamento',
+        start_date: new Date().toISOString(),
+      });
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      toast.success('Manutenção iniciada');
+    } finally {
+      setIniciandoId(null);
+    }
+  };
+
+  const concluir = async (dados) => {
+    const order = finalizando;
+    if (!order) return;
+    setSalvando(true);
+    try {
+      await base44.entities.ServiceOrder.update(order.id, { ...dados, status: 'Concluído' });
+
+      // Baixa automática de estoque das peças utilizadas
+      const pecas = dados.parts_used || [];
+      if (pecas.length) {
+        const catalogo = await base44.entities.SparePart.list();
+        await Promise.all(pecas.map((item) => {
+          const peca = catalogo.find((s) => s.id === item.spare_part_id);
+          if (!peca) return null;
+          const novoEstoque = Math.max((peca.current_stock ?? 0) - item.quantity, 0);
+          const minimo = peca.minimum_stock ?? 0;
+          return base44.entities.SparePart.update(peca.id, {
+            current_stock: novoEstoque,
+            status: novoEstoque <= 0 ? 'Sem Estoque' : novoEstoque <= minimo ? 'Estoque Baixo' : 'Em Estoque',
+          });
+        }));
+        queryClient.invalidateQueries({ queryKey: ['spareParts'] });
+      }
+
+      const eq = equipmentById[order.equipment_id];
+
+      // Preventiva concluída: reprograma o ciclo do equipamento
+      if (order.type === 'Preventiva' && eq) {
+        const proxima = calcularProximaPreventiva(dados.completion_date, eq.periodicidade_preventiva_dias);
+        await base44.entities.Equipment.update(eq.id, {
+          data_ultima_preventiva: dados.completion_date.slice(0, 10),
+          ...(proxima ? { data_proxima_preventiva: proxima } : {}),
+        });
+        queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      }
+
+      // ── 6. Indicadores automáticos (MTTR / MTBF) ─────────────────
+      if (order.type === 'Corretiva') {
+        const atualizadas = orders.map((o) =>
+          o.id === order.id ? { ...o, ...dados, status: 'Concluído' } : o
+        );
+        const doEquipamento = atualizadas.filter((o) => o.equipment_id === order.equipment_id);
+        const indicadores = {
+          mttr_hours: calcularMttr(doEquipamento),
+          mtbf_hours: calcularMtbf(doEquipamento),
+          equipment_name: order.equipment_name || eq?.name || '',
+        };
+        const planos = await base44.entities.MaintenancePlan.filter({
+          equipment_id: order.equipment_id,
+        });
+        if (planos.length) {
+          await base44.entities.MaintenancePlan.update(planos[0].id, indicadores);
+        } else {
+          await base44.entities.MaintenancePlan.create({
+            equipment_id: order.equipment_id,
+            frequency: frequenciaPorDias(eq?.periodicidade_preventiva_dias),
+            status: 'Ativo',
+            ...indicadores,
+          });
+        }
+        queryClient.invalidateQueries({ queryKey: ['maintenancePlans'] });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      toast.success('Manutenção concluída');
+      setFinalizando(null);
+    } catch (erro) {
+      toast.error(`Não foi possível concluir: ${erro?.message || erro}`);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  if (carregandoEquip || carregandoOrdens) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-16 w-full" />
+        {[1, 2, 3].map((i) => <Skeleton key={i} className="h-24 w-full" />)}
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Manutenções"
-        subtitle={`${plans.length} planos de manutenção`}
-        onAdd={isReadOnly ? undefined : () => openForm(null)}
-        addLabel="Novo Plano"
+        title="Central de Manutenções"
+        subtitle={`${grupos.pendentes.length} pendente(s) · ${grupos.andamento.length} em andamento · ${grupos.concluidas.length} concluída(s)`}
       />
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 border-l-4 border-l-destructive">
-          <div className="flex items-center gap-3">
-            <AlertTriangle className="w-5 h-5 text-destructive" />
-            <div>
-              <p className="text-2xl font-bold">{overduePlans.length}</p>
-              <p className="text-xs text-muted-foreground">Atrasadas</p>
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar equipamento, código ou descrição..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="pl-10"
+              />
             </div>
+            <Select value={tipo} onValueChange={setTipo}>
+              <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Todas">Todos os tipos</SelectItem>
+                <SelectItem value="Preventiva">Preventiva</SelectItem>
+                <SelectItem value="Corretiva">Corretiva</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={ordem} onValueChange={setOrdem}>
+              <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ORDENACOES.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>Ordenar por {o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-        </Card>
-        <Card className="p-4 border-l-4 border-l-warning">
-          <div className="flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-warning" />
-            <div>
-              <p className="text-2xl font-bold">{upcomingPlans.length}</p>
-              <p className="text-xs text-muted-foreground">Próximos 30 dias</p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-4 border-l-4 border-l-primary">
-          <div className="flex items-center gap-3">
-            <Sparkles className="w-5 h-5 text-primary" />
-            <div>
-              <p className="text-2xl font-bold">{aiSuggestions.length}</p>
-              <p className="text-xs text-muted-foreground">Sugestões de IA</p>
-            </div>
-          </div>
-        </Card>
-      </div>
+        </CardContent>
+      </Card>
 
       <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList>
-          <TabsTrigger value="plans">Planos de Manutenção</TabsTrigger>
+        <TabsList className="h-auto flex-wrap">
+          <TabsTrigger value="pendentes" className="gap-1.5">
+            <AlertCircle className="w-3.5 h-3.5" /> Pendentes
+            {grupos.pendentes.length > 0 && (
+              <Badge className="ml-1 h-5 text-[10px]">{grupos.pendentes.length}</Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="andamento" className="gap-1.5">
+            <Clock className="w-3.5 h-3.5" /> Em Andamento
+            {grupos.andamento.length > 0 && (
+              <Badge className="ml-1 h-5 text-[10px] bg-amber-100 text-amber-700">
+                {grupos.andamento.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="concluidas" className="gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5" /> Concluídas
+          </TabsTrigger>
           <TabsTrigger value="indicators" className="gap-1.5">
             <BarChart2 className="w-3.5 h-3.5" /> Indicadores por Equipamento
-          </TabsTrigger>
-          <TabsTrigger value="ai" className="gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Sugestões IA
-            {aiSuggestions.length > 0 && (
-              <Badge className="ml-1 h-5 text-[10px]">{aiSuggestions.length}</Badge>
-            )}
           </TabsTrigger>
           {showPendingTab && (
             <TabsTrigger value="pending" className="gap-1.5">
@@ -182,169 +272,64 @@ export default function Maintenance() {
           )}
         </TabsList>
 
-        <TabsContent value="plans" className="space-y-4 mt-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input placeholder="Buscar equipamento..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
-              </div>
-            </CardContent>
-          </Card>
-
-          {filtered.length === 0 ? (
-            <EmptyState icon={Wrench} title="Nenhum plano encontrado" />
-          ) : (
-            <Card>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="text-xs font-semibold">Equipamento</TableHead>
-                      <TableHead className="text-xs font-semibold">Frequência</TableHead>
-                      <TableHead className="text-xs font-semibold hidden md:table-cell">Última Exec.</TableHead>
-                      <TableHead className="text-xs font-semibold">Próxima Exec.</TableHead>
-                      <TableHead className="text-xs font-semibold hidden lg:table-cell">MTBF (h)</TableHead>
-                      <TableHead className="text-xs font-semibold hidden lg:table-cell">MTTR (h)</TableHead>
-                      <TableHead className="text-xs font-semibold">Status</TableHead>
-                      <TableHead className="text-xs font-semibold w-16"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map(p => {
-                      const isOverdue = p.next_execution_date && differenceInDays(parseISO(p.next_execution_date), new Date()) < 0;
-                      return (
-                        <TableRow key={p.id} className={cn(isOverdue && "bg-destructive/5")}>
-                          <TableCell className="font-medium text-sm">{p.equipment_name || '—'}</TableCell>
-                          <TableCell className="text-sm">{p.frequency}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground hidden md:table-cell">
-                            {p.last_execution_date ? format(parseISO(p.last_execution_date), 'dd/MM/yy') : '—'}
-                          </TableCell>
-                          <TableCell className={cn("text-sm", isOverdue && "text-destructive font-medium")}>
-                            {p.next_execution_date ? format(parseISO(p.next_execution_date), 'dd/MM/yy') : '—'}
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{p.mtbf_hours || '—'}</TableCell>
-                          <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{p.mttr_hours || '—'}</TableCell>
-                          <TableCell><StatusBadge value={p.status} /></TableCell>
-                          <TableCell>
-                            {!isReadOnly && (
-                              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openForm(p)}>
-                                <Wrench className="w-4 h-4" />
-                              </Button>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          )}
+        <TabsContent value="pendentes" className="mt-4">
+          <CentralList
+            orders={grupos.pendentes}
+            equipmentById={equipmentById}
+            ordem={ordem}
+            iniciandoId={iniciandoId}
+            onStart={iniciar}
+            onFinish={setFinalizando}
+            title="Nenhuma manutenção pendente"
+            description="As preventivas são agendadas automaticamente conforme a periodicidade de cada equipamento."
+          />
         </TabsContent>
 
-        <TabsContent value="ai" className="space-y-4 mt-4">
-          {aiSuggestions.length === 0 ? (
-            <EmptyState icon={Sparkles} title="Nenhuma sugestão de IA" description="Sugestões serão geradas automaticamente com base no histórico de falhas." />
-          ) : (
-            <div className="space-y-3">
-              {aiSuggestions.map(p => (
-                <Card key={p.id} className="p-5 border-l-4 border-l-primary">
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h4 className="font-semibold text-sm flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                        {p.equipment_name}
-                      </h4>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Corretivas (12m): {p.corrective_count_12m || 0} | MTBF: {p.mtbf_hours || '—'}h | MTTR: {p.mttr_hours || '—'}h
-                      </p>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground">
-                      {p.ai_suggestion_date ? format(parseISO(p.ai_suggestion_date), 'dd/MM/yy') : ''}
-                    </p>
-                  </div>
-                  <p className="text-sm bg-muted/50 rounded-lg p-3 leading-relaxed">{p.ai_suggestion}</p>
-                </Card>
-              ))}
-            </div>
-          )}
+        <TabsContent value="andamento" className="mt-4">
+          <CentralList
+            orders={grupos.andamento}
+            equipmentById={equipmentById}
+            ordem={ordem}
+            iniciandoId={iniciandoId}
+            onStart={iniciar}
+            onFinish={setFinalizando}
+            title="Nenhuma manutenção em andamento"
+            description="Inicie uma manutenção na aba Pendentes para acompanhá-la aqui."
+          />
         </TabsContent>
 
-        <TabsContent value="indicators" className="space-y-4 mt-4">
+        <TabsContent value="concluidas" className="mt-4">
+          <CentralList
+            orders={grupos.concluidas}
+            equipmentById={equipmentById}
+            ordem={ordem}
+            iniciandoId={iniciandoId}
+            onStart={iniciar}
+            onFinish={setFinalizando}
+            title="Nenhuma manutenção concluída"
+            description="As manutenções finalizadas aparecem aqui com o laudo técnico."
+          />
+        </TabsContent>
+
+        <TabsContent value="indicators" className="mt-4">
           <MaintenanceIndicators initialEquipmentId={equipmentParam} />
         </TabsContent>
 
         {showPendingTab && (
-          <TabsContent value="pending" className="space-y-4 mt-4">
+          <TabsContent value="pending" className="mt-4">
             <MaintenancePending />
           </TabsContent>
         )}
       </Tabs>
 
-      {/* Form Dialog */}
-      <Dialog open={showForm} onOpenChange={() => { setShowForm(false); setEditingItem(null); }}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">{editingItem ? 'Editar Plano' : 'Novo Plano de Manutenção'}</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="col-span-2 space-y-1.5">
-                <Label className="text-xs">Equipamento *</Label>
-                <Select value={form.equipment_id} onValueChange={v => {
-                  const eq = equipment.find(e => e.id === v);
-                  setForm(p => ({...p, equipment_id: v, equipment_name: eq?.name || ''}));
-                }}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {equipment.map(eq => (
-                      <SelectItem key={eq.id} value={eq.id}>{eq.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Frequência *</Label>
-                <Select value={form.frequency} onValueChange={v => setForm(p => ({...p, frequency: v}))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Mensal">Mensal</SelectItem>
-                    <SelectItem value="Trimestral">Trimestral</SelectItem>
-                    <SelectItem value="Semestral">Semestral</SelectItem>
-                    <SelectItem value="Anual">Anual</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Status</Label>
-                <Select value={form.status} onValueChange={v => setForm(p => ({...p, status: v}))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Ativo">Ativo</SelectItem>
-                    <SelectItem value="Suspenso">Suspenso</SelectItem>
-                    <SelectItem value="Concluído">Concluído</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Última Execução</Label>
-                <Input type="date" value={form.last_execution_date} onChange={e => setForm(p => ({...p, last_execution_date: e.target.value}))} />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Próxima Execução</Label>
-                <Input type="date" value={form.next_execution_date} onChange={e => setForm(p => ({...p, next_execution_date: e.target.value}))} />
-              </div>
-            </div>
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => { setShowForm(false); setEditingItem(null); }}>Cancelar</Button>
-              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                {editingItem ? 'Atualizar' : 'Cadastrar'}
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <FinalizarManutencaoDialog
+        open={!!finalizando}
+        order={finalizando}
+        equipment={finalizando ? equipmentById[finalizando.equipment_id] : null}
+        onClose={() => setFinalizando(null)}
+        onConfirm={concluir}
+        isSaving={salvando}
+      />
     </div>
   );
 }

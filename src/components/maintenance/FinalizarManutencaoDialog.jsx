@@ -1,0 +1,99 @@
+import React, { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { base44 } from '@/api/base44Client';
+import { differenceInMinutes, parseISO } from 'date-fns';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import PartsUsedEditor from '@/components/maintenance/PartsUsedEditor';
+
+export default function FinalizarManutencaoDialog({ open, order, equipment, onClose, onConfirm, isSaving }) {
+  const { data: spareParts = [] } = useQuery({
+    queryKey: ['spareParts'],
+    queryFn: () => base44.entities.SparePart.list(),
+  });
+
+  const [minutos, setMinutos] = useState(0);
+  const [report, setReport] = useState('');
+  const [parts, setParts] = useState([]);
+
+  useEffect(() => {
+    if (!open || !order) return;
+    setMinutos(
+      order.start_date ? Math.max(differenceInMinutes(new Date(), parseISO(order.start_date)), 0) : 0
+    );
+    setReport(order.technical_report || '');
+    setParts(order.parts_used || []);
+  }, [open, order?.id]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const total = Math.max(parseInt(minutos, 10) || 0, 0);
+    onConfirm({
+      completion_date: new Date().toISOString(),
+      duracao_total_minutos: total,
+      technical_report: report.trim(),
+      parts_used: parts.filter((p) => p.spare_part_id),
+    });
+  };
+
+  const horas = ((Math.max(parseInt(minutos, 10) || 0, 0)) / 60).toFixed(1);
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose(); }}>
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="font-display">Finalizar Manutenção</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="rounded-lg bg-muted/50 p-3">
+            <p className="text-sm font-medium">{order?.equipment_name || '—'}</p>
+            {equipment?.codigo_equipamento && (
+              <p className="font-mono text-xs font-bold text-primary">{equipment.codigo_equipamento}</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Tempo decorrido (minutos) *</Label>
+            <Input
+              type="number"
+              min="0"
+              value={minutos}
+              onChange={(e) => setMinutos(e.target.value)}
+              required
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Calculado automaticamente a partir do início ({horas}h). Ajuste se necessário.
+            </p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">O que foi feito? *</Label>
+            <Textarea
+              value={report}
+              onChange={(e) => setReport(e.target.value)}
+              rows={4}
+              placeholder="Descreva o serviço executado, peças substituídas e observações..."
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Peças utilizadas (opcional)</Label>
+            <PartsUsedEditor items={parts} spareParts={spareParts} onChange={setParts} />
+          </div>
+
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button type="submit" disabled={isSaving}>
+              {isSaving ? 'Salvando...' : 'Concluir Manutenção'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
