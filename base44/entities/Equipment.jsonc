@@ -40,7 +40,7 @@
       "type": "string"
     },
     "data_proxima_preventiva": {
-      "description": "Calculado: data_ultima_preventiva + periodicidade_preventiva_dias. Fonte de verdade para a gera\u00e7\u00e3o autom\u00e1tica de manuten\u00e7\u00e3o preventiva (ServiceOrder tipo Preventiva). Substitui MaintenancePlan.next_execution_date, que fica como campo legado.",
+      "description": "Calculado: data_ultima_preventiva + periodicidade_preventiva_dias. Fonte de verdade para a gera\u00e7\u00e3o autom\u00e1tica de manuten\u00e7\u00e3o preventiva (ServiceOrder tipo Preventiva). Tamb\u00e9m usado como scheduled_date da OS gerada, para alimentar o Calend\u00e1rio de Preventivas.",
       "format": "date",
       "type": "string"
     },
@@ -166,6 +166,10 @@
         "calculado",
         "pendente_atualizacao"
       ],
+      "type": "string"
+    },
+    "tecnico_padrao_id": {
+      "description": "Refer\u00eancia opcional \u00e0 entidade TechTeam \u2014 t\u00e9cnico padr\u00e3o responsabilizado pelas preventivas deste equipamento. Usado para atribuir automaticamente technician_id ao gerar a ServiceOrder preventiva. Se vazio, a preventiva \u00e9 gerada sem t\u00e9cnico e aparece como 'N\u00e3o atribu\u00edda' no Calend\u00e1rio de Preventivas, para o administrador designar manualmente.",
       "type": "string"
     },
     "tipo_equipamento_id": {
