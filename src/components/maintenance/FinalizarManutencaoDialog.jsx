@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { differenceInMinutes, parseISO } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import PartsUsedEditor from '@/components/maintenance/PartsUsedEditor';
+import { minutosDeExecucao } from '@/lib/atendimento';
 
 export default function FinalizarManutencaoDialog({ open, order, equipment, onClose, onConfirm, isSaving }) {
   const { data: spareParts = [] } = useQuery({
@@ -16,23 +16,28 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
   });
 
   const [minutos, setMinutos] = useState(0);
+  const [ajustadoManualmente, setAjustadoManualmente] = useState(false);
   const [report, setReport] = useState('');
   const [parts, setParts] = useState([]);
 
   useEffect(() => {
     if (!open || !order) return;
-    setMinutos(
-      order.start_date ? Math.max(differenceInMinutes(new Date(), parseISO(order.start_date)), 0) : 0
-    );
+    // Nasce pré-preenchido com o valor real: (agora - início), em minutos arredondados.
+    setMinutos(minutosDeExecucao(order.start_date, new Date()) ?? 0);
+    setAjustadoManualmente(false);
     setReport(order.technical_report || '');
     setParts(order.parts_used || []);
   }, [open, order?.id]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const total = Math.max(parseInt(minutos, 10) || 0, 0);
+    const completionDate = new Date().toISOString();
+    // Sem ajuste manual, grava sempre (completion_date - start_date) em minutos arredondados.
+    const total = ajustadoManualmente
+      ? Math.max(parseInt(minutos, 10) || 0, 0)
+      : minutosDeExecucao(order.start_date, completionDate) ?? 0;
     onConfirm({
-      completion_date: new Date().toISOString(),
+      completion_date: completionDate,
       duracao_total_minutos: total,
       technical_report: report.trim(),
       parts_used: parts.filter((p) => p.spare_part_id),
@@ -62,11 +67,11 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
               type="number"
               min="0"
               value={minutos}
-              onChange={(e) => setMinutos(e.target.value)}
+              onChange={(e) => { setMinutos(e.target.value); setAjustadoManualmente(true); }}
               required
             />
             <p className="text-[11px] text-muted-foreground">
-              Calculado automaticamente a partir do início ({horas}h). Ajuste se necessário.
+              Calculado automaticamente (conclusão − início): {horas}h. Edite apenas se precisar ajustar.
             </p>
           </div>
 

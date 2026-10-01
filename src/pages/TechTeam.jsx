@@ -106,7 +106,11 @@ export default function TechTeam() {
                     <div className="flex items-center gap-2"><Phone className="w-3 h-3" />{t.phone}</div>
                   )}
                 </div>
-                <Button variant="ghost" size="sm" className="mt-3 w-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => openForm(t)}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-3 w-full text-muted-foreground opacity-70 transition-all duration-200 group-hover:bg-primary/5 group-hover:text-primary group-hover:opacity-100 hover:bg-primary/10 hover:text-primary hover:opacity-100"
+                  onClick={() => openForm(t)}>
                   <Pencil className="w-3.5 h-3.5 mr-1.5" /> Editar
                 </Button>
               </CardContent>

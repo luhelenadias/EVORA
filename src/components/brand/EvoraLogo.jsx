@@ -34,7 +34,7 @@ export function EvoraSymbol({ tone = 'brand', className }) {
 }
 
 /** Símbolo + wordmark EVORA e subtítulo institucional. */
-export default function EvoraLogo({ tone = 'brand', compact = false, className, symbolClassName }) {
+export default function EvoraLogo({ tone = 'brand', compact = false, showSubtitle = true, className, symbolClassName }) {
   return (
     <div className={cn('flex items-center gap-3', className)}>
       <EvoraSymbol tone={tone} className={symbolClassName} />
@@ -43,9 +43,11 @@ export default function EvoraLogo({ tone = 'brand', compact = false, className, 
           <span className="block font-display text-[15px] font-semibold uppercase leading-none tracking-[0.3em]">
             EVORA
           </span>
-          <span className="mt-1 block text-[9px] uppercase leading-none tracking-[0.16em] opacity-70">
-            Intelligent Clinical Management
-          </span>
+          {showSubtitle && (
+            <span className="mt-1 block text-[9px] uppercase leading-none tracking-[0.16em] opacity-70">
+              Intelligent Clinical Management
+            </span>
+          )}
         </div>
       )}
     </div>

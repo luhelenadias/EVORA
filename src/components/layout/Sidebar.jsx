@@ -67,7 +67,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
       "flex items-center gap-3 px-4 py-5 border-b border-sidebar-border",
       collapsed && "justify-center px-2"
     )}>
-        <EvoraLogo tone="light" compact={collapsed} className="min-w-0 text-sidebar-foreground" symbolClassName={collapsed ? 'h-7 w-[45px]' : 'h-9 w-[58px]'} />
+        <EvoraLogo tone="light" compact={collapsed} showSubtitle={false} className="min-w-0 text-sidebar-foreground" symbolClassName={collapsed ? 'h-7 w-[45px]' : 'h-9 w-[58px]'} />
       </div>
 
       {/* Navigation */}

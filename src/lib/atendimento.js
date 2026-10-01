@@ -11,6 +11,12 @@ export function minutosDeAtendimento(openDate, startDate) {
   return Math.max(differenceInMinutes(new Date(startDate), new Date(openDate)), 0);
 }
 
+/** Minutos de execução do reparo: (conclusão - início) arredondado. */
+export function minutosDeExecucao(startDate, completionDate) {
+  if (!startDate || !completionDate) return null;
+  return Math.max(Math.round((new Date(completionDate) - new Date(startDate)) / 60000), 0);
+}
+
 /**
  * Prazo limite e situação do PRIMEIRO ATENDIMENTO (sla_response_*), distintos do
  * prazo de resolução (sla_deadline/sla_status). Usa o sla_response_hours do
