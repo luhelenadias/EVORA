@@ -20,6 +20,7 @@ import Dashboard from '@/pages/Dashboard';
 import Equipment from '@/pages/Equipment';
 import ServiceOrders from '@/pages/ServiceOrders';
 import Maintenance from '@/pages/Maintenance';
+import PreventiveCalendar from '@/pages/PreventiveCalendar';
 import Contracts from '@/pages/Contracts';
 import TechTeam from '@/pages/TechTeam';
 import SpareParts from '@/pages/SpareParts';
@@ -63,6 +64,7 @@ const AuthenticatedApp = () => {
           <Route path="/chamados" element={<ServiceOrders />} />
           <Route path="/chamados/novo" element={<ServiceOrders />} />
           <Route path="/manutencoes" element={<Maintenance />} />
+          <Route path="/preventivas" element={<PreventiveCalendar />} />
           <Route path="/contratos" element={<Contracts />} />
           <Route path="/equipe" element={<TechTeam />} />
           <Route path="/pecas" element={<SpareParts />} />

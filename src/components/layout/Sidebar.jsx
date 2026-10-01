@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Wrench, Monitor, Users, FileText,
   ClipboardList, Settings, ChevronLeft, ChevronRight,
-  PlusCircle, Calendar, Package, LogOut, Menu, X, BarChart2, UserCog } from
+  PlusCircle, Calendar, CalendarDays, Package, LogOut, Menu, X, BarChart2, UserCog } from
 'lucide-react';
 import EvoraLogo from '@/components/brand/EvoraLogo';
 import { ROLES, ROLE_LABELS } from '@/lib/roles';
@@ -20,6 +20,7 @@ const allMenuItems = {
   equipamentos_readonly: { label: 'Equipamentos', icon: Monitor, path: '/equipamentos' },
   equipe: { label: 'Equipe Técnica', icon: Users, path: '/equipe' },
   manutencoes: { label: 'Manutenções', icon: Wrench, path: '/manutencoes' },
+  preventivas: { label: 'Calendário de Preventivas', icon: CalendarDays, path: '/preventivas' },
   agenda_manutencoes: { label: 'Agenda', icon: Calendar, path: '/manutencoes' },
   contratos: { label: 'Contratos', icon: FileText, path: '/contratos' },
   contratos_readonly: { label: 'Contratos', icon: FileText, path: '/contratos' },
@@ -42,7 +43,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
 
   const userRole = user?.role || ROLES.CLINICO;
   const roleMenuKeys = {
-    admin: ['dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes', 'contratos', 'pecas', 'indicadores', 'usuarios', 'configuracoes'],
+    admin: ['dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes', 'preventivas', 'contratos', 'pecas', 'indicadores', 'usuarios', 'configuracoes'],
     gestor: ['dashboard', 'chamados', 'equipamentos_readonly', 'manutencoes', 'contratos_readonly', 'indicadores'],
     tecnico: ['meus_chamados', 'agenda_manutencoes', 'equipamentos_readonly'],
     clinico: ['abrir_chamado', 'meus_chamados']

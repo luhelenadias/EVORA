@@ -48,6 +48,11 @@ export function calcularPreventivasAGerar(equipment = [], orders = [], hoje = ne
       prioridade_score_equipamento: eq.prioridade_score ?? null,
       sector: eq.location_sector || '',
       open_date: hoje.toISOString(),
+      // Programada para o dia previsto no equipamento — alimenta o Calendário de Preventivas.
+      scheduled_date: eq.data_proxima_preventiva,
+      // Técnico padrão do equipamento; sem técnico definido no cadastro, a preventiva nasce
+      // sem responsável, para o administrador atribuir na tela de Preventivas.
+      ...(eq.tecnico_padrao_id ? { technician_id: eq.tecnico_padrao_id } : {}),
     }));
 }
 
