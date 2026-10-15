@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@/components/ui/separator';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { computePriorizacao } from '@/lib/maintenance';
-import { buildEquipmentCode, computeNextSequencial } from '@/lib/equipmentCode';
+import { buildEquipmentCode, computeNextSequencial, sequencialDoCodigo, MAX_SEQUENCIAL } from '@/lib/equipmentCode';
 import { useToast } from '@/components/ui/use-toast';
 import { AlertTriangle, Hash } from 'lucide-react';
 
@@ -17,6 +17,7 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
   const modelo = config?.modelo_priorizacao || 'simples';
   const usaUtil = modelo === 'avancado' && config?.avancado_usa_utilizacao === true;
   const { toast } = useToast();
+  const [verificando, setVerificando] = useState(false);
 
   const { data: setores = [] } = useQuery({
     queryKey: ['CodigoSetor'],
@@ -80,7 +81,20 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
     return current && !active.some((t) => t.id === current.id) ? [current, ...active] : active;
   }, [tipos, form.tipo_equipamento_id]);
 
-  // Sequencial: mantém o existente se setor/tipo não mudaram; senão, próxima posição livre.
+  const setorSigla = setores.find((s) => s.id === form.setor_id)?.sigla;
+  const tipoSigla = tipos.find((t) => t.id === form.tipo_equipamento_id)?.sigla;
+
+  // Setor, tipo e data de aquisição iguais aos do registro → o código atual é mantido.
+  const codigoInalterado = useMemo(
+    () =>
+      !!equipment?.codigo_equipamento &&
+      equipment.setor_id === form.setor_id &&
+      equipment.tipo_equipamento_id === form.tipo_equipamento_id &&
+      (equipment.acquisition_date || '') === (form.acquisition_date || ''),
+    [equipment, form.setor_id, form.tipo_equipamento_id, form.acquisition_date]
+  );
+
+  // Sequencial: mantém o existente se setor/tipo não mudaram; senão, a próxima posição livre.
   const sequencial = useMemo(() => {
     if (!form.setor_id || !form.tipo_equipamento_id) return null;
     const unchanged =
@@ -92,19 +106,36 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
     return computeNextSequencial(allEquipment, form.setor_id, form.tipo_equipamento_id, equipment?.id);
   }, [allEquipment, form.setor_id, form.tipo_equipamento_id, equipment]);
 
-  const codigoEquipamento = useMemo(
-    () =>
-      buildEquipmentCode({
-        setorSigla: setores.find((s) => s.id === form.setor_id)?.sigla,
-        tipoSigla: tipos.find((t) => t.id === form.tipo_equipamento_id)?.sigla,
-        sequencial,
-        acquisitionDate: form.acquisition_date,
-      }),
-    [setores, tipos, form.setor_id, form.tipo_equipamento_id, sequencial, form.acquisition_date]
-  );
+  const limiteAtingido = sequencial != null && sequencial > MAX_SEQUENCIAL;
 
-  const handleSubmit = (e) => {
+  const codigoEquipamento = useMemo(() => {
+    if (codigoInalterado) return equipment.codigo_equipamento;
+    return buildEquipmentCode({
+      setorSigla,
+      tipoSigla,
+      sequencial,
+      acquisitionDate: form.acquisition_date,
+    });
+  }, [codigoInalterado, equipment, setorSigla, tipoSigla, sequencial, form.acquisition_date]);
+
+  /** Retorna o outro equipamento que já usa o código informado (ou null). */
+  const equipamentoComCodigo = async (codigo) => {
+    if (!codigo) return null;
+    const encontrados = await base44.entities.Equipment.filter({ codigo_equipamento: codigo });
+    return (encontrados || []).find((e) => e.id !== equipment?.id) || null;
+  };
+
+  const avisarLimite = () => {
+    toast({
+      title: `Limite de ${MAX_SEQUENCIAL} equipamentos atingido`,
+      description: `A combinação ${setorSigla || '—'}-${tipoSigla || '—'} já usa todas as posições disponíveis. Cadastre um novo tipo de equipamento para continuar.`,
+      variant: 'destructive',
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (verificando || isLoading) return;
     if (!form.setor_id || !form.tipo_equipamento_id) {
       toast({
         title: 'Setor e tipo obrigatórios',
@@ -121,11 +152,16 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
       });
       return;
     }
+    if (limiteAtingido) {
+      avisarLimite();
+      return;
+    }
     const data = { ...form };
-    if (data.acquisition_value) data.acquisition_value = parseFloat(data.acquisition_value);
-    if (data.weekly_usage_hours) data.weekly_usage_hours = parseFloat(data.weekly_usage_hours);
-    if (data.total_operators) data.total_operators = parseInt(data.total_operators);
-    if (data.trained_operators) data.trained_operators = parseInt(data.trained_operators);
+    // campos numéricos vazios não são enviados (string vazia invalida a gravação)
+    data.acquisition_value = numOrUndef(form.acquisition_value);
+    data.weekly_usage_hours = numOrUndef(form.weekly_usage_hours);
+    data.total_operators = numOrUndef(form.total_operators);
+    data.trained_operators = numOrUndef(form.trained_operators);
 
     // converte campos numéricos de priorização (mantém todos salvos, ambos os modelos)
     data.funcao_f = numOrUndef(form.funcao_f);
@@ -139,8 +175,57 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
     // codificação técnica (padrão Calil)
     data.setor_id = form.setor_id;
     data.tipo_equipamento_id = form.tipo_equipamento_id;
-    data.sequencial_unidade = sequencial ?? undefined;
-    data.codigo_equipamento = codigoEquipamento || undefined;
+
+    let seqFinal = sequencial;
+    let codigoFinal = codigoEquipamento;
+
+    // Unicidade: só valida quando o código é (re)gerado.
+    if (!codigoInalterado) {
+      setVerificando(true);
+      try {
+        const conflito = await equipamentoComCodigo(codigoFinal);
+        if (conflito) {
+          // Posição tomada por outro cadastro no mesmo instante: parte do registro conflitante
+          // e da lista atual para a próxima posição livre, tentando novamente uma única vez.
+          const lista = await base44.entities.Equipment.list();
+          const posicaoNaLista = computeNextSequencial(lista, form.setor_id, form.tipo_equipamento_id, equipment?.id) || 1;
+          const posicaoConflitante = sequencialDoCodigo(conflito.codigo_equipamento) || Number(conflito.sequencial_unidade) || 0;
+          seqFinal = Math.max(posicaoNaLista, posicaoConflitante + 1);
+          if (seqFinal > MAX_SEQUENCIAL) {
+            setVerificando(false);
+            avisarLimite();
+            return;
+          }
+          codigoFinal = buildEquipmentCode({
+            setorSigla,
+            tipoSigla,
+            sequencial: seqFinal,
+            acquisitionDate: form.acquisition_date,
+          });
+          if (await equipamentoComCodigo(codigoFinal)) {
+            setVerificando(false);
+            toast({
+              title: 'Código já cadastrado',
+              description: `O código ${codigoFinal} já pertence a outro equipamento. Nada foi salvo — revise setor, tipo e data de aquisição.`,
+              variant: 'destructive',
+            });
+            return;
+          }
+        }
+      } catch (err) {
+        setVerificando(false);
+        toast({
+          title: 'Não foi possível validar o código',
+          description: `A verificação de unicidade falhou, então nada foi salvo. ${err?.message || ''}`.trim(),
+          variant: 'destructive',
+        });
+        return;
+      }
+      setVerificando(false);
+    }
+
+    data.sequencial_unidade = seqFinal ?? undefined;
+    data.codigo_equipamento = codigoFinal || undefined;
 
     // cálculo automático de priorização
     const result = computePriorizacao(data, config);
@@ -281,7 +366,14 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
               placeholder="Gerado automaticamente"
               className="font-mono bg-muted cursor-default text-primary font-semibold"
             />
-            <p className="text-[11px] text-muted-foreground">Somente leitura — gerado pelo sistema.</p>
+            {limiteAtingido ? (
+              <p className="text-[11px] font-medium text-destructive flex items-start gap-1">
+                <AlertTriangle className="w-3 h-3 flex-shrink-0 mt-px" />
+                Limite de {MAX_SEQUENCIAL} equipamentos para {setorSigla}-{tipoSigla} atingido — cadastre um novo tipo para continuar.
+              </p>
+            ) : (
+              <p className="text-[11px] text-muted-foreground">Somente leitura — gerado pelo sistema.</p>
+            )}
           </div>
         </div>
       </div>
@@ -361,8 +453,8 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
 
       <div className="flex justify-end gap-3 pt-4 border-t">
         <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Salvando...' : equipment ? 'Atualizar' : 'Cadastrar'}
+        <Button type="submit" disabled={isLoading || verificando}>
+          {isLoading ? 'Salvando...' : verificando ? 'Verificando código...' : equipment ? 'Atualizar' : 'Cadastrar'}
         </Button>
       </div>
     </form>

@@ -3,78 +3,10 @@ import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Badge } from '@/components/ui/badge';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { Pencil, Clock, Wrench, Users, Activity } from 'lucide-react';
 import { format, parseISO, differenceInMonths, differenceInDays, subMonths, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-// ── Mapeamentos para o código de 8 dígitos ──────────────────────────
-const SECTOR_CODES = {
-  'Ambulatório de Vascular': 'AV',
-  'Centro Cirúrgico': 'CC',
-  'Enfermaria de Cirurgia Plástica': 'EP',
-  'Enfermaria de Vascular': 'EV',
-  'Serviço de Neurologia': 'NE',
-  'Serviço de Radiologia': 'RA',
-  'UTI Adulto': 'UA',
-  'UTI Pediátrica': 'UP',
-  'UTI Neonatal': 'UN',
-  'Pronto-Socorro': 'PS',
-  'Cardiologia': 'CA',
-  'CME': 'CM',
-  'Radiologia': 'RA',
-};
-
-const EQUIPMENT_TYPE_CODES = {
-  'Ventilador': 'VT',
-  'Bisturi': 'BE',
-  'Raio': 'RX',
-  'Desfibrilador': 'DS',
-  'Monitor': 'MO',
-  'Bomba': 'BI',
-  'Ultrassom': 'US',
-  'Eletrocard': 'EC',
-  'Mesa': 'MC',
-  'Autoclave': 'AC',
-  'Incubadora': 'IN',
-};
-
-function getSectorCode(unit) {
-  if (!unit) return 'XX';
-  for (const [key, code] of Object.entries(SECTOR_CODES)) {
-    if (unit.toLowerCase().includes(key.toLowerCase()) || key.toLowerCase().includes(unit.toLowerCase())) {
-      return code;
-    }
-  }
-  return unit.substring(0, 2).toUpperCase();
-}
-
-function getEquipmentTypeCode(name) {
-  if (!name) return 'EQ';
-  for (const [key, code] of Object.entries(EQUIPMENT_TYPE_CODES)) {
-    if (name.toLowerCase().includes(key.toLowerCase())) return code;
-  }
-  return name.substring(0, 2).toUpperCase();
-}
-
-function generateEquipmentCode(equipment, allEquipmentInUnit) {
-  const sectorCode = getSectorCode(equipment.location_unit);
-  const typeCode = getEquipmentTypeCode(equipment.name);
-
-  // Count how many of the same type are in the same unit (including this one)
-  const sameTypeInUnit = (allEquipmentInUnit || []).filter(e =>
-    getEquipmentTypeCode(e.name) === typeCode && getSectorCode(e.location_unit) === sectorCode
-  );
-  const idx = sameTypeInUnit.findIndex(e => e.id === equipment.id);
-  const qty = String((idx >= 0 ? idx : 0) + 1).padStart(2, '0');
-
-  const year = equipment.acquisition_date
-    ? equipment.acquisition_date.substring(2, 4)
-    : String(new Date().getFullYear()).substring(2);
-
-  return `${sectorCode}${typeCode}${qty}${year}`;
-}
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function InfoRow({ label, value, highlight }) {
@@ -134,7 +66,7 @@ function getAvgRepairDays(orders) {
   return `${avg.toFixed(1)} dia${avg !== 1 ? 's' : ''}`;
 }
 
-export default function EquipmentDetail({ equipment, onEdit, allEquipment = [] }) {
+export default function EquipmentDetail({ equipment, onEdit }) {
   const { data: orders = [] } = useQuery({
     queryKey: ['equipment-orders', equipment.id],
     queryFn: () => base44.entities.ServiceOrder.filter({ equipment_id: equipment.id }),
@@ -146,7 +78,8 @@ export default function EquipmentDetail({ equipment, onEdit, allEquipment = [] }
   const condition = getCondition(orders6m);
   const maintenanceType = getMaintenanceType(orders);
   const avgRepairDays = getAvgRepairDays(orders);
-  const equipmentCode = generateEquipmentCode(equipment, allEquipment);
+  // Código técnico gravado no cadastro — nunca recalculado na visualização.
+  const codigoTecnico = equipment.codigo_equipamento || '';
 
   // Dados configuráveis no equipamento
   const weeklyUsage = equipment.weekly_usage_hours ?? '—';
@@ -186,13 +119,15 @@ export default function EquipmentDetail({ equipment, onEdit, allEquipment = [] }
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           <div className="col-span-2 sm:col-span-3 p-3 rounded-lg bg-primary/5 border border-primary/20">
             <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1">Código do Equipamento</p>
-            <p className="text-xl font-mono font-bold tracking-[0.3em] text-primary">{equipmentCode}</p>
-            <p className="text-[10px] text-muted-foreground mt-1">
-              <span className="font-semibold">{equipmentCode.substring(0, 2)}</span> Setor ·&nbsp;
-              <span className="font-semibold">{equipmentCode.substring(2, 4)}</span> Tipo ·&nbsp;
-              <span className="font-semibold">{equipmentCode.substring(4, 6)}</span> Nº na unidade ·&nbsp;
-              <span className="font-semibold">{equipmentCode.substring(6, 8)}</span> Ano de aquisição
-            </p>
+            <p className="text-xl font-mono font-bold tracking-[0.3em] text-primary">{codigoTecnico || '—'}</p>
+            {codigoTecnico && (
+              <p className="text-[10px] text-muted-foreground mt-1">
+                <span className="font-semibold">{codigoTecnico.slice(0, 2)}</span> Setor ·&nbsp;
+                <span className="font-semibold">{codigoTecnico.slice(3, 5)}</span> Tipo ·&nbsp;
+                <span className="font-semibold">{codigoTecnico.slice(5, 7)}</span> Nº na unidade ·&nbsp;
+                <span className="font-semibold">{codigoTecnico.slice(7, 9)}</span> Ano de aquisição
+              </p>
+            )}
           </div>
           <InfoRow label="Tipo / Criticidade" value={equipment.criticality} />
           <InfoRow label="Fabricante" value={equipment.manufacturer} />
