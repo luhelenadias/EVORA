@@ -3,31 +3,29 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Wrench, Monitor, Users, FileText,
   ClipboardList, Settings, ChevronLeft, ChevronRight,
-  PlusCircle, Calendar, CalendarDays, Package, LogOut, Menu, X, BarChart2, UserCog } from
+  PlusCircle, CalendarDays, Package, LogOut, Menu, X, BarChart2, UserCog } from
 'lucide-react';
 import EvoraLogo from '@/components/brand/EvoraLogo';
-import { ROLES, ROLE_LABELS } from '@/lib/roles';
+import { ROLES, ROLE_LABELS, abasDoPerfil } from '@/lib/roles';
+import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const allMenuItems = {
-  dashboard: { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
-  chamados: { label: 'Chamados', icon: ClipboardList, path: '/chamados' },
-  meus_chamados: { label: 'Meus Chamados', icon: ClipboardList, path: '/chamados' },
-  abrir_chamado: { label: 'Abrir Chamado', icon: PlusCircle, path: '/chamados/novo' },
-  equipamentos: { label: 'Equipamentos', icon: Monitor, path: '/equipamentos' },
-  equipamentos_readonly: { label: 'Equipamentos', icon: Monitor, path: '/equipamentos' },
-  equipe: { label: 'Equipe Técnica', icon: Users, path: '/equipe' },
-  manutencoes: { label: 'Manutenções', icon: Wrench, path: '/manutencoes' },
-  preventivas: { label: 'Calendário de Preventivas', icon: CalendarDays, path: '/preventivas' },
-  agenda_manutencoes: { label: 'Agenda', icon: Calendar, path: '/manutencoes' },
-  contratos: { label: 'Contratos', icon: FileText, path: '/contratos' },
-  contratos_readonly: { label: 'Contratos', icon: FileText, path: '/contratos' },
-  pecas: { label: 'Peças', icon: Package, path: '/pecas' },
-  indicadores: { label: 'Indicadores', icon: BarChart2, path: '/indicadores' },
-  usuarios: { label: 'Usuários', icon: UserCog, path: '/usuarios' },
-  configuracoes: { label: 'Configurações', icon: Settings, path: '/configuracoes' }
+/** Ícone de cada aba (as abas em si vêm de src/lib/roles.js). */
+const ICONES = {
+  dashboard: LayoutDashboard,
+  chamados: ClipboardList,
+  abrir_chamado: PlusCircle,
+  equipamentos: Monitor,
+  manutencoes: Wrench,
+  preventivas: CalendarDays,
+  equipe: Users,
+  contratos: FileText,
+  pecas: Package,
+  indicadores: BarChart2,
+  usuarios: UserCog,
+  configuracoes: Settings
 };
 
 export default function Sidebar({ user, onCollapsedChange }) {
@@ -42,15 +40,13 @@ export default function Sidebar({ user, onCollapsedChange }) {
   };
 
   const userRole = user?.role || ROLES.CLINICO;
-  const roleMenuKeys = {
-    admin: ['dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes', 'preventivas', 'contratos', 'pecas', 'indicadores', 'usuarios', 'configuracoes'],
-    gestor: ['dashboard', 'chamados', 'equipamentos_readonly', 'manutencoes', 'contratos_readonly', 'indicadores'],
-    tecnico: ['meus_chamados', 'agenda_manutencoes', 'equipamentos_readonly'],
-    clinico: ['abrir_chamado', 'meus_chamados']
-  };
+  const { config } = useConfiguracao();
 
-  const menuKeys = roleMenuKeys[userRole] || roleMenuKeys.clinico;
-  const menuItems = menuKeys.map((k) => ({ ...allMenuItems[k], key: k })).filter(Boolean);
+  // Abas liberadas para o perfil — definidas em Configurações → Acessos por Perfil.
+  const menuItems = abasDoPerfil(config, userRole).map((aba) => ({
+    ...aba,
+    icon: ICONES[aba.key] || ClipboardList
+  }));
 
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';

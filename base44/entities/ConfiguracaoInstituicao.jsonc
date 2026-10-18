@@ -1,6 +1,30 @@
 {
   "name": "ConfiguracaoInstituicao",
   "properties": {
+    "acessos_perfil": {
+      "description": "Abas da barra lateral liberadas em cada perfil de usu\u00e1rio. Cada item guarda o perfil e a lista de chaves de aba permitidas (ver src/lib/roles.js). Quando um perfil n\u00e3o aparece na lista, o sistema aplica as pr\u00e9-defini\u00e7\u00f5es padr\u00e3o. Edit\u00e1vel em Configura\u00e7\u00f5es \u2192 Acessos por Perfil.",
+      "items": {
+        "properties": {
+          "abas": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "perfil": {
+            "enum": [
+              "admin",
+              "tecnico",
+              "clinico",
+              "gestor"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
     "avancado_usa_utilizacao": {
       "default": false,
       "description": "Se verdadeiro, o modelo avan\u00e7ado usa a f\u00f3rmula com utiliza\u00e7\u00e3o (AEMR) e passa a exigir o campo utilizacao_u. Se falso, usa a f\u00f3rmula sem utiliza\u00e7\u00e3o (EMR).",

@@ -1,4 +1,5 @@
-// Role-based access control configuration
+// Perfis de acesso, abas do sistema e pré-definições de permissão por perfil.
+
 export const ROLES = {
   ADMIN: 'admin',
   TECNICO: 'tecnico',
@@ -13,23 +14,62 @@ export const ROLE_LABELS = {
   gestor: 'Gestor de Eng. Clínica',
 };
 
-export const MENU_BY_ROLE = {
-  admin: ['dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes', 'preventivas', 'contratos', 'pecas', 'usuarios', 'indicadores'],
-  gestor: ['dashboard', 'chamados', 'manutencoes', 'equipamentos', 'contratos_readonly', 'indicadores'],
-  tecnico: ['meus_chamados', 'agenda_manutencoes', 'equipamentos_readonly'],
-  clinico: ['abrir_chamado', 'meus_chamados'],
+/** Perfis na ordem em que aparecem nas telas de configuração. */
+export const PERFIS = ['admin', 'tecnico', 'clinico', 'gestor'];
+
+/**
+ * Fonte única das abas da barra lateral. A chave é o que fica gravado em
+ * ConfiguracaoInstituicao.acessos_perfil; a ordem é a ordem do menu.
+ */
+export const ABAS = [
+  { key: 'dashboard', label: 'Dashboard', path: '/' },
+  { key: 'chamados', label: 'Chamados', path: '/chamados' },
+  { key: 'abrir_chamado', label: 'Abrir Chamado', path: '/chamados/novo' },
+  { key: 'equipamentos', label: 'Equipamentos', path: '/equipamentos' },
+  { key: 'manutencoes', label: 'Manutenções', path: '/manutencoes' },
+  { key: 'preventivas', label: 'Calendário de Preventivas', path: '/preventivas' },
+  { key: 'equipe', label: 'Equipe Técnica', path: '/equipe' },
+  { key: 'contratos', label: 'Contratos', path: '/contratos' },
+  { key: 'pecas', label: 'Peças', path: '/pecas' },
+  { key: 'indicadores', label: 'Indicadores', path: '/indicadores' },
+  { key: 'usuarios', label: 'Usuários', path: '/usuarios' },
+  { key: 'configuracoes', label: 'Configurações', path: '/configuracoes' },
+];
+
+/** Pré-definições por perfil, aplicadas enquanto o administrador não personalizar. */
+export const ACESSOS_PADRAO = {
+  admin: [
+    'dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes',
+    'preventivas', 'contratos', 'pecas', 'indicadores', 'usuarios', 'configuracoes',
+  ],
+  gestor: ['dashboard', 'chamados', 'equipamentos', 'manutencoes', 'contratos', 'indicadores'],
+  tecnico: ['chamados', 'manutencoes', 'equipamentos'],
+  clinico: ['abrir_chamado', 'chamados'],
 };
 
-export function hasAccess(userRole, feature) {
-  const roleMenu = MENU_BY_ROLE[userRole] || [];
-  return roleMenu.includes(feature) || roleMenu.includes(feature + '_readonly');
+/** Aba que não pode ser retirada do Administrador, para não travar o próprio ajuste. */
+export const ABA_TRAVADA = 'configuracoes';
+
+/** Chaves de aba liberadas para o perfil: as gravadas ou, sem personalização, as padrão. */
+export function chavesDoPerfil(config, role) {
+  const salvo = (config?.acessos_perfil || []).find((registro) => registro.perfil === role);
+  if (Array.isArray(salvo?.abas)) return salvo.abas;
+  return ACESSOS_PADRAO[role] || ACESSOS_PADRAO.clinico;
 }
 
-export function isReadOnly(userRole, feature) {
-  const roleMenu = MENU_BY_ROLE[userRole] || [];
-  return roleMenu.includes(feature + '_readonly');
+/** Abas liberadas para o perfil, já na ordem do menu. */
+export function abasDoPerfil(config, role) {
+  const chaves = chavesDoPerfil(config, role);
+  return ABAS.filter((aba) => chaves.includes(aba.key));
 }
 
-export function canManageUsers(userRole) {
-  return userRole === ROLES.ADMIN;
+/** A rota pertence ao módulo da aba ('/chamados' cobre '/chamados/novo'). */
+export function rotaDaAba(aba, pathname) {
+  if (aba.path === '/') return pathname === '/';
+  return pathname === aba.path || pathname.startsWith(`${aba.path}/`);
+}
+
+/** Aba liberada que cobre a rota atual; null quando o perfil não tem acesso. */
+export function abaPermitida(config, role, pathname) {
+  return abasDoPerfil(config, role).find((aba) => rotaDaAba(aba, pathname)) || null;
 }

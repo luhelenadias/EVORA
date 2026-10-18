@@ -16,9 +16,10 @@ import PageHeader from '@/components/shared/PageHeader';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import CodigoManager from '@/components/settings/CodigoManager';
+import AcessosPerfil from '@/components/settings/AcessosPerfil';
 import TermoTooltip from '@/components/shared/TermoTooltip';
 import { toast } from 'sonner';
-import { ShieldCheck, AlertTriangle, Building2, Stethoscope, RefreshCw } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Building2, Stethoscope, RefreshCw, Users } from 'lucide-react';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -155,6 +156,9 @@ export default function Settings() {
           </TabsTrigger>
           <TabsTrigger value="tipos" className="gap-1.5">
             <Stethoscope className="w-3.5 h-3.5" /> Tipos de Equipamento
+          </TabsTrigger>
+          <TabsTrigger value="acessos" className="gap-1.5">
+            <Users className="w-3.5 h-3.5" /> Acessos por Perfil
           </TabsTrigger>
         </TabsList>
 
@@ -305,6 +309,10 @@ export default function Settings() {
 
         <TabsContent value="tipos">
           <CodigoManager kind="CodigoTipoEquipamento" />
+        </TabsContent>
+
+        <TabsContent value="acessos">
+          <AcessosPerfil config={config} />
         </TabsContent>
       </Tabs>
 
