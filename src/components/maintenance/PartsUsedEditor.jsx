@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 export default function PartsUsedEditor({ items = [], spareParts = [], onChange }) {
   const adicionar = () => onChange([...items, { spare_part_id: '', name: '', quantity: 1, cost: 0 }]);
@@ -27,6 +28,8 @@ export default function PartsUsedEditor({ items = [], spareParts = [], onChange 
     <div className="space-y-3">
       {items.map((item, i) => {
         const peca = spareParts.find((s) => s.id === item.spare_part_id);
+        const disponivel = peca?.current_stock ?? 0;
+        const excede = !!peca && item.quantity > disponivel;
         return (
           <div key={i} className="space-y-1.5">
             <div className="flex gap-2 items-end">
@@ -36,8 +39,8 @@ export default function PartsUsedEditor({ items = [], spareParts = [], onChange 
                   <SelectTrigger><SelectValue placeholder="Selecione a peça" /></SelectTrigger>
                   <SelectContent>
                     {spareParts.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
-                        {s.name} — estoque {s.current_stock ?? 0}
+                      <SelectItem key={s.id} value={s.id} disabled={(s.current_stock ?? 0) <= 0}>
+                        {s.name} — {(s.current_stock ?? 0) > 0 ? `estoque ${s.current_stock}` : 'sem estoque'}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -48,6 +51,7 @@ export default function PartsUsedEditor({ items = [], spareParts = [], onChange 
                 <Input
                   type="number"
                   min="1"
+                  max={peca ? disponivel : undefined}
                   value={item.quantity}
                   onChange={(e) => alterarQtd(i, e.target.value)}
                 />
@@ -63,9 +67,10 @@ export default function PartsUsedEditor({ items = [], spareParts = [], onChange 
               </Button>
             </div>
             {peca && (
-              <p className="text-[11px] text-muted-foreground">
-                Estoque atual: {peca.current_stock ?? 0} · restará{' '}
-                {Math.max((peca.current_stock ?? 0) - item.quantity, 0)}
+              <p className={cn('text-[11px]', excede ? 'font-medium text-destructive' : 'text-muted-foreground')}>
+                {excede
+                  ? `Estoque insuficiente: disponível ${disponivel}, solicitado ${item.quantity}`
+                  : `Estoque atual: ${disponivel} · restará ${disponivel - item.quantity}`}
               </p>
             )}
           </div>

@@ -81,6 +81,30 @@ export function totalPecas(pecas = []) {
   return (pecas || []).reduce((soma, p) => soma + (p.cost || 0) * (p.quantity || 0), 0);
 }
 
+/**
+ * Peças cujo consumo ultrapassa o estoque disponível. A soma é feita por peça,
+ * pois a mesma peça pode aparecer em mais de uma linha da mesma ordem.
+ * Retorna [] quando a baixa pode ser feita.
+ */
+export function pecasAcimaDoEstoque(pecas = [], spareParts = []) {
+  const solicitado = {};
+  (pecas || []).forEach((p) => {
+    if (!p.spare_part_id) return;
+    solicitado[p.spare_part_id] = (solicitado[p.spare_part_id] || 0) + (Number(p.quantity) || 0);
+  });
+
+  return Object.entries(solicitado)
+    .map(([id, quantidade]) => {
+      const peca = spareParts.find((s) => s.id === id);
+      if (!peca) return null;
+      const disponivel = peca.current_stock ?? 0;
+      return quantidade > disponivel
+        ? { name: peca.name || 'Peça', quantidade, disponivel }
+        : null;
+    })
+    .filter(Boolean);
+}
+
 /** Últimas ordens do mesmo equipamento, exceto a que está aberta no modal. */
 export function historicoDoEquipamento(orders, equipmentId, ordemAtualId, limite = 5) {
   return (orders || [])

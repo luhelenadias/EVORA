@@ -8,6 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import PartsUsedEditor from '@/components/maintenance/PartsUsedEditor';
 import { minutosDeExecucao } from '@/lib/atendimento';
+import { formatarMoeda, pecasAcimaDoEstoque, totalPecas } from '@/lib/orderDetail';
+import { AlertTriangle } from 'lucide-react';
 
 export default function FinalizarManutencaoDialog({ open, order, equipment, onClose, onConfirm, isSaving }) {
   const { data: spareParts = [] } = useQuery({
@@ -29,8 +31,15 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
     setParts(order.parts_used || []);
   }, [open, order?.id]);
 
+  const pecasValidas = parts.filter((p) => p.spare_part_id);
+  const subtotalPecas = totalPecas(pecasValidas);
+  const totalOrdem = (Number(order?.total_cost) || 0) + subtotalPecas;
+  const excedentes = pecasAcimaDoEstoque(pecasValidas, spareParts);
+  const bloqueado = excedentes.length > 0;
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (bloqueado) return;
     const completionDate = new Date().toISOString();
     // Sem ajuste manual, grava sempre (completion_date - start_date) em minutos arredondados.
     const total = ajustadoManualmente
@@ -40,7 +49,9 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
       completion_date: completionDate,
       duracao_total_minutos: total,
       technical_report: report.trim(),
-      parts_used: parts.filter((p) => p.spare_part_id),
+      parts_used: pecasValidas,
+      // Custo total da OS = valor já registrado + peças utilizadas nesta conclusão.
+      ...(subtotalPecas > 0 ? { total_cost: totalOrdem } : {}),
     });
   };
 
@@ -89,11 +100,30 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
           <div className="space-y-2">
             <Label className="text-xs">Peças utilizadas (opcional)</Label>
             <PartsUsedEditor items={parts} spareParts={spareParts} onChange={setParts} />
+            {bloqueado ? (
+              <p className="flex items-start gap-1.5 text-[11px] font-medium text-destructive">
+                <AlertTriangle className="w-3.5 h-3.5 mt-px flex-shrink-0" />
+                <span>
+                  Estoque insuficiente:{' '}
+                  {excedentes
+                    .map((e) => `${e.name} (disponível ${e.disponivel}, solicitado ${e.quantidade})`)
+                    .join(' · ')}
+                  . Ajuste as quantidades para concluir.
+                </span>
+              </p>
+            ) : (
+              subtotalPecas > 0 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Peças somam {formatarMoeda(subtotalPecas)} — o custo total da ordem passará a{' '}
+                  {formatarMoeda(totalOrdem)}.
+                </p>
+              )
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={isSaving}>
+            <Button type="submit" disabled={isSaving || bloqueado}>
               {isSaving ? 'Salvando...' : 'Concluir Manutenção'}
             </Button>
           </div>
