@@ -50,7 +50,9 @@
       "type": "string"
     },
     "funcao_f": {
-      "description": "Modelo Simples (Fennigkoh & Smith) \u2014 Fun\u00e7\u00e3o (F). Sempre obrigat\u00f3rio, independente do modelo de prioriza\u00e7\u00e3o ativo.",
+      "description": "Modelo Simples (Fennigkoh & Smith) \u2014 Fun\u00e7\u00e3o (F), de 2 a 10 conforme a tabela do m\u00e9todo (suporte \u00e0 vida = 10 ... relacionado ao paciente e outros = 2). Sempre obrigat\u00f3rio, independente do modelo de prioriza\u00e7\u00e3o ativo.",
+      "maximum": 10,
+      "minimum": 2,
       "type": "number"
     },
     "image_url": {
@@ -80,11 +82,13 @@
       "type": "string"
     },
     "manutencao_m": {
-      "description": "Modelo Avan\u00e7ado \u2014 Manuten\u00e7\u00e3o (M), mesma escala de requisitos_manutencao_mr. Obrigat\u00f3rio apenas no modelo avan\u00e7ado.",
+      "description": "Modelo Avan\u00e7ado \u2014 Manuten\u00e7\u00e3o (M), mesma tabela e escala do requisitos_manutencao_mr (1 a 5). Obrigat\u00f3rio apenas no modelo avan\u00e7ado.",
+      "maximum": 5,
+      "minimum": 1,
       "type": "number"
     },
     "mission_critical_mc": {
-      "description": "Modelo Avan\u00e7ado \u2014 Mission Critical (MC), escala 1 a 10. Obrigat\u00f3rio apenas se ConfiguracaoInstituicao.modelo_priorizacao = 'avancado'.",
+      "description": "Modelo Avan\u00e7ado \u2014 Mission Critical (MC), escala 1 a 10, definida pela institui\u00e7\u00e3o conforme a criticidade do equipamento para a miss\u00e3o global. Obrigat\u00f3rio apenas se ConfiguracaoInstituicao.modelo_priorizacao = 'avancado'.",
       "maximum": 10,
       "minimum": 1,
       "type": "number"
@@ -123,19 +127,46 @@
     },
     "prioridade_alta": {
       "default": false,
-      "description": "Verdadeiro se prioridade_score atingir o limiar de alta prioridade (EM >= 12 no modelo simples).",
+      "description": "Simples: verdadeiro se EM >= 12 (crit\u00e9rio de inclus\u00e3o de Fennigkoh & Smith). Avan\u00e7ado (EMR/AEMR): verdadeiro se prioridade_faixa for 'Cr\u00edtica' ou 'Alta'. Calculado pelo sistema.",
       "type": "boolean"
     },
+    "prioridade_faixa": {
+      "description": "Faixa relativa de prioridade do equipamento dentro do parque, por quartis (cortes configur\u00e1veis em ConfiguracaoInstituicao). Nulo enquanto status_priorizacao = 'pendente_atualizacao'. Calculado pelo sistema.",
+      "enum": [
+        "Cr\u00edtica",
+        "Alta",
+        "M\u00e9dia",
+        "Baixa"
+      ],
+      "type": "string"
+    },
+    "prioridade_modelo": {
+      "description": "F\u00f3rmula que gerou prioridade_score: EM (simples), EMR (avan\u00e7ado sem utiliza\u00e7\u00e3o) ou AEMR (avan\u00e7ado com utiliza\u00e7\u00e3o). Calculado pelo sistema; scores de modelos diferentes nunca s\u00e3o comparados entre si.",
+      "enum": [
+        "EM",
+        "EMR",
+        "AEMR"
+      ],
+      "type": "string"
+    },
+    "prioridade_posicao": {
+      "description": "Posi\u00e7\u00e3o no ranking de prioridade (1 = mais priorit\u00e1rio), entre os equipamentos com status_priorizacao = 'calculado' e n\u00e3o baixados. Desempate: maior prioridade_score, depois criticidade (Suporte \u00e0 Vida > Terap\u00eautico > Diagn\u00f3stico > Apoio), depois mais corretivas nos \u00faltimos 12 meses, depois codigo_equipamento. Calculado pelo sistema.",
+      "type": "number"
+    },
     "prioridade_score": {
-      "description": "Resultado do c\u00e1lculo de prioriza\u00e7\u00e3o (EM no modelo simples, EMR no avan\u00e7ado). Calculado pelo sistema ao salvar/editar o equipamento.",
+      "description": "Resultado do c\u00e1lculo de prioriza\u00e7\u00e3o (EM no modelo simples; EMR ou AEMR no avan\u00e7ado \u2014 ver prioridade_modelo). Calculado pelo sistema ao salvar/editar o equipamento.",
       "type": "number"
     },
     "requisitos_manutencao_mr": {
-      "description": "Modelo Simples (Fennigkoh & Smith) \u2014 Requisitos de Manuten\u00e7\u00e3o (MR). Sempre obrigat\u00f3rio.",
+      "description": "Modelo Simples (Fennigkoh & Smith) \u2014 Requisitos de Manuten\u00e7\u00e3o (MR), de 1 (m\u00ednima) a 5 (extensiva). Sempre obrigat\u00f3rio.",
+      "maximum": 5,
+      "minimum": 1,
       "type": "number"
     },
     "risco_fisico_pr": {
-      "description": "Modelo Simples (Fennigkoh & Smith) \u2014 Risco F\u00edsico (PR). Sempre obrigat\u00f3rio.",
+      "description": "Modelo Simples (Fennigkoh & Smith) \u2014 Risco F\u00edsico (PR), de 1 (sem risco significativo) a 5 (morte do paciente). Sempre obrigat\u00f3rio.",
+      "maximum": 5,
+      "minimum": 1,
       "type": "number"
     },
     "risco_r": {
@@ -185,7 +216,7 @@
       "type": "number"
     },
     "utilizacao_u": {
-      "description": "Modelo Avan\u00e7ado \u2014 Utiliza\u00e7\u00e3o (U), 0.0 a 1.0. Obrigat\u00f3rio apenas se avancado_usa_utilizacao = true.",
+      "description": "Modelo Avan\u00e7ado \u2014 Utiliza\u00e7\u00e3o (U), fra\u00e7\u00e3o do tempo em que o equipamento \u00e9 usado, de 0.0 a 1.0. Obrigat\u00f3rio apenas se avancado_usa_utilizacao = true.",
       "maximum": 1,
       "minimum": 0,
       "type": "number"
