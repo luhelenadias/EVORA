@@ -6,6 +6,7 @@ import {
   Monitor, ClipboardList, AlertTriangle, FileText, Wrench,
   CheckCircle, Clock, Activity, AlertCircle
 } from 'lucide-react';
+import TermoTooltip from '@/components/shared/TermoTooltip';
 import StatsGrid from '@/components/dashboard/StatsGrid';
 import ChartSection from '@/components/dashboard/ChartSection';
 import AlertsList from '@/components/dashboard/AlertsList';
@@ -174,7 +175,11 @@ export default function Dashboard() {
           </div>
           <div>
             <p className="text-sm font-semibold text-foreground">
-              {pendingCount} equipamento{pendingCount !== 1 ? 's' : ''} pendente{pendingCount !== 1 ? 's' : ''} de atualização para o modelo avançado
+              {pendingCount} equipamento{pendingCount !== 1 ? 's' : ''}{' '}
+              <TermoTooltip termo="pendente" as="span" className="font-semibold">
+                pendente{pendingCount !== 1 ? 's' : ''} de atualização
+              </TermoTooltip>{' '}
+              para o modelo avançado
             </p>
             <p className="text-xs text-muted-foreground">Clique para ver a lista na aba de Manutenção e completar os dados de priorização.</p>
           </div>

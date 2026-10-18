@@ -9,6 +9,11 @@ import { Separator } from '@/components/ui/separator';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { computePriorizacao } from '@/lib/maintenance';
 import { buildEquipmentCode, computeNextSequencial, sequencialDoCodigo, MAX_SEQUENCIAL } from '@/lib/equipmentCode';
+import {
+  OPCOES_FUNCAO_F, OPCOES_RISCO_PR, OPCOES_MANUTENCAO, OPCOES_RISCO_R,
+} from '@/lib/priorizacao';
+import TermoTooltip from '@/components/shared/TermoTooltip';
+import CampoCategoria from '@/components/equipment/CampoCategoria';
 import { useToast } from '@/components/ui/use-toast';
 import { AlertTriangle, Hash } from 'lucide-react';
 
@@ -52,14 +57,16 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
     weekly_usage_hours: equipment?.weekly_usage_hours || '',
     total_operators: equipment?.total_operators || '',
     trained_operators: equipment?.trained_operators || '',
-    // Priorização — modelo simples (sempre)
-    funcao_f: equipment?.funcao_f ?? '',
-    risco_fisico_pr: equipment?.risco_fisico_pr ?? '',
-    requisitos_manutencao_mr: equipment?.requisitos_manutencao_mr ?? '',
+    // Priorização — modelo simples (sempre). As categorias vêm das listas de escolha
+    // como texto e são gravadas como número no campo correspondente.
+    funcao_f: equipment?.funcao_f != null ? String(equipment.funcao_f) : '',
+    risco_fisico_pr: equipment?.risco_fisico_pr != null ? String(equipment.risco_fisico_pr) : '',
+    requisitos_manutencao_mr:
+      equipment?.requisitos_manutencao_mr != null ? String(equipment.requisitos_manutencao_mr) : '',
     // Priorização — modelo avançado
     mission_critical_mc: equipment?.mission_critical_mc ?? '',
     risco_r: equipment?.risco_r || '',
-    manutencao_m: equipment?.manutencao_m ?? '',
+    manutencao_m: equipment?.manutencao_m != null ? String(equipment.manutencao_m) : '',
     utilizacao_u: equipment?.utilizacao_u ?? '',
   });
 
@@ -227,11 +234,17 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
     data.sequencial_unidade = seqFinal ?? undefined;
     data.codigo_equipamento = codigoFinal || undefined;
 
-    // cálculo automático de priorização
+    // cálculo automático de priorização (índice, modelo e estado)
     const result = computePriorizacao(data, config);
     data.status_priorizacao = result.status_priorizacao;
     data.prioridade_score = result.prioridade_score;
+    data.prioridade_modelo = result.prioridade_modelo;
     data.prioridade_alta = result.prioridade_alta;
+    if (result.status_priorizacao === 'pendente_atualizacao') {
+      // fora do ranking: posição e faixa são limpas
+      data.prioridade_posicao = null;
+      data.prioridade_faixa = null;
+    }
 
     onSubmit(data);
   };
@@ -383,20 +396,37 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
       {/* Priorização — modelo simples (sempre visível) */}
       <div>
         <h4 className="text-sm font-semibold mb-1">Priorização — Modelo Simples (Fennigkoh &amp; Smith)</h4>
-        <p className="text-xs text-muted-foreground mb-3">EM = F + PR + MR. Campos obrigatórios em qualquer modelo.</p>
+        <p className="text-xs text-muted-foreground mb-3">
+          <TermoTooltip termo="EM" as="span" className="font-semibold text-foreground">EM</TermoTooltip> ={' '}
+          <TermoTooltip termo="F" as="span">F</TermoTooltip> +{' '}
+          <TermoTooltip termo="PR" as="span">PR</TermoTooltip> +{' '}
+          <TermoTooltip termo="MR" as="span">MR</TermoTooltip>. Campos obrigatórios em qualquer modelo.
+        </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Função (F) *</Label>
-            <Input type="number" min="1" max="10" step="1" value={form.funcao_f} onChange={e => update('funcao_f', e.target.value)} required />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Risco Físico (PR) *</Label>
-            <Input type="number" min="1" max="5" step="1" value={form.risco_fisico_pr} onChange={e => update('risco_fisico_pr', e.target.value)} required />
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs">Requisitos Manut. (MR) *</Label>
-            <Input type="number" min="1" max="10" step="1" value={form.requisitos_manutencao_mr} onChange={e => update('requisitos_manutencao_mr', e.target.value)} required />
-          </div>
+          <CampoCategoria
+            termo="F"
+            rotulo="Função"
+            opcoes={OPCOES_FUNCAO_F}
+            value={form.funcao_f}
+            onChange={(v) => update('funcao_f', v)}
+            placeholder="Selecione a função"
+          />
+          <CampoCategoria
+            termo="PR"
+            rotulo="Risco Físico"
+            opcoes={OPCOES_RISCO_PR}
+            value={form.risco_fisico_pr}
+            onChange={(v) => update('risco_fisico_pr', v)}
+            placeholder="Selecione o risco"
+          />
+          <CampoCategoria
+            termo="MR"
+            rotulo="Requisitos Manut."
+            opcoes={OPCOES_MANUTENCAO}
+            value={form.requisitos_manutencao_mr}
+            onChange={(v) => update('requisitos_manutencao_mr', v)}
+            placeholder="Selecione os requisitos"
+          />
         </div>
       </div>
 
@@ -407,36 +437,51 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
           <div>
             <h4 className="text-sm font-semibold mb-1">Priorização — Modelo Avançado (ECRI)</h4>
             <p className="text-xs text-muted-foreground mb-3">
-              {usaUtil
-                ? 'EMR = (MC + 2·M) × U + 2·R'
-                : 'EMR = MC + 2·R + 2·M'}
+              {usaUtil ? (
+                <>
+                  <TermoTooltip termo="AEMR" as="span" className="font-semibold text-foreground">AEMR</TermoTooltip> = (
+                  <TermoTooltip termo="MC" as="span">MC</TermoTooltip> + 2·<TermoTooltip termo="M" as="span">M</TermoTooltip>) ×{' '}
+                  <TermoTooltip termo="U" as="span">U</TermoTooltip> + 2·<TermoTooltip termo="R" as="span">R</TermoTooltip>
+                </>
+              ) : (
+                <>
+                  <TermoTooltip termo="EMR" as="span" className="font-semibold text-foreground">EMR</TermoTooltip> ={' '}
+                  <TermoTooltip termo="MC" as="span">MC</TermoTooltip> + 2·<TermoTooltip termo="R" as="span">R</TermoTooltip> + 2·<TermoTooltip termo="M" as="span">M</TermoTooltip>
+                </>
+              )}
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs">Mission Critical (MC) *</Label>
-                <Input type="number" min="1" max="10" step="1" value={form.mission_critical_mc} onChange={e => update('mission_critical_mc', e.target.value)} required />
+                <Label className="text-xs">
+                  Mission Critical (<TermoTooltip termo="MC" as="span">MC</TermoTooltip>) *
+                </Label>
+                <Input type="number" min="1" max="10" step="1" value={form.mission_critical_mc} onChange={e => update('mission_critical_mc', e.target.value)} />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Risco ECRI (R) *</Label>
-                <Select value={form.risco_r} onValueChange={v => update('risco_r', v)}>
-                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Baixo">Baixo (1)</SelectItem>
-                    <SelectItem value="Médio">Médio (3)</SelectItem>
-                    <SelectItem value="Alto">Alto (5)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Manutenção (M) *</Label>
-                <Input type="number" min="1" max="10" step="1" value={form.manutencao_m} onChange={e => update('manutencao_m', e.target.value)} required />
-              </div>
+              <CampoCategoria
+                termo="R"
+                rotulo="Risco ECRI"
+                opcoes={OPCOES_RISCO_R}
+                value={form.risco_r}
+                onChange={(v) => update('risco_r', v)}
+                placeholder="Selecione o risco"
+                apoio
+              />
+              <CampoCategoria
+                termo="M"
+                rotulo="Manutenção"
+                opcoes={OPCOES_MANUTENCAO}
+                value={form.manutencao_m}
+                onChange={(v) => update('manutencao_m', v)}
+                placeholder="Selecione a exigência"
+              />
             </div>
             {usaUtil && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs">Utilização (U) *</Label>
-                  <Input type="number" min="0" max="1" step="0.1" placeholder="0.0 a 1.0" value={form.utilizacao_u} onChange={e => update('utilizacao_u', e.target.value)} required />
+                  <Label className="text-xs">
+                    Utilização (<TermoTooltip termo="U" as="span">U</TermoTooltip>) *
+                  </Label>
+                  <Input type="number" min="0" max="1" step="0.1" placeholder="0,0 a 1,0" value={form.utilizacao_u} onChange={e => update('utilizacao_u', e.target.value)} />
                 </div>
               </div>
             )}
@@ -447,7 +492,13 @@ export default function EquipmentForm({ equipment, onSubmit, onCancel, isLoading
       {equipment?.status_priorizacao === 'pendente_atualizacao' && (
         <div className="flex items-start gap-2 p-3 rounded-lg bg-warning/10 border border-warning/40 text-warning-foreground text-xs">
           <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-          <span>Este equipamento está marcado como "Pendente de atualização" para o modelo ativo. Preencha os campos obrigatórios acima para recalcular a prioridade.</span>
+          <span>
+            Este equipamento está marcado como{' '}
+            <TermoTooltip termo="Pendente de atualização" as="span" className="font-semibold">
+              &quot;Pendente de atualização&quot;
+            </TermoTooltip>{' '}
+            para o modelo ativo. Preencha os campos obrigatórios acima para recalcular a prioridade.
+          </span>
         </div>
       )}
 

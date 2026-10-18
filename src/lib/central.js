@@ -18,7 +18,7 @@ export function dataReferencia(order) {
   return order.scheduled_date || order.open_date || null;
 }
 
-export function ordenarOrdens(orders = [], ordem = 'prioridade') {
+export function ordenarOrdens(orders = [], ordem = 'prioridade', equipmentById = {}) {
   const lista = [...(orders || [])];
   if (ordem === 'data') {
     return lista.sort(
@@ -30,9 +30,14 @@ export function ordenarOrdens(orders = [], ordem = 'prioridade') {
       (a.equipment_name || '').localeCompare(b.equipment_name || '', 'pt-BR')
     );
   }
-  return lista.sort(
-    (a, b) => (b.prioridade_score_equipamento ?? -1) - (a.prioridade_score_equipamento ?? -1)
-  );
+  // Colocação atual do equipamento no ranking de prioridade (sem posição por último),
+  // e entre iguais o chamado aberto há mais tempo.
+  return lista.sort((a, b) => {
+    const posA = equipmentById?.[a.equipment_id]?.prioridade_posicao ?? Infinity;
+    const posB = equipmentById?.[b.equipment_id]?.prioridade_posicao ?? Infinity;
+    if (posA !== posB) return posA - posB;
+    return new Date(a.open_date || 0) - new Date(b.open_date || 0);
+  });
 }
 
 /** Motivo resumido exibido no card da Central. */

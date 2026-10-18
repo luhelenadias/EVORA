@@ -4,6 +4,8 @@ import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import StatusBadge from '@/components/shared/StatusBadge';
+import PrioridadeBadge from '@/components/equipment/PrioridadeBadge';
+import CriteriosPrioridade from '@/components/equipment/CriteriosPrioridade';
 import { Pencil, Clock, Wrench, Users, Activity } from 'lucide-react';
 import { format, parseISO, differenceInMonths, differenceInDays, subMonths, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -66,7 +68,11 @@ function getAvgRepairDays(orders) {
   return `${avg.toFixed(1)} dia${avg !== 1 ? 's' : ''}`;
 }
 
-export default function EquipmentDetail({ equipment, onEdit }) {
+export default function EquipmentDetail({ equipment, onEdit, allEquipment = [] }) {
+  const totalRanking = (allEquipment || []).filter(
+    (e) => e.status_priorizacao === 'calculado' && e.operational_status !== 'Inativo/Baixado'
+  ).length;
+
   const { data: orders = [] } = useQuery({
     queryKey: ['equipment-orders', equipment.id],
     queryFn: () => base44.entities.ServiceOrder.filter({ equipment_id: equipment.id }),
@@ -146,11 +152,33 @@ export default function EquipmentDetail({ equipment, onEdit }) {
 
       <Separator />
 
-      {/* 2. HISTÓRICO */}
+      {/* 2. PRIORIZAÇÃO */}
       <div>
         <div className="flex items-center gap-2 mb-4">
           <div className="w-6 h-6 rounded-full bg-accent/10 flex items-center justify-center">
             <span className="text-xs font-bold text-accent">2</span>
+          </div>
+          <h3 className="text-sm font-semibold font-display">Prioridade no Parque</h3>
+        </div>
+
+        <div className="space-y-4 rounded-lg border bg-muted/30 p-4">
+          <div>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">
+              Faixa, colocação no ranking e índice
+            </p>
+            <PrioridadeBadge equipment={equipment} total={totalRanking} />
+          </div>
+          <CriteriosPrioridade equipment={equipment} />
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* 3. HISTÓRICO */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+            <span className="text-xs font-bold text-primary">3</span>
           </div>
           <h3 className="text-sm font-semibold font-display">Histórico do Equipamento</h3>
         </div>

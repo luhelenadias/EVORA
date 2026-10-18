@@ -6,6 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motivoDaOrdem } from '@/lib/central';
+import { rotuloScore } from '@/lib/priorizacao';
+import TermoTooltip from '@/components/shared/TermoTooltip';
 import ResponseTimeInfo from '@/components/maintenance/ResponseTimeInfo';
 
 const ESTILOS = {
@@ -59,7 +61,13 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
             )}
             <Badge variant="outline" className={estilo.chip}>{order.type}</Badge>
             {score != null && (
-              <Badge variant="outline" className="text-[11px]">Prioridade {Math.round(score)}</Badge>
+              <TermoTooltip
+                termo={equipment?.prioridade_modelo || 'EM'}
+                as="span"
+                className="rounded-md border border-border bg-muted px-2 py-0.5 text-[11px] text-muted-foreground"
+              >
+                {rotuloScore(score, equipment?.prioridade_modelo)}
+              </TermoTooltip>
             )}
           </div>
 

@@ -15,7 +15,10 @@ export default function CentralList({
   title,
   description,
 }) {
-  const lista = useMemo(() => ordenarOrdens(orders, ordem), [orders, ordem]);
+  const lista = useMemo(
+    () => ordenarOrdens(orders, ordem, equipmentById),
+    [orders, ordem, equipmentById]
+  );
 
   if (lista.length === 0) {
     return <EmptyState icon={ClipboardList} title={title} description={description} />;

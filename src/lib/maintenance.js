@@ -26,6 +26,20 @@ export function suggestPriority(criticality) {
   return CRITICALITY_PRIORITY[criticality] || 'Média';
 }
 
+/**
+ * Sugestão de prioridade para uma nova OS: usa a faixa de prioridade do equipamento;
+ * sem faixa (pendente), cai no mapeamento por criticidade. Suporte à Vida nunca
+ * recebe sugestão abaixo de Alta.
+ */
+export function suggestPriorityDeEquipamento(equipment) {
+  const faixa = equipment?.prioridade_faixa;
+  const sugestao = faixa && PRIORITY_WEIGHT[faixa] ? faixa : suggestPriority(equipment?.criticality);
+  if (equipment?.criticality === 'Suporte à Vida' && PRIORITY_WEIGHT[sugestao] < PRIORITY_WEIGHT['Alta']) {
+    return 'Alta';
+  }
+  return sugestao;
+}
+
 // ── SLA de Contratos ──────────────────────────────────────────────
 export function findContractForEquipment(contracts, equipmentId) {
   if (!contracts || !equipmentId) return null;
@@ -107,26 +121,33 @@ export const LIMIAR_PRIORIDADE_ALTA = 12;
  * o modelo ativo da instituição (ConfiguracaoInstituicao).
  * - Simples: EM = funcao_f + risco_fisico_pr + requisitos_manutencao_mr
  * - Avançado s/ utilização: EMR = mission_critical_mc + 2*risco_r + 2*manutencao_m
- * - Avançado c/ utilização: EMR = (mission_critical_mc + 2*manutencao_m) * utilizacao_u + 2*risco_r
- * Se faltar campo obrigatório do modelo ativo → pendente_atualizacao (mantém último score).
+ * - Avançado c/ utilização: AEMR = (mission_critical_mc + 2*manutencao_m) * utilizacao_u + 2*risco_r
+ * Se faltar campo obrigatório do modelo ativo → pendente_atualizacao: mantém o último
+ * score/modelo e limpa posição e faixa (o equipamento sai do ranking).
  */
 export function computePriorizacao(eq, config) {
   const modelo = config?.modelo_priorizacao || 'simples';
+  const usaUtil = modelo === 'avancado' && config?.avancado_usa_utilizacao === true;
+  const modeloDoScore = modelo === 'simples' ? 'EM' : usaUtil ? 'AEMR' : 'EMR';
+  const pendente = () => ({
+    status_priorizacao: 'pendente_atualizacao',
+    prioridade_score: eq.prioridade_score ?? null,
+    prioridade_modelo: eq.prioridade_modelo ?? null,
+    prioridade_alta: false,
+    prioridade_posicao: null,
+    prioridade_faixa: null,
+  });
+
   const hasSimple =
     eq.funcao_f != null && eq.risco_fisico_pr != null && eq.requisitos_manutencao_mr != null;
 
   if (modelo === 'simples') {
-    if (!hasSimple) {
-      return {
-        status_priorizacao: 'pendente_atualizacao',
-        prioridade_score: eq.prioridade_score ?? null,
-        prioridade_alta: false,
-      };
-    }
+    if (!hasSimple) return pendente();
     const EM = eq.funcao_f + eq.risco_fisico_pr + eq.requisitos_manutencao_mr;
     return {
       status_priorizacao: 'calculado',
       prioridade_score: EM,
+      prioridade_modelo: modeloDoScore,
       prioridade_alta: EM >= LIMIAR_PRIORIDADE_ALTA,
     };
   }
@@ -134,27 +155,20 @@ export function computePriorizacao(eq, config) {
   // avancado
   const hasAdvancedBase =
     eq.mission_critical_mc != null && eq.risco_r != null && eq.manutencao_m != null;
-  const needsUtil = config?.avancado_usa_utilizacao === true;
-  const hasUtil = !needsUtil || eq.utilizacao_u != null;
+  const hasUtil = !usaUtil || eq.utilizacao_u != null;
 
-  if (!hasAdvancedBase || !hasUtil) {
-    return {
-      status_priorizacao: 'pendente_atualizacao',
-      prioridade_score: eq.prioridade_score ?? null,
-      prioridade_alta: eq.prioridade_alta ?? false,
-    };
-  }
+  if (!hasAdvancedBase || !hasUtil) return pendente();
 
   const riscoNum = RISCO_R_NUMERICO[eq.risco_r] || 0;
-  let EMR;
-  if (needsUtil) {
-    EMR = (eq.mission_critical_mc + 2 * eq.manutencao_m) * eq.utilizacao_u + 2 * riscoNum;
-  } else {
-    EMR = eq.mission_critical_mc + 2 * riscoNum + 2 * eq.manutencao_m;
-  }
+  const score = usaUtil
+    ? (eq.mission_critical_mc + 2 * eq.manutencao_m) * eq.utilizacao_u + 2 * riscoNum
+    : eq.mission_critical_mc + 2 * riscoNum + 2 * eq.manutencao_m;
+
   return {
     status_priorizacao: 'calculado',
-    prioridade_score: EMR,
-    prioridade_alta: EMR >= LIMIAR_PRIORIDADE_ALTA,
+    prioridade_score: score,
+    prioridade_modelo: modeloDoScore,
+    // No modelo avançado a faixa (ranking) define prioridade_alta; até lá vale a faixa atual.
+    prioridade_alta: ['Crítica', 'Alta'].includes(eq.prioridade_faixa),
   };
 }

@@ -1,5 +1,5 @@
 import { addDays, differenceInDays, format, parseISO } from 'date-fns';
-import { suggestPriority } from '@/lib/maintenance';
+import { suggestPriorityDeEquipamento } from '@/lib/maintenance';
 
 // Antecedência com que a preventiva entra na fila da Central de Manutenções.
 export const JANELA_PREVENTIVA_DIAS = 7;
@@ -42,7 +42,7 @@ export function calcularPreventivasAGerar(equipment = [], orders = [], hoje = ne
       equipment_id: eq.id,
       equipment_name: eq.name,
       equipment_criticality: eq.criticality,
-      priority: suggestPriority(eq.criticality),
+      priority: suggestPriorityDeEquipamento(eq),
       problem_description: 'Manutenção preventiva programada',
       periodicidade_referencia: eq.periodicidade_preventiva_dias,
       prioridade_score_equipamento: eq.prioridade_score ?? null,

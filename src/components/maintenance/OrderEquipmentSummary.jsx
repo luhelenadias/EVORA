@@ -1,6 +1,8 @@
 import React from 'react';
 import InfoField from '@/components/shared/InfoField';
 import StatusBadge from '@/components/shared/StatusBadge';
+import TermoTooltip from '@/components/shared/TermoTooltip';
+import { rotuloScore } from '@/lib/priorizacao';
 
 /** Bloco fixo do detalhe: identificação, criticidade, localização e prioridade. */
 export default function OrderEquipmentSummary({ order, equipment }) {
@@ -24,7 +26,14 @@ export default function OrderEquipmentSummary({ order, equipment }) {
           {order.priority ? <StatusBadge value={order.priority} type="priority" /> : null}
           {score != null && (
             <span className="text-xs text-muted-foreground">
-              Score de priorização <span className="font-semibold text-foreground">{Math.round(score)}</span>
+              Índice de priorização{' '}
+              <TermoTooltip
+                termo={equipment?.prioridade_modelo || 'EM'}
+                as="span"
+                className="font-semibold text-foreground"
+              >
+                {rotuloScore(score, equipment?.prioridade_modelo)}
+              </TermoTooltip>
             </span>
           )}
         </div>

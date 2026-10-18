@@ -6,7 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { suggestPriority } from '@/lib/maintenance';
+import { suggestPriorityDeEquipamento } from '@/lib/maintenance';
+import { rotuloScore } from '@/lib/priorizacao';
 
 export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }) {
   const { data: equipment = [] } = useQuery({
@@ -34,15 +35,23 @@ export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }
     sector: order?.sector || '',
     scheduled_date: order?.scheduled_date?.split('T')[0] || '',
     total_cost: order?.total_cost || '',
+    priority_override_reason: order?.priority_override_reason || '',
   });
+
+  // Sugestão aplicada no chamado novo: faixa de prioridade do equipamento.
+  const [sugestao, setSugestao] = useState(null);
+  const [erroMotivo, setErroMotivo] = useState(false);
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const handleEquipmentChange = (eqId) => {
     const eq = equipment.find(e => e.id === eqId);
     if (eq) {
-      // Priorização inteligente: sugere prioridade com base na criticidade (apenas em novo chamado)
-      const suggested = !order ? suggestPriority(eq.criticality) : undefined;
+      // Priorização: a sugestão vem da faixa de prioridade do equipamento; se ele estiver
+      // pendente (sem faixa), cai no mapeamento por criticidade. Só em chamado novo.
+      const suggested = !order ? suggestPriorityDeEquipamento(eq) : null;
+      if (suggested) setSugestao({ priority: suggested, equipment: eq });
+      setErroMotivo(false);
       setForm(prev => ({
         ...prev,
         equipment_id: eqId,
@@ -54,6 +63,8 @@ export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }
       update('equipment_id', eqId);
     }
   };
+
+  const precisaMotivo = !order && sugestao && form.priority !== sugestao.priority;
 
   const handleTechnicianChange = (techId) => {
     const tech = technicians.find(t => t.id === techId);
@@ -72,6 +83,19 @@ export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }
       data.requester_id = user?.id;
       data.requester_name = user?.full_name;
       data.code = `OS-${Date.now().toString(36).toUpperCase()}`;
+      if (sugestao?.equipment) {
+        // Copia a criticidade e o índice do equipamento e exige justificativa na troca manual.
+        data.equipment_criticality = sugestao.equipment.criticality;
+        data.prioridade_score_equipamento = sugestao.equipment.prioridade_score ?? null;
+        if (precisaMotivo) {
+          if (!form.priority_override_reason.trim()) {
+            setErroMotivo(true);
+            return;
+          }
+        } else {
+          data.priority_override_reason = undefined;
+        }
+      }
     }
     if (data.scheduled_date) data.scheduled_date = new Date(data.scheduled_date).toISOString();
     if (data.total_cost) data.total_cost = parseFloat(data.total_cost);
@@ -183,6 +207,27 @@ export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }
           <Input value={form.sector} onChange={e => update('sector', e.target.value)} />
         </div>
       </div>
+
+      {precisaMotivo && (
+        <div className="space-y-1.5 rounded-lg border border-warning/40 bg-warning/10 p-3">
+          <Label className="text-xs">Justificativa da prioridade *</Label>
+          <p className="text-[11px] text-muted-foreground">
+            Sugestão pelo índice de priorização do equipamento
+            {sugestao.equipment?.prioridade_score != null
+              ? ` (${rotuloScore(sugestao.equipment.prioridade_score, sugestao.equipment.prioridade_modelo)} = ${sugestao.priority})`
+              : ` (${sugestao.priority})`}
+            . Explique o motivo da alteração manual.
+          </p>
+          <Textarea
+            rows={2}
+            value={form.priority_override_reason}
+            onChange={(e) => { update('priority_override_reason', e.target.value); setErroMotivo(false); }}
+          />
+          {erroMotivo && (
+            <p className="text-[11px] font-medium text-destructive">Informe o motivo da alteração de prioridade.</p>
+          )}
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label className="text-xs">Descrição do Problema *</Label>

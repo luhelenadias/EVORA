@@ -9,6 +9,7 @@ import StatusBadge from '@/components/shared/StatusBadge';
 import EmptyState from '@/components/shared/EmptyState';
 import { AlertTriangle, Pencil } from 'lucide-react';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
+import TermoTooltip from '@/components/shared/TermoTooltip';
 
 export default function MaintenancePending() {
   const navigate = useNavigate();
@@ -36,7 +37,11 @@ export default function MaintenancePending() {
         </div>
         <div>
           <p className="text-sm font-semibold text-foreground">
-            {pending.length} equipamento{pending.length !== 1 ? 's' : ''} pendente{pending.length !== 1 ? 's' : ''} de atualização para o modelo avançado
+            {pending.length} equipamento{pending.length !== 1 ? 's' : ''}{' '}
+            <TermoTooltip termo="pendente" as="span" className="font-semibold">
+              pendente{pending.length !== 1 ? 's' : ''} de atualização
+            </TermoTooltip>{' '}
+            para o modelo avançado
           </p>
           <p className="text-xs text-muted-foreground">
             {config?.modelo_priorizacao === 'avancado'

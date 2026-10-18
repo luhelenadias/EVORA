@@ -17,6 +17,9 @@ import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import EquipmentDetail from '@/components/equipment/EquipmentDetail';
+import PrioridadeBadge from '@/components/equipment/PrioridadeBadge';
+import TermoTooltip from '@/components/shared/TermoTooltip';
+import { recalcularPrioridades } from '@/lib/priorizacao';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Equipment() {
@@ -31,7 +34,6 @@ export default function Equipment() {
   const [viewingItem, setViewingItem] = useState(null);
   const queryClient = useQueryClient();
   const { config } = useConfiguracao();
-  const modeloAvancado = config?.modelo_priorizacao === 'avancado';
 
   const isReadOnly = user?.role === 'tecnico' || user?.role === 'gestor';
 
@@ -40,15 +42,36 @@ export default function Equipment() {
     queryFn: () => base44.entities.Equipment.list(),
   });
 
+  // Ranking e faixas são relativos ao parque: recalculados a cada inclusão, edição ou baixa.
+  const sincronizarPrioridades = async () => {
+    if (config?.id) await recalcularPrioridades(config);
+    queryClient.invalidateQueries({ queryKey: ['equipment'] });
+  };
+
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.Equipment.create(data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['equipment'] }); setShowForm(false); },
+    onSuccess: async () => {
+      await sincronizarPrioridades();
+      setShowForm(false);
+    },
   });
 
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Equipment.update(id, data),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['equipment'] }); setShowForm(false); setEditingItem(null); },
+    onSuccess: async () => {
+      await sincronizarPrioridades();
+      setShowForm(false);
+      setEditingItem(null);
+    },
   });
+
+  const totalRanking = useMemo(
+    () =>
+      equipment.filter(
+        (e) => e.status_priorizacao === 'calculado' && e.operational_status !== 'Inativo/Baixado'
+      ).length,
+    [equipment]
+  );
 
   const filtered = useMemo(() => {
     const result = equipment.filter(e => {
@@ -61,8 +84,8 @@ export default function Equipment() {
       const matchPending = !pendingOnly || e.status_priorizacao === 'pendente_atualizacao';
       return matchSearch && matchStatus && matchCrit && matchPending;
     });
-    // ordena por prioridade_score (maior primeiro); nulos por último
-    result.sort((a, b) => (b.prioridade_score ?? -1) - (a.prioridade_score ?? -1));
+    // ordenação padrão: colocação no ranking (equipamentos sem posição por último)
+    result.sort((a, b) => (a.prioridade_posicao ?? Infinity) - (b.prioridade_posicao ?? Infinity));
     return result;
   }, [equipment, search, statusFilter, criticalityFilter, pendingOnly]);
 
@@ -151,7 +174,11 @@ export default function Equipment() {
                   <TableHead className="text-xs font-semibold">Nome</TableHead>
                   <TableHead className="text-xs font-semibold hidden lg:table-cell">Setor</TableHead>
                   <TableHead className="text-xs font-semibold">Criticidade</TableHead>
-                  <TableHead className="text-xs font-semibold text-center">Score</TableHead>
+                  <TableHead className="text-xs font-semibold">
+                    <TermoTooltip termo="faixa" as="span" className="text-xs font-semibold">
+                      Prioridade
+                    </TermoTooltip>
+                  </TableHead>
                   <TableHead className="text-xs font-semibold">Status</TableHead>
                   <TableHead className="text-xs font-semibold w-16">Ações</TableHead>
                 </TableRow>
@@ -179,9 +206,6 @@ export default function Equipment() {
                             Sem código
                           </Badge>
                         )}
-                        {eq.status_priorizacao === 'pendente_atualizacao' && modeloAvancado && (
-                          <Badge variant="outline" className="text-[10px] border-warning/40 text-warning-foreground bg-warning/20">Pendente</Badge>
-                        )}
                       </div>
                       {eq.patrimony_number && (
                         <p className="text-[11px] text-muted-foreground/70 mt-0.5 font-mono">
@@ -191,8 +215,8 @@ export default function Equipment() {
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{eq.location_sector || '—'}</TableCell>
                     <TableCell><StatusBadge value={eq.criticality} type="criticality" /></TableCell>
-                    <TableCell className="text-sm text-center tabular-nums font-semibold">
-                      {eq.prioridade_score != null ? eq.prioridade_score : '—'}
+                    <TableCell>
+                      <PrioridadeBadge equipment={eq} total={totalRanking} />
                     </TableCell>
                     <TableCell><StatusBadge value={eq.operational_status} /></TableCell>
                     <TableCell>
