@@ -1,4 +1,5 @@
 import { differenceInHours, parseISO } from 'date-fns';
+import { statusPorVigencia } from '@/lib/contratos';
 
 // ── Priorização inteligente ──────────────────────────────────────
 export const CRITICALITY_PRIORITY = {
@@ -43,9 +44,10 @@ export function suggestPriorityDeEquipamento(equipment) {
 // ── SLA de Contratos ──────────────────────────────────────────────
 export function findContractForEquipment(contracts, equipmentId) {
   if (!contracts || !equipmentId) return null;
+  // A situação vem da vigência: contrato vencido deixa de aplicar SLA.
   return contracts.find(
     (c) =>
-      (c.status === 'Ativo' || c.status === 'Vencendo') &&
+      ['Ativo', 'Vencendo'].includes(statusPorVigencia(c)) &&
       c.covered_equipment_ids?.includes(equipmentId)
   ) || null;
 }

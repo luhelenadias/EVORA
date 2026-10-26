@@ -292,6 +292,7 @@ export default function Equipment() {
           {viewingItem && (
             <EquipmentDetail
               equipment={viewingItem}
+              user={user}
               allEquipment={equipment}
               onShowQr={() => setQrItem(viewingItem)}
               onEdit={isReadOnly ? undefined : () => { setViewingItem(null); setEditingItem(viewingItem); setShowForm(true); }}

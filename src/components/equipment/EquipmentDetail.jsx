@@ -6,6 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import StatusBadge from '@/components/shared/StatusBadge';
 import PrioridadeBadge from '@/components/equipment/PrioridadeBadge';
 import CriteriosPrioridade from '@/components/equipment/CriteriosPrioridade';
+import EquipmentContract from '@/components/equipment/EquipmentContract';
 import { Pencil, Clock, Wrench, Users, Activity, QrCode } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, parseISO, differenceInMonths, differenceInDays, subMonths, isAfter } from 'date-fns';
@@ -69,7 +70,7 @@ function getAvgRepairDays(orders) {
   return `${avg.toFixed(1)} dia${avg !== 1 ? 's' : ''}`;
 }
 
-export default function EquipmentDetail({ equipment, onEdit, onShowQr, allEquipment = [] }) {
+export default function EquipmentDetail({ equipment, user, onEdit, onShowQr, allEquipment = [] }) {
   const navigate = useNavigate();
   const totalRanking = (allEquipment || []).filter(
     (e) => e.status_priorizacao === 'calculado' && e.operational_status !== 'Inativo/Baixado'
@@ -159,6 +160,8 @@ export default function EquipmentDetail({ equipment, onEdit, onShowQr, allEquipm
           <InfoRow label="Fim da Garantia" value={formatDate(equipment.warranty_end)} />
         </div>
       </div>
+
+      <EquipmentContract equipment={equipment} user={user} />
 
       <Separator />
 
