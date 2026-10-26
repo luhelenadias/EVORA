@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useOutletContext, useSearchParams } from 'react-router-dom';
+import { useOutletContext, useSearchParams, useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Monitor, Search, Eye, AlertTriangle, Flame } from 'lucide-react';
+import { Monitor, Search, Eye, AlertTriangle, Flame, ScanLine } from 'lucide-react';
+import { toast } from 'sonner';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { cn } from '@/lib/utils';
 import StatusBadge from '@/components/shared/StatusBadge';
@@ -17,6 +18,9 @@ import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
 import EquipmentForm from '@/components/equipment/EquipmentForm';
 import EquipmentDetail from '@/components/equipment/EquipmentDetail';
+import QrCodeDialog from '@/components/equipment/QrCodeDialog';
+import QrScannerDialog from '@/components/equipment/QrScannerDialog';
+import { equipmentIdFromQr } from '@/lib/equipmentQr';
 import PrioridadeBadge from '@/components/equipment/PrioridadeBadge';
 import TermoTooltip from '@/components/shared/TermoTooltip';
 import { recalcularPrioridades } from '@/lib/priorizacao';
@@ -32,6 +36,10 @@ export default function Equipment() {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [viewingItem, setViewingItem] = useState(null);
+  const [qrItem, setQrItem] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
+  const { id: routeEquipmentId } = useParams();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { config } = useConfiguracao();
 
@@ -41,6 +49,30 @@ export default function Equipment() {
     queryKey: ['equipment'],
     queryFn: () => base44.entities.Equipment.list(),
   });
+
+  // QR da etiqueta abre a ficha direto: /equipamentos/<id>
+  useEffect(() => {
+    if (!routeEquipmentId || !equipment.length) return;
+    const alvo = equipment.find((e) => e.id === routeEquipmentId);
+    if (alvo) setViewingItem(alvo);
+  }, [routeEquipmentId, equipment]);
+
+  const fecharDetalhe = () => {
+    setViewingItem(null);
+    if (routeEquipmentId) navigate('/equipamentos', { replace: true });
+  };
+
+  const tratarQrLido = (texto) => {
+    const id = equipmentIdFromQr(texto);
+    const alvo = id ? equipment.find((e) => e.id === id) : null;
+    if (!alvo) {
+      toast.error('QR Code não corresponde a um equipamento cadastrado.');
+      return;
+    }
+    setShowScanner(false);
+    setViewingItem(alvo);
+    navigate(`/equipamentos/${alvo.id}`);
+  };
 
   // Ranking e faixas são relativos ao parque: recalculados a cada inclusão, edição ou baixa.
   const sincronizarPrioridades = async () => {
@@ -114,7 +146,11 @@ export default function Equipment() {
         subtitle={`${equipment.length} equipamentos cadastrados`}
         onAdd={isReadOnly ? undefined : () => { setEditingItem(null); setShowForm(true); }}
         addLabel="Novo Equipamento"
-      />
+      >
+        <Button variant="outline" className="gap-1.5" onClick={() => setShowScanner(true)}>
+          <ScanLine className="w-4 h-4" /> Ler QR Code
+        </Button>
+      </PageHeader>
 
       {pendingOnly && (
         <div className="flex items-center justify-between gap-3 p-3 rounded-lg bg-destructive/5 border border-destructive/30">
@@ -248,7 +284,7 @@ export default function Equipment() {
       </Dialog>
 
       {/* Detail dialog */}
-      <Dialog open={!!viewingItem} onOpenChange={() => setViewingItem(null)}>
+      <Dialog open={!!viewingItem} onOpenChange={fecharDetalhe}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">Detalhes do Equipamento</DialogTitle>
@@ -257,11 +293,15 @@ export default function Equipment() {
             <EquipmentDetail
               equipment={viewingItem}
               allEquipment={equipment}
+              onShowQr={() => setQrItem(viewingItem)}
               onEdit={isReadOnly ? undefined : () => { setViewingItem(null); setEditingItem(viewingItem); setShowForm(true); }}
             />
           )}
         </DialogContent>
       </Dialog>
+
+      <QrCodeDialog equipment={qrItem} open={!!qrItem} onOpenChange={(v) => !v && setQrItem(null)} />
+      <QrScannerDialog open={showScanner} onOpenChange={setShowScanner} onDetect={tratarQrLido} />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useOutletContext, useNavigate } from 'react-router-dom';
+import { useOutletContext, useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,8 +21,11 @@ export default function NewOrder() {
     queryFn: () => base44.entities.Equipment.list(),
   });
 
+  const [searchParams] = useSearchParams();
+
   const [form, setForm] = useState({
-    equipment_id: '',
+    // Vindo da ficha do equipamento (inclusive pela etiqueta QR), já chega preenchido.
+    equipment_id: searchParams.get('equipamento') || '',
     problem_description: '',
     sector: '',
   });

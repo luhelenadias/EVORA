@@ -6,7 +6,8 @@ import { Separator } from '@/components/ui/separator';
 import StatusBadge from '@/components/shared/StatusBadge';
 import PrioridadeBadge from '@/components/equipment/PrioridadeBadge';
 import CriteriosPrioridade from '@/components/equipment/CriteriosPrioridade';
-import { Pencil, Clock, Wrench, Users, Activity } from 'lucide-react';
+import { Pencil, Clock, Wrench, Users, Activity, QrCode } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { format, parseISO, differenceInMonths, differenceInDays, subMonths, isAfter } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -68,7 +69,8 @@ function getAvgRepairDays(orders) {
   return `${avg.toFixed(1)} dia${avg !== 1 ? 's' : ''}`;
 }
 
-export default function EquipmentDetail({ equipment, onEdit, allEquipment = [] }) {
+export default function EquipmentDetail({ equipment, onEdit, onShowQr, allEquipment = [] }) {
+  const navigate = useNavigate();
   const totalRanking = (allEquipment || []).filter(
     (e) => e.status_priorizacao === 'calculado' && e.operational_status !== 'Inativo/Baixado'
   ).length;
@@ -103,6 +105,14 @@ export default function EquipmentDetail({ equipment, onEdit, allEquipment = [] }
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <StatusBadge value={equipment.operational_status} />
           <StatusBadge value={equipment.criticality} type="criticality" />
+          <Button size="sm" className="gap-1.5" onClick={() => navigate(`/chamados/novo?equipamento=${equipment.id}`)}>
+            <Wrench className="w-3.5 h-3.5" /> Abrir chamado
+          </Button>
+          {onShowQr && (
+            <Button variant="outline" size="sm" onClick={onShowQr} className="gap-1.5">
+              <QrCode className="w-3.5 h-3.5" /> Gerar QR Code
+            </Button>
+          )}
           {onEdit && (
             <Button variant="outline" size="sm" onClick={onEdit} className="gap-1.5">
               <Pencil className="w-3.5 h-3.5" /> Editar

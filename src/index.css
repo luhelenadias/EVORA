@@ -100,6 +100,35 @@
   }
 }
 
+/* Etiqueta QR: na impressão, só a etiqueta aparece */
+.qr-print-area {
+  display: none;
+}
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  .qr-print-area,
+  .qr-print-area * {
+    visibility: visible !important;
+  }
+  .qr-print-area {
+    display: flex !important;
+    position: fixed;
+    inset: 0;
+    align-items: flex-start;
+    justify-content: center;
+    background: #ffffff;
+  }
+  .qr-print-area img {
+    width: 100%;
+    max-width: 600px;
+  }
+  @page {
+    margin: 12mm;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
