@@ -1,93 +1,221 @@
 {
   "name": "Contract",
-  "type": "object",
   "properties": {
-    "supplier_name": {
-      "type": "string",
-      "description": "Nome do fornecedor"
+    "campos_revisar": {
+      "description": "Chaves de campo extra\u00eddos com baixa certeza ou ausentes, marcados como 'revisar' na interface",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     },
     "cnpj": {
-      "type": "string",
-      "description": "CNPJ do fornecedor"
+      "description": "CNPJ do fornecedor",
+      "type": "string"
     },
     "contract_number": {
-      "type": "string",
-      "description": "N\u00famero do contrato"
+      "description": "N\u00famero do contrato",
+      "type": "string"
     },
-    "start_date": {
-      "type": "string",
-      "format": "date",
-      "description": "Data de in\u00edcio de vig\u00eancia"
+    "covered_equipment_ids": {
+      "description": "IDs dos equipamentos cobertos",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "documento_atual_url": {
+      "description": "URL (armazenamento PRIVADO) do PDF vigente do contrato. Acesso apenas para admin e gestor.",
+      "type": "string"
     },
     "end_date": {
-      "type": "string",
+      "description": "Data de fim de vig\u00eancia",
       "format": "date",
-      "description": "Data de fim de vig\u00eancia"
+      "type": "string"
+    },
+    "extracao_em": {
+      "description": "Data/hora da \u00faltima extra\u00e7\u00e3o por IA",
+      "format": "date-time",
+      "type": "string"
+    },
+    "extracao_status": {
+      "default": "Sem documento",
+      "description": "Estado da extra\u00e7\u00e3o por IA: nada \u00e9 considerado confirmado at\u00e9 o usu\u00e1rio revisar.",
+      "enum": [
+        "Sem documento",
+        "Pendente de revis\u00e3o",
+        "Revisado"
+      ],
+      "type": "string"
+    },
+    "fontes_extracao": {
+      "description": "Origem de cada campo extra\u00eddo, para confer\u00eancia: p\u00e1gina e trecho literal do PDF, mais n\u00edvel de certeza.",
+      "items": {
+        "properties": {
+          "campo": {
+            "type": "string"
+          },
+          "certeza": {
+            "enum": [
+              "Alta",
+              "M\u00e9dia",
+              "Baixa"
+            ],
+            "type": "string"
+          },
+          "pagina": {
+            "type": "number"
+          },
+          "trecho": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "historico_alteracoes": {
+      "description": "Registro de edi\u00e7\u00f5es nos dados do contrato (quem, quando, valor anterior e novo)",
+      "items": {
+        "properties": {
+          "alterado_em": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "alterado_por": {
+            "type": "string"
+          },
+          "campo": {
+            "type": "string"
+          },
+          "valor_anterior": {
+            "type": "string"
+          },
+          "valor_novo": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "included_services": {
+      "description": "Servi\u00e7os inclusos",
+      "items": {
+        "enum": [
+          "Manuten\u00e7\u00e3o Preventiva",
+          "Manuten\u00e7\u00e3o Corretiva",
+          "Pe\u00e7as",
+          "Calibra\u00e7\u00e3o"
+        ],
+        "type": "string"
+      },
+      "type": "array"
     },
     "monthly_value": {
-      "type": "number",
-      "description": "Valor mensal (R$)"
+      "description": "Valor mensal (R$)",
+      "type": "number"
     },
-    "total_value": {
-      "type": "number",
-      "description": "Valor total (R$)"
+    "notes": {
+      "description": "Observa\u00e7\u00f5es",
+      "type": "string"
     },
     "preventive_frequency": {
-      "type": "string",
+      "description": "Periodicidade de manuten\u00e7\u00e3o preventiva inclusa",
       "enum": [
         "Mensal",
         "Trimestral",
         "Semestral",
         "Anual"
       ],
-      "description": "Periodicidade de manuten\u00e7\u00e3o preventiva inclusa"
+      "type": "string"
     },
-    "included_services": {
-      "type": "array",
-      "description": "Servi\u00e7os inclusos",
-      "items": {
-        "type": "string",
-        "enum": [
-          "Manuten\u00e7\u00e3o Preventiva",
-          "Manuten\u00e7\u00e3o Corretiva",
-          "Pe\u00e7as",
-          "Calibra\u00e7\u00e3o"
-        ]
-      }
-    },
-    "covered_equipment_ids": {
-      "type": "array",
-      "description": "IDs dos equipamentos cobertos",
+    "series_nao_encontradas": {
+      "description": "S\u00e9ries do contrato sem equipamento correspondente no cadastro (nunca criar equipamento automaticamente)",
       "items": {
         "type": "string"
-      }
+      },
+      "type": "array"
     },
-    "sla_response_hours": {
-      "type": "number",
-      "description": "Tempo de resposta contratual (horas)"
+    "series_no_contrato": {
+      "description": "N\u00fameros de s\u00e9rie listados no contrato/anexo, como extra\u00eddos pela IA",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
     },
     "sla_resolution_hours": {
-      "type": "number",
-      "description": "Tempo de resolu\u00e7\u00e3o contratual / SLA (horas)"
+      "description": "Tempo de resolu\u00e7\u00e3o contratual / SLA (horas)",
+      "type": "number"
     },
-    "warranty_terms": {
-      "type": "string",
-      "description": "Termos de garantia"
+    "sla_response_hours": {
+      "description": "Tempo de resposta contratual (horas)",
+      "type": "number"
+    },
+    "start_date": {
+      "description": "Data de in\u00edcio de vig\u00eancia",
+      "format": "date",
+      "type": "string"
     },
     "status": {
-      "type": "string",
+      "default": "Ativo",
+      "description": "Status do contrato",
       "enum": [
         "Ativo",
         "Vencendo",
         "Vencido",
         "Cancelado"
       ],
-      "default": "Ativo",
-      "description": "Status do contrato"
+      "type": "string"
     },
-    "notes": {
-      "type": "string",
-      "description": "Observa\u00e7\u00f5es"
+    "supplier_name": {
+      "description": "Nome do fornecedor",
+      "type": "string"
+    },
+    "total_value": {
+      "description": "Valor total (R$)",
+      "type": "number"
+    },
+    "versoes_documento": {
+      "description": "Hist\u00f3rico de vers\u00f5es do PDF. O PDF assinado nunca \u00e9 alterado: corre\u00e7\u00f5es, aditivos e renegocia\u00e7\u00f5es entram como nova vers\u00e3o, preservando as anteriores.",
+      "items": {
+        "properties": {
+          "enviado_em": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "enviado_por": {
+            "type": "string"
+          },
+          "nota": {
+            "type": "string"
+          },
+          "tipo": {
+            "enum": [
+              "Original",
+              "Aditivo",
+              "Renova\u00e7\u00e3o",
+              "Corre\u00e7\u00e3o"
+            ],
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "vigente": {
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "warranty_months": {
+      "description": "Prazo de garantia em meses, contado a partir da entrega/instala\u00e7\u00e3o do equipamento (n\u00e3o da assinatura). Equipment.warranty_end s\u00f3 deve ser calculado se Equipment.installation_date existir.",
+      "type": "number"
+    },
+    "warranty_terms": {
+      "description": "Termos de garantia",
+      "type": "string"
     }
   },
   "required": [
@@ -95,5 +223,6 @@
     "contract_number",
     "start_date",
     "end_date"
-  ]
+  ],
+  "type": "object"
 }
