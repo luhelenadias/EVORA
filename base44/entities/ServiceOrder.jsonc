@@ -8,6 +8,17 @@
       },
       "type": "array"
     },
+    "campos_revisar": {
+      "description": "Chaves de campo que a IA n\u00e3o teve certeza ao gerar o rascunho a partir do \u00e1udio (ex.: 'pecas', 'causa_falha'). A interface marca esses campos como 'revisar' at\u00e9 o t\u00e9cnico confirmar.",
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "causa_falha": {
+      "description": "Diagn\u00f3stico e causa prov\u00e1vel da falha, informados pelo t\u00e9cnico (digitados ou gerados a partir do relato em \u00e1udio e revisados por ele).",
+      "type": "string"
+    },
     "code": {
       "description": "C\u00f3digo da OS (gerado automaticamente)",
       "type": "string"
@@ -86,6 +97,10 @@
       },
       "type": "array"
     },
+    "pendencias": {
+      "description": "O que ficou pendente no atendimento (pe\u00e7a em falta, retorno programado, acompanhamento), a partir do relato do t\u00e9cnico.",
+      "type": "string"
+    },
     "periodicidade_referencia": {
       "description": "Preenchido apenas quando type = Preventiva: guarda o valor de Equipment.periodicidade_preventiva_dias vigente no momento em que esta OS preventiva foi gerada (hist\u00f3rico, caso a periodicidade mude depois).",
       "type": "number"
@@ -111,6 +126,11 @@
     },
     "problem_description": {
       "description": "Descri\u00e7\u00e3o do problema",
+      "type": "string"
+    },
+    "relatorio_audio_em": {
+      "description": "Data/hora em que o rascunho do relat\u00f3rio foi gerado por IA a partir do relato em \u00e1udio. Marca que os campos de texto da OS vieram de um rascunho aguardando revis\u00e3o do t\u00e9cnico.",
+      "format": "date-time",
       "type": "string"
     },
     "requester_id": {
@@ -198,9 +218,17 @@
       "description": "Nome do t\u00e9cnico respons\u00e1vel (cache)",
       "type": "string"
     },
+    "testes_finais": {
+      "description": "Testes e medi\u00e7\u00f5es realizados ap\u00f3s o servi\u00e7o para validar o equipamento.",
+      "type": "string"
+    },
     "total_cost": {
       "description": "Custo total",
       "type": "number"
+    },
+    "transcricao_audio": {
+      "description": "Transcri\u00e7\u00e3o bruta do relato em \u00e1udio do t\u00e9cnico. O \u00e1udio \u00e9 descartado ap\u00f3s a transcri\u00e7\u00e3o; aqui fica apenas o texto.",
+      "type": "string"
     },
     "type": {
       "description": "Tipo de servi\u00e7o. Para Preventiva/Corretiva, equivale a tipo_manutencao da Parte C: deve ser definido automaticamente pela origem (Preventiva = gerada pelo job de periodicidade; Corretiva = chamado reportado por usu\u00e1rio), n\u00e3o escolhido livremente pelo usu\u00e1rio quando origin for 'Agendada'. Calibra\u00e7\u00e3o e Instala\u00e7\u00e3o continuam de sele\u00e7\u00e3o manual.",

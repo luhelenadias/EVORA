@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CalendarPlus, CheckCircle2, Play, Wrench } from 'lucide-react';
+import { AlertTriangle, CalendarPlus, CheckCircle2, Mic, Play, Wrench } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -32,7 +32,7 @@ const ESTILO_PADRAO = {
   chip: 'border-border text-muted-foreground bg-muted',
 };
 
-export default function CentralOrderCard({ order, equipment, onStart, onFinish, onOpen, isStarting }) {
+export default function CentralOrderCard({ order, equipment, onStart, onFinish, onOpen, onRecord, isStarting }) {
   const estilo = ESTILOS[order.type] || ESTILO_PADRAO;
   const Icon = estilo.icon;
   const concluida = order.status === 'Concluído';
@@ -83,6 +83,7 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
             {order.status === 'Em Andamento' && order.start_date && (
               <span>Iniciada em {format(parseISO(order.start_date), 'dd/MM/yy HH:mm')}</span>
             )}
+            {order.relatorio_audio_em && <span className="text-primary">Rascunho de IA para revisar</span>}
             {concluida && order.completion_date && (
               <span>Concluída em {format(parseISO(order.completion_date), 'dd/MM/yy HH:mm')}</span>
             )}
@@ -96,9 +97,16 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
         {!concluida && (
           <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             {order.status === 'Em Andamento' ? (
-              <Button size="sm" className="gap-1.5 w-full sm:w-auto" onClick={() => onFinish(order)}>
-                <CheckCircle2 className="w-3.5 h-3.5" /> Finalizar Manutenção
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                {onRecord && (
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onRecord(order)}>
+                    <Mic className="w-3.5 h-3.5" /> {order.transcricao_audio ? 'Gravar mais' : 'Gravar relato'}
+                  </Button>
+                )}
+                <Button size="sm" className="gap-1.5" onClick={() => onFinish(order)}>
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Finalizar Manutenção
+                </Button>
+              </div>
             ) : (
               <Button
                 size="sm"

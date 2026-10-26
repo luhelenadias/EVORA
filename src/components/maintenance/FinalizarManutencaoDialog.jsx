@@ -7,9 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import PartsUsedEditor from '@/components/maintenance/PartsUsedEditor';
+import CamposRelatorioIa from '@/components/maintenance/CamposRelatorioIa';
+import { Badge } from '@/components/ui/badge';
 import { minutosDeExecucao } from '@/lib/atendimento';
 import { formatarMoeda, pecasAcimaDoEstoque, totalPecas } from '@/lib/orderDetail';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Sparkles } from 'lucide-react';
 
 export default function FinalizarManutencaoDialog({ open, order, equipment, onClose, onConfirm, isSaving }) {
   const { data: spareParts = [] } = useQuery({
@@ -21,6 +23,7 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
   const [ajustadoManualmente, setAjustadoManualmente] = useState(false);
   const [report, setReport] = useState('');
   const [parts, setParts] = useState([]);
+  const [extras, setExtras] = useState({ causa_falha: '', testes_finais: '', pendencias: '' });
 
   useEffect(() => {
     if (!open || !order) return;
@@ -29,6 +32,11 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
     setAjustadoManualmente(false);
     setReport(order.technical_report || '');
     setParts(order.parts_used || []);
+    setExtras({
+      causa_falha: order.causa_falha || '',
+      testes_finais: order.testes_finais || '',
+      pendencias: order.pendencias || '',
+    });
   }, [open, order?.id]);
 
   const pecasValidas = parts.filter((p) => p.spare_part_id);
@@ -49,6 +57,9 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
       completion_date: completionDate,
       duracao_total_minutos: total,
       technical_report: report.trim(),
+      causa_falha: extras.causa_falha.trim(),
+      testes_finais: extras.testes_finais.trim(),
+      pendencias: extras.pendencias.trim(),
       parts_used: pecasValidas,
       // Custo total da OS = valor já registrado + peças utilizadas nesta conclusão.
       ...(subtotalPecas > 0 ? { total_cost: totalOrdem } : {}),
@@ -86,8 +97,22 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
             </p>
           </div>
 
+          {order?.relatorio_audio_em && (
+            <p className="flex items-start gap-1.5 rounded-md border border-primary/25 bg-primary/5 p-2.5 text-xs text-primary">
+              <Sparkles className="mt-px h-3.5 w-3.5 flex-shrink-0" />
+              Rascunho gerado por IA a partir do relato em áudio — revise os campos abaixo antes de concluir.
+            </p>
+          )}
+
           <div className="space-y-1.5">
-            <Label className="text-xs">O que foi feito? *</Label>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">O que foi feito? *</Label>
+              {order?.campos_revisar?.includes('acao_realizada') && (
+                <Badge variant="outline" className="border-warning/40 bg-warning/20 text-[10px] text-warning-foreground">
+                  revisar
+                </Badge>
+              )}
+            </div>
             <Textarea
               value={report}
               onChange={(e) => setReport(e.target.value)}
@@ -97,8 +122,21 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
             />
           </div>
 
+          <CamposRelatorioIa
+            valores={extras}
+            revisar={order?.campos_revisar || []}
+            onChange={(campo, valor) => setExtras((p) => ({ ...p, [campo]: valor }))}
+          />
+
           <div className="space-y-2">
-            <Label className="text-xs">Peças utilizadas (opcional)</Label>
+            <div className="flex items-center gap-2">
+              <Label className="text-xs">Peças utilizadas (opcional)</Label>
+              {order?.campos_revisar?.includes('pecas') && (
+                <Badge variant="outline" className="border-warning/40 bg-warning/20 text-[10px] text-warning-foreground">
+                  conferir quantidades
+                </Badge>
+              )}
+            </div>
             <PartsUsedEditor items={parts} spareParts={spareParts} onChange={setParts} />
             {bloqueado ? (
               <p className="flex items-start gap-1.5 text-[11px] font-medium text-destructive">

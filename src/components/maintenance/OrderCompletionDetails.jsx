@@ -19,6 +19,31 @@ export default function OrderCompletionDetails({ order }) {
         </p>
       </div>
 
+      {order.causa_falha && (
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Causa provável da falha
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{order.causa_falha}</p>
+        </div>
+      )}
+
+      {order.testes_finais && (
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Testes finais realizados
+          </p>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{order.testes_finais}</p>
+        </div>
+      )}
+
+      {order.pendencias && (
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">Pendências</p>
+          <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{order.pendencias}</p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <InfoField label="Início do atendimento" value={formatarDataHora(order.start_date)} />
         <InfoField label="Conclusão" value={formatarDataHora(order.completion_date)} />

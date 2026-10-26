@@ -10,6 +10,7 @@ import OrderExecutionDetails from '@/components/maintenance/OrderExecutionDetail
 import OrderCompletionDetails from '@/components/maintenance/OrderCompletionDetails';
 import OrderSlaBanner from '@/components/maintenance/OrderSlaBanner';
 import OrderHistoryList from '@/components/maintenance/OrderHistoryList';
+import TranscricaoAudio from '@/components/maintenance/TranscricaoAudio';
 import { resolverSla } from '@/lib/orderDetail';
 
 export default function OrderDetailDialog({ order, equipment, orders = [], onClose }) {
@@ -51,6 +52,8 @@ export default function OrderDetailDialog({ order, equipment, orders = [], onClo
         {order.status === 'Em Andamento' && <OrderExecutionDetails order={order} />}
 
         {order.status === 'Concluído' && <OrderCompletionDetails order={order} />}
+
+        <TranscricaoAudio transcricao={order.transcricao_audio} />
 
         <OrderHistoryList orders={orders} order={order} />
       </DialogContent>

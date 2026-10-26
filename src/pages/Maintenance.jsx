@@ -14,6 +14,7 @@ import PageHeader from '@/components/shared/PageHeader';
 import CentralList from '@/components/maintenance/CentralList';
 import OrderDetailDialog from '@/components/maintenance/OrderDetailDialog';
 import FinalizarManutencaoDialog from '@/components/maintenance/FinalizarManutencaoDialog';
+import GravadorAudioDialog from '@/components/maintenance/GravadorAudioDialog';
 import MaintenanceIndicators from '@/components/maintenance/MaintenanceIndicators';
 import MaintenancePending from '@/components/maintenance/MaintenancePending';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
@@ -35,6 +36,8 @@ export default function Maintenance() {
   const [finalizando, setFinalizando] = useState(null);
   const [detalhe, setDetalhe] = useState(null);
   const [salvando, setSalvando] = useState(false);
+  const [gravando, setGravando] = useState(null);
+  const [trechosPorOrdem, setTrechosPorOrdem] = useState({});
   const geradasRef = useRef(new Set());
 
   const { data: equipment = [], isLoading: carregandoEquip } = useQuery({
@@ -133,6 +136,43 @@ export default function Maintenance() {
     } finally {
       setIniciandoId(null);
     }
+  };
+
+  // Rascunho de IA: grava nos campos da OS sem concluir nem dar baixa em estoque.
+  const aplicarRascunho = async ({ rascunho, transcricao }) => {
+    const order = gravando;
+    if (!order) return;
+    const catalogo = await base44.entities.SparePart.list();
+    const sugeridas = (rascunho.pecas || [])
+      .map((item) => {
+        const peca = catalogo.find((s) => s.id === item.spare_part_id);
+        if (!peca) return null;
+        return {
+          spare_part_id: peca.id,
+          name: peca.name,
+          quantity: Math.max(Number(item.quantidade) || 1, 1),
+          cost: peca.unit_cost || 0,
+        };
+      })
+      .filter(Boolean);
+    const existentes = order.parts_used || [];
+    const novas = sugeridas.filter((s) => !existentes.some((e) => e.spare_part_id === s.spare_part_id));
+
+    await base44.entities.ServiceOrder.update(order.id, {
+      causa_falha: order.causa_falha || rascunho.causa_falha || '',
+      technical_report: order.technical_report || rascunho.acao_realizada || '',
+      testes_finais: order.testes_finais || rascunho.testes_finais || '',
+      pendencias: order.pendencias || rascunho.pendencias || '',
+      parts_used: [...existentes, ...novas],
+      campos_revisar: rascunho.campos_revisar || [],
+      transcricao_audio: transcricao,
+      relatorio_audio_em: new Date().toISOString(),
+    });
+
+    setTrechosPorOrdem((prev) => ({ ...prev, [order.id]: [] }));
+    setGravando(null);
+    queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+    toast.success('Rascunho gerado — revise os campos antes de finalizar');
   };
 
   const concluir = async (dados) => {
@@ -296,6 +336,7 @@ export default function Maintenance() {
             iniciandoId={iniciandoId}
             onStart={iniciar}
             onFinish={setFinalizando}
+            onRecord={setGravando}
             onOpen={setDetalhe}
             title="Nenhuma manutenção pendente"
             description="As preventivas são agendadas automaticamente conforme a periodicidade de cada equipamento."
@@ -310,6 +351,7 @@ export default function Maintenance() {
             iniciandoId={iniciandoId}
             onStart={iniciar}
             onFinish={setFinalizando}
+            onRecord={setGravando}
             onOpen={setDetalhe}
             title="Nenhuma manutenção em andamento"
             description="Inicie uma manutenção na aba Pendentes para acompanhá-la aqui."
@@ -324,6 +366,7 @@ export default function Maintenance() {
             iniciandoId={iniciandoId}
             onStart={iniciar}
             onFinish={setFinalizando}
+            onRecord={setGravando}
             onOpen={setDetalhe}
             title="Nenhuma manutenção concluída"
             description="As manutenções finalizadas aparecem aqui com o laudo técnico."
@@ -349,6 +392,18 @@ export default function Maintenance() {
         onConfirm={concluir}
         isSaving={salvando}
       />
+
+      {gravando && (
+        <GravadorAudioDialog
+          open
+          order={gravando}
+          equipment={equipmentById[gravando.equipment_id]}
+          trechos={trechosPorOrdem[gravando.id] || []}
+          onTrechosChange={(lista) => setTrechosPorOrdem((prev) => ({ ...prev, [gravando.id]: lista }))}
+          onRascunho={aplicarRascunho}
+          onClose={() => setGravando(null)}
+        />
+      )}
 
       {ordemDetalhe && (
         <OrderDetailDialog
