@@ -7,7 +7,7 @@
       "type": "string"
     },
     "chave_dedupe": {
-      "description": "tipo + entidade_id + nivel. Garante um \u00fanico alerta por situa\u00e7\u00e3o/n\u00edvel; s\u00f3 cria outro se o n\u00edvel escalar.",
+      "description": "tipo + entidade_id + nivel. Garante um \u00fanico alerta por situa\u00e7\u00e3o/n\u00edvel; s\u00f3 cria outro se o n\u00edvel escalar. Antes de criar, procurar se j\u00e1 existe.",
       "type": "string"
     },
     "destinatario_perfis": {
@@ -26,6 +26,10 @@
     "dias_referencia": {
       "description": "Dias at\u00e9 o prazo (negativo = dias de atraso), calculado na gera\u00e7\u00e3o",
       "type": "number"
+    },
+    "entidade_codigo": {
+      "description": "C\u00f3digo leg\u00edvel do registro de origem (n\u00ba do contrato, c\u00f3digo da OS, c\u00f3digo do equipamento), para exibi\u00e7\u00e3o",
+      "type": "string"
     },
     "entidade_id": {
       "description": "ID do registro que originou o alerta",
@@ -46,7 +50,7 @@
       "type": "string"
     },
     "mensagem": {
-      "description": "Detalhe do alerta (ex.: 'Contrato CTR-2024-002 vence em 25 dias')",
+      "description": "Detalhe do alerta (ex.: 'Contrato CTR-2024-002 venceu h\u00e1 100 dias')",
       "type": "string"
     },
     "nivel": {
@@ -91,17 +95,18 @@
       "type": "string"
     },
     "tipo": {
-      "description": "Tipo do alerta",
+      "description": "Tipo do alerta. Nomes alinhados com ConfiguracaoInstituicao.alertas_ativos.",
       "enum": [
         "Contrato vencendo",
         "Contrato vencido",
         "Preventiva pr\u00f3xima",
         "Preventiva atrasada",
+        "Preventiva muito atrasada",
         "SLA em risco",
         "SLA estourado",
         "Estoque baixo",
         "OS sem t\u00e9cnico",
-        "OS parada",
+        "Chamado parado",
         "Garantia vencendo",
         "Calibra\u00e7\u00e3o vencida"
       ],
