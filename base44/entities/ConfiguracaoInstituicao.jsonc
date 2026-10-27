@@ -25,40 +25,52 @@
       },
       "type": "array"
     },
+    "alerta_chamado_parado_dias": {
+      "default": 5,
+      "description": "Dias que uma OS pode ficar em Aguardando Pe\u00e7a/Fornecedor/Pendente antes de gerar 'Chamado parado'",
+      "type": "number"
+    },
     "alerta_contrato_dias": {
       "default": [
         90,
         60,
         30
       ],
-      "description": "Anteced\u00eancia (dias antes do fim da vig\u00eancia) em que o alerta de contrato vencendo \u00e9 gerado, do maior para o menor. Padr\u00e3o [90, 60, 30]. O n\u00edvel sobe a cada marco: 90=Informativo, 60=Aten\u00e7\u00e3o, 30=Urgente.",
+      "description": "Anteced\u00eancia (em dias) dos avisos de contrato vencendo, do mais distante ao mais pr\u00f3ximo. Padr\u00e3o [90, 60, 30]. Cada valor gera um alerta pr\u00f3prio, uma vez. Ap\u00f3s o fim da vig\u00eancia, gera 'Contrato vencido'.",
       "items": {
         "type": "number"
       },
       "type": "array"
     },
-    "alerta_os_parada_dias": {
-      "default": 5,
-      "description": "Dias sem andamento em 'Aguardando Pe\u00e7a/Fornecedor' ou 'Novo' sem t\u00e9cnico para gerar 'OS parada' / 'OS sem t\u00e9cnico'.",
-      "type": "number"
-    },
     "alerta_preventiva_antecedencia_dias": {
       "default": 7,
-      "description": "Dias antes da data agendada em que a preventiva gera alerta 'Preventiva pr\u00f3xima' (Informativo).",
+      "description": "Dias antes da data agendada em que a preventiva gera o alerta 'Preventiva pr\u00f3xima'",
       "type": "number"
     },
-    "alerta_preventiva_atraso_atencao_dias": {
-      "default": 1,
-      "description": "A partir de quantos dias de atraso a preventiva gera 'Preventiva atrasada' n\u00edvel Aten\u00e7\u00e3o (para o t\u00e9cnico respons\u00e1vel).",
-      "type": "number"
-    },
-    "alerta_preventiva_atraso_urgente_dias": {
+    "alerta_preventiva_muito_atrasada_dias": {
       "default": 30,
-      "description": "A partir de quantos dias de atraso a preventiva escala para n\u00edvel Urgente (tamb\u00e9m para o gestor).",
+      "description": "Dias de atraso a partir dos quais a preventiva gera 'Preventiva muito atrasada' (escala para gestor)",
       "type": "number"
     },
-    "alerta_tipos_ativos": {
-      "description": "Tipos de alerta ligados na institui\u00e7\u00e3o. Vazio = todos os tipos, exceto Garantia vencendo e Calibra\u00e7\u00e3o vencida (campos ainda pouco preenchidos).",
+    "alerta_sla_risco_pct": {
+      "default": 80,
+      "description": "Percentual do prazo de SLA consumido a partir do qual gera 'SLA em risco'",
+      "type": "number"
+    },
+    "alertas_ativos": {
+      "default": [
+        "Contrato vencendo",
+        "Contrato vencido",
+        "Preventiva pr\u00f3xima",
+        "Preventiva atrasada",
+        "Preventiva muito atrasada",
+        "SLA em risco",
+        "SLA estourado",
+        "Estoque baixo",
+        "OS sem t\u00e9cnico",
+        "Chamado parado"
+      ],
+      "description": "Tipos de alerta ligados na institui\u00e7\u00e3o. Garantia e calibra\u00e7\u00e3o come\u00e7am desligados at\u00e9 os campos serem preenchidos.",
       "items": {
         "type": "string"
       },
