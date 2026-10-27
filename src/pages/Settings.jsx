@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import CodigoManager from '@/components/settings/CodigoManager';
 import AcessosPerfil from '@/components/settings/AcessosPerfil';
+import AlertasConfig from '@/components/settings/AlertasConfig';
 import TermoTooltip from '@/components/shared/TermoTooltip';
 import { toast } from 'sonner';
 import { ShieldCheck, AlertTriangle, Building2, Stethoscope, RefreshCw, Users } from 'lucide-react';
@@ -159,6 +160,9 @@ export default function Settings() {
           </TabsTrigger>
           <TabsTrigger value="acessos" className="gap-1.5">
             <Users className="w-3.5 h-3.5" /> Acessos por Perfil
+          </TabsTrigger>
+          <TabsTrigger value="alertas" className="gap-1.5">
+            <AlertTriangle className="w-3.5 h-3.5" /> Alertas
           </TabsTrigger>
         </TabsList>
 
@@ -313,6 +317,10 @@ export default function Settings() {
 
         <TabsContent value="acessos">
           <AcessosPerfil config={config} />
+        </TabsContent>
+
+        <TabsContent value="alertas">
+          <AlertasConfig />
         </TabsContent>
       </Tabs>
 

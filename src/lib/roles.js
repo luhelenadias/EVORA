@@ -23,6 +23,7 @@ export const PERFIS = ['admin', 'tecnico', 'clinico', 'gestor'];
  */
 export const ABAS = [
   { key: 'dashboard', label: 'Dashboard', path: '/' },
+  { key: 'alertas', label: 'Alertas', path: '/alertas' },
   { key: 'chamados', label: 'Chamados', path: '/chamados' },
   { key: 'abrir_chamado', label: 'Abrir Chamado', path: '/chamados/novo' },
   { key: 'equipamentos', label: 'Equipamentos', path: '/equipamentos' },
@@ -39,11 +40,11 @@ export const ABAS = [
 /** Pré-definições por perfil, aplicadas enquanto o administrador não personalizar. */
 export const ACESSOS_PADRAO = {
   admin: [
-    'dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes',
+    'dashboard', 'alertas', 'chamados', 'equipamentos', 'equipe', 'manutencoes',
     'preventivas', 'contratos', 'pecas', 'indicadores', 'usuarios', 'configuracoes',
   ],
-  gestor: ['dashboard', 'chamados', 'equipamentos', 'manutencoes', 'contratos', 'indicadores'],
-  tecnico: ['chamados', 'manutencoes', 'equipamentos'],
+  gestor: ['dashboard', 'alertas', 'chamados', 'equipamentos', 'manutencoes', 'contratos', 'indicadores'],
+  tecnico: ['alertas', 'chamados', 'manutencoes', 'equipamentos'],
   clinico: ['abrir_chamado', 'chamados'],
 };
 

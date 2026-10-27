@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -35,6 +35,16 @@ export default function Contracts() {
   });
 
   const recarregar = () => queryClient.invalidateQueries({ queryKey: ['contracts'] });
+
+  // Vindo de um alerta (/contratos?contrato=<id>): abre o contrato direto.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const contratoParam = searchParams.get('contrato');
+  useEffect(() => {
+    if (!contratoParam || !contracts.length) return;
+    const alvo = contracts.find((c) => c.id === contratoParam);
+    if (alvo) setDetalhe(alvo);
+    setSearchParams({}, { replace: true });
+  }, [contratoParam, contracts, setSearchParams]);
 
   const filtered = useMemo(
     () =>

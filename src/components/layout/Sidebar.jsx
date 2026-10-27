@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Wrench, Monitor, Users, FileText,
   ClipboardList, Settings, ChevronLeft, ChevronRight,
-  PlusCircle, CalendarDays, Package, LogOut, Menu, X, BarChart2, UserCog } from
+  PlusCircle, CalendarDays, Package, LogOut, Menu, X, BarChart2, UserCog, BellRing } from
 'lucide-react';
 import EvoraLogo from '@/components/brand/EvoraLogo';
 import { ROLES, ROLE_LABELS, abasDoPerfil } from '@/lib/roles';
@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 /** Ícone de cada aba (as abas em si vêm de src/lib/roles.js). */
 const ICONES = {
   dashboard: LayoutDashboard,
+  alertas: BellRing,
   chamados: ClipboardList,
   abrir_chamado: PlusCircle,
   equipamentos: Monitor,

@@ -118,6 +118,14 @@ export default function Maintenance() {
 
   const ordemDetalhe = detalhe ? orders.find((o) => o.id === detalhe.id) || detalhe : null;
 
+  // Vindo de um alerta (/manutencoes?os=<id>): abre a ordem direto.
+  const ordemParam = searchParams.get('os');
+  useEffect(() => {
+    if (!ordemParam || !orders.length) return;
+    const alvo = orders.find((o) => o.id === ordemParam);
+    if (alvo) setDetalhe(alvo);
+  }, [ordemParam, orders]);
+
   // ── 5. Fluxo de execução ────────────────────────────────────────
   const iniciar = async (order) => {
     setIniciandoId(order.id);

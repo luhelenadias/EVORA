@@ -27,6 +27,7 @@ import SpareParts from '@/pages/SpareParts';
 import Users from '@/pages/Users';
 import Indicators from '@/pages/Indicators';
 import Settings from '@/pages/Settings';
+import Alerts from '@/pages/Alerts';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -60,6 +61,7 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
+          <Route path="/alertas" element={<Alerts />} />
           <Route path="/equipamentos" element={<Equipment />} />
           <Route path="/equipamentos/:id" element={<Equipment />} />
           <Route path="/chamados" element={<ServiceOrders />} />
