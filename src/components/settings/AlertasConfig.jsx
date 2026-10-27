@@ -4,7 +4,7 @@ import { base44 } from '@/api/base44Client';
 import { BellRing, Loader2, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
-import { TIPOS_ALERTA } from '@/lib/alertas';
+import { ALERTAS_ATIVOS_PADRAO, TIPOS_ALERTA } from '@/lib/alertas';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +54,9 @@ export default function AlertasConfig() {
       alerta_sla_risco_pct: config.alerta_sla_risco_pct ?? 80,
       alerta_chamado_parado_dias: config.alerta_chamado_parado_dias ?? 5,
     });
-    setAtivos(Array.isArray(config.alertas_ativos) ? config.alertas_ativos : []);
+    setAtivos(
+      Array.isArray(config.alertas_ativos) ? config.alertas_ativos : ALERTAS_ATIVOS_PADRAO
+    );
     setAntecedencias((config.alerta_contrato_dias || [90, 60, 30]).join(', '));
   }, [config]);
 

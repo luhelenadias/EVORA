@@ -2,6 +2,20 @@
 
 export const PESO_NIVEL = { Urgente: 3, 'Atenção': 2, Informativo: 1 };
 
+/** Tipos ligados por padrão enquanto a instituição não personaliza (garantia e calibração desligados). */
+export const ALERTAS_ATIVOS_PADRAO = [
+  'Contrato vencendo',
+  'Contrato vencido',
+  'Preventiva próxima',
+  'Preventiva atrasada',
+  'Preventiva muito atrasada',
+  'SLA em risco',
+  'SLA estourado',
+  'Estoque baixo',
+  'OS sem técnico',
+  'Chamado parado',
+];
+
 /** Nomes exatos dos tipos (espelham o enum da entidade Alerta). */
 export const TIPOS_ALERTA = [
   'Contrato vencendo',
