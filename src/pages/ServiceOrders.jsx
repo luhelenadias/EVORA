@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import {
   queueScore, findContractForEquipment, computeSlaStatus, SLA_STYLES,
 } from '@/lib/maintenance';
+import { alteracoesDaOS, registrarAlteracoesDaOS, registrarAuditoria } from '@/lib/auditoria';
 
 export default function ServiceOrders() {
   const { user } = useOutletContext();
@@ -49,7 +50,18 @@ export default function ServiceOrders() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.ServiceOrder.create(data),
+    mutationFn: async (data) => {
+      const criado = await base44.entities.ServiceOrder.create(data);
+      await registrarAuditoria({
+        entidade_tipo: 'ServiceOrder',
+        entidade_id: criado.id,
+        entidade_codigo: criado.code || '',
+        acao: 'Abertura',
+        valor_novo: `${criado.type} · ${criado.problem_description || ''}`.trim(),
+        tecnico_atribuido_id: criado.technician_id || null,
+      });
+      return criado;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
       setShowForm(false);
@@ -58,7 +70,12 @@ export default function ServiceOrders() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.ServiceOrder.update(id, data),
+    mutationFn: async ({ id, data, antes }) => {
+      const atualizado = await base44.entities.ServiceOrder.update(id, data);
+      const depois = { ...antes, ...data };
+      await registrarAlteracoesDaOS(atualizado || depois, alteracoesDaOS(antes, depois));
+      return atualizado;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
       setShowForm(false);
@@ -109,7 +126,7 @@ export default function ServiceOrders() {
       if (data.status === 'Em Andamento' && !editingItem.start_date) {
         data.start_date = new Date().toISOString();
       }
-      updateMutation.mutate({ id: editingItem.id, data });
+      updateMutation.mutate({ id: editingItem.id, data, antes: editingItem });
     } else {
       if (isClinical) {
         data.type = 'Corretiva';

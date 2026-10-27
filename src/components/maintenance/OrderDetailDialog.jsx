@@ -2,6 +2,8 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import OrderTimeline from '@/components/auditoria/OrderTimeline';
 import { Badge } from '@/components/ui/badge';
 import StatusBadge from '@/components/shared/StatusBadge';
 import OrderEquipmentSummary from '@/components/maintenance/OrderEquipmentSummary';
@@ -43,19 +45,32 @@ export default function OrderDetailDialog({ order, equipment, orders = [], onClo
           </DialogDescription>
         </DialogHeader>
 
-        <OrderEquipmentSummary order={order} equipment={equipment} />
+        <Tabs defaultValue="detalhes">
+          <TabsList>
+            <TabsTrigger value="detalhes">Detalhes</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
+          </TabsList>
 
-        {order.type === 'Corretiva' && <OrderSlaBanner sla={resolverSla(order, contracts)} />}
+          <TabsContent value="detalhes" className="mt-4 space-y-4">
+            <OrderEquipmentSummary order={order} equipment={equipment} />
 
-        <OrderTypeDetails order={order} equipment={equipment} />
+            {order.type === 'Corretiva' && <OrderSlaBanner sla={resolverSla(order, contracts)} />}
 
-        {order.status === 'Em Andamento' && <OrderExecutionDetails order={order} />}
+            <OrderTypeDetails order={order} equipment={equipment} />
 
-        {order.status === 'Concluído' && <OrderCompletionDetails order={order} />}
+            {order.status === 'Em Andamento' && <OrderExecutionDetails order={order} />}
 
-        <TranscricaoAudio transcricao={order.transcricao_audio} />
+            {order.status === 'Concluído' && <OrderCompletionDetails order={order} />}
 
-        <OrderHistoryList orders={orders} order={order} />
+            <TranscricaoAudio transcricao={order.transcricao_audio} />
+
+            <OrderHistoryList orders={orders} order={order} />
+          </TabsContent>
+
+          <TabsContent value="historico" className="mt-4">
+            <OrderTimeline order={order} />
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

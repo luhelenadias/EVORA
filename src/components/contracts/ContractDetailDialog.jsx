@@ -13,6 +13,7 @@ import ContractSerieMatches from '@/components/contracts/ContractSerieMatches';
 import ContractVersions from '@/components/contracts/ContractVersions';
 import ContractHistory from '@/components/contracts/ContractHistory';
 import { enviarPdfDoContrato, extrairDoPdf } from '@/lib/contratoPdf';
+import { registrarAuditoria } from '@/lib/auditoria';
 import {
   dadosDoContrato,
   diasParaVencer,
@@ -75,6 +76,16 @@ export default function ContractDetailDialog({ contrato, user, onClose, onSaved 
       });
       setAtual(registro);
       onSaved?.();
+      await registrarAuditoria({
+        entidade_tipo: 'Contract',
+        entidade_id: atual.id,
+        entidade_codigo: atual.contract_number || '',
+        acao: 'Extração por IA',
+        campo: 'fontes_extracao',
+        valor_novo: `${resultado.fontes.length} campo(s) com fonte no PDF`,
+        motivo: `Qualidade da leitura: ${resultado.qualidade || '—'}`,
+        origem: 'IA',
+      });
       toast.success('Leitura concluída — confira os valores propostos');
     } catch (e) {
       toast.error(e?.message || 'Não foi possível ler o PDF.');
@@ -102,6 +113,15 @@ export default function ContractDetailDialog({ contrato, user, onClose, onSaved 
       });
       setAtual(registro);
       onSaved?.();
+      await registrarAuditoria({
+        entidade_tipo: 'Contract',
+        entidade_id: atual.id,
+        entidade_codigo: atual.contract_number || '',
+        acao: 'Upload de documento',
+        campo: 'versoes_documento',
+        valor_novo: `${tipo} — ${arquivo.name}`,
+        motivo: nota ? `Nota: ${nota}` : '',
+      });
       toast.success('PDF enviado como nova versão');
       await extrair(fileUri);
     } catch (e) {
@@ -112,14 +132,41 @@ export default function ContractDetailDialog({ contrato, user, onClose, onSaved 
   const salvar = async ({ confirmar = false } = {}) => {
     setSalvando(true);
     try {
+      // As edições passam a ser registradas no log de auditoria (com quem e quando);
+      // historico_alteracoes fica apenas como leitura do que já existia.
       const alteracoes = historicoDeAlteracoes(atual, valores, autor);
       const dados = {
         ...dadosDoContrato(valores),
         status: statusPorVigencia({ ...atual, ...valores }),
-        historico_alteracoes: [...(atual.historico_alteracoes || []), ...alteracoes],
         ...(confirmar ? { extracao_status: 'Revisado', campos_revisar: [] } : {}),
       };
       const registro = await base44.entities.Contract.update(atual.id, dados);
+
+      for (const alteracao of alteracoes) {
+        await registrarAuditoria({
+          entidade_tipo: 'Contract',
+          entidade_id: atual.id,
+          entidade_codigo: atual.contract_number || '',
+          acao: 'Edição de campo',
+          campo: alteracao.chave,
+          valor_anterior: alteracao.valor_anterior,
+          valor_novo: alteracao.valor_novo,
+          motivo: `Campo: ${alteracao.campo}`,
+        });
+      }
+      if (confirmar) {
+        await registrarAuditoria({
+          entidade_tipo: 'Contract',
+          entidade_id: atual.id,
+          entidade_codigo: atual.contract_number || '',
+          acao: 'Edição de campo',
+          campo: 'extracao_status',
+          valor_anterior: atual.extracao_status || 'Pendente de revisão',
+          valor_novo: 'Revisado',
+          motivo: 'Revisão dos dados extraídos confirmada',
+        });
+      }
+
       setAtual(registro);
       if (confirmar) {
         setCamposRevisar([]);
@@ -250,8 +297,12 @@ export default function ContractDetailDialog({ contrato, user, onClose, onSaved 
           <ContractVersions contrato={atual} onReextrair={extrair} extraindo={extraindo} />
         </Secao>
 
-        <Secao titulo="Histórico de alterações">
+        <Secao titulo="Alterações anteriores à auditoria">
           <ContractHistory registros={atual.historico_alteracoes || []} />
+          <p className="text-[11px] text-muted-foreground">
+            As edições feitas a partir de agora entram no log de Auditoria, com autor e data/hora
+            do servidor. Este bloco guarda apenas o que já existia.
+          </p>
         </Secao>
 
         <div className="sticky bottom-0 -mx-6 flex flex-wrap items-center justify-between gap-2 border-t bg-background/95 px-6 py-3 backdrop-blur">

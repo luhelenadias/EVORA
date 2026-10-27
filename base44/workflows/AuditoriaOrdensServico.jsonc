@@ -1,0 +1,47 @@
+{
+  "name": "AuditoriaOrdensServico",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create",
+        "update"
+      ],
+      "entity_name": "ServiceOrder"
+    }
+  },
+  "description": "Registra no log de auditoria toda cria\u00e7\u00e3o e altera\u00e7\u00e3o de ordem de servi\u00e7o, inclusive as feitas fora da interface (data/hora marcada pelo servidor).",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "auditoria_ordens_servico",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "registrar_alteracao": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "auditarAlteracoes",
+            "args": {
+              "entity_name": "ServiceOrder",
+              "entity_id": "${ .trigger.entity_id }",
+              "event_type": "${ .trigger.event_type }",
+              "changed_fields": "${ .trigger.changed_fields // [] }",
+              "data": "${ .trigger.data }",
+              "old_data": "${ .trigger.old_data }",
+              "payload_too_large": "${ .trigger.payload_too_large // false }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Registrar altera\u00e7\u00e3o da OS",
+            "description": "Compara com o estado anterior e grava no log"
+          }
+        }
+      }
+    ]
+  }
+}

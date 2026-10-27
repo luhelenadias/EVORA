@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Send, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
+import { registrarAuditoria } from '@/lib/auditoria';
 import { Link } from 'react-router-dom';
 
 export default function NewOrder() {
@@ -31,7 +32,17 @@ export default function NewOrder() {
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.ServiceOrder.create(data),
+    mutationFn: async (data) => {
+      const criado = await base44.entities.ServiceOrder.create(data);
+      await registrarAuditoria({
+        entidade_tipo: 'ServiceOrder',
+        entidade_id: criado.id,
+        entidade_codigo: criado.code || '',
+        acao: 'Abertura',
+        valor_novo: `${criado.type} · ${criado.problem_description || ''}`.trim(),
+      });
+      return criado;
+    },
     onSuccess: () => {
       toast.success('Chamado aberto com sucesso!');
       navigate('/chamados');

@@ -28,6 +28,7 @@ import Users from '@/pages/Users';
 import Indicators from '@/pages/Indicators';
 import Settings from '@/pages/Settings';
 import Alerts from '@/pages/Alerts';
+import Auditoria from '@/pages/Auditoria';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -72,6 +73,7 @@ const AuthenticatedApp = () => {
           <Route path="/equipe" element={<TechTeam />} />
           <Route path="/pecas" element={<SpareParts />} />
           <Route path="/usuarios" element={<Users />} />
+          <Route path="/auditoria" element={<Auditoria />} />
           <Route path="/indicadores" element={<Indicators />} />
           <Route path="/configuracoes" element={<Settings />} />
         </Route>

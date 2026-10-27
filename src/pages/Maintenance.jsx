@@ -22,6 +22,7 @@ import { calcularPreventivasAGerar, calcularProximaPreventiva } from '@/lib/prev
 import { calcularMtbf, calcularMttr, calcularTempoMedioAtendimento, frequenciaPorDias } from '@/lib/indicadores';
 import { minutosDeAtendimento, slaDeAtendimento } from '@/lib/atendimento';
 import { GRUPOS_CENTRAL, ORDENACOES } from '@/lib/central';
+import { registrarAuditoria } from '@/lib/auditoria';
 
 export default function Maintenance() {
   const queryClient = useQueryClient();
@@ -63,9 +64,21 @@ export default function Maintenance() {
     );
     if (!novas.length) return;
     novas.forEach((p) => geradasRef.current.add(p.equipment_id));
-    base44.entities.ServiceOrder.bulkCreate(novas).then(() => {
+    base44.entities.ServiceOrder.bulkCreate(novas).then(async (criadas) => {
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
       toast.success(`${novas.length} manutenção(ões) preventiva(s) agendada(s)`);
+      for (const criada of criadas || []) {
+        await registrarAuditoria({
+          entidade_tipo: 'ServiceOrder',
+          entidade_id: criada.id,
+          entidade_codigo: criada.code || '',
+          acao: 'Abertura',
+          origem: 'Sistema',
+          valor_novo: `${criada.type} · ${criada.problem_description || ''}`.trim(),
+          motivo: 'Gerada automaticamente pela periodicidade do equipamento',
+          tecnico_atribuido_id: criada.technician_id || null,
+        });
+      }
     });
   }, [equipment, orders, carregandoEquip, carregandoOrdens, queryClient]);
 
@@ -141,6 +154,15 @@ export default function Maintenance() {
       });
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
       toast.success('Manutenção iniciada');
+      await registrarAuditoria({
+        entidade_tipo: 'ServiceOrder',
+        entidade_id: order.id,
+        entidade_codigo: order.code || '',
+        acao: 'Início do atendimento',
+        campo: 'start_date',
+        valor_novo: inicio.toISOString(),
+        tecnico_atribuido_id: order.technician_id || null,
+      });
     } finally {
       setIniciandoId(null);
     }
@@ -181,6 +203,19 @@ export default function Maintenance() {
     setGravando(null);
     queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
     toast.success('Rascunho gerado — revise os campos antes de finalizar');
+    await registrarAuditoria({
+      entidade_tipo: 'ServiceOrder',
+      entidade_id: order.id,
+      entidade_codigo: order.code || '',
+      acao: 'Rascunho de relatório gerado por IA',
+      campo: 'relatorio_audio_em',
+      valor_novo: 'Rascunho a partir do relato em áudio',
+      motivo: (rascunho.campos_revisar || []).length
+        ? `Campos a revisar: ${rascunho.campos_revisar.join(', ')}`
+        : 'Todos os campos com leitura firme',
+      origem: 'IA',
+      tecnico_atribuido_id: order.technician_id || null,
+    });
   };
 
   const concluir = async (dados) => {
@@ -190,8 +225,29 @@ export default function Maintenance() {
     try {
       await base44.entities.ServiceOrder.update(order.id, { ...dados, status: 'Concluído' });
 
+      await registrarAuditoria({
+        entidade_tipo: 'ServiceOrder',
+        entidade_id: order.id,
+        entidade_codigo: order.code || '',
+        acao: 'Fechamento',
+        campo: 'completion_date',
+        valor_novo: dados.completion_date,
+        motivo: `Duração ${Math.round(dados.duracao_total_minutos || 0)} min`,
+        tecnico_atribuido_id: order.technician_id || null,
+      });
+      await registrarAuditoria({
+        entidade_tipo: 'ServiceOrder',
+        entidade_id: order.id,
+        entidade_codigo: order.code || '',
+        acao: 'Relatório confirmado',
+        campo: 'technical_report',
+        valor_novo: dados.technical_report,
+        tecnico_atribuido_id: order.technician_id || null,
+      });
+
       // Baixa automática de estoque das peças utilizadas
       const pecas = dados.parts_used || [];
+      const baixas = [];
       if (pecas.length) {
         const catalogo = await base44.entities.SparePart.list();
         await Promise.all(pecas.map((item) => {
@@ -199,12 +255,31 @@ export default function Maintenance() {
           if (!peca) return null;
           const novoEstoque = Math.max((peca.current_stock ?? 0) - item.quantity, 0);
           const minimo = peca.minimum_stock ?? 0;
+          baixas.push({
+            nome: peca.name,
+            quantidade: item.quantity,
+            anterior: peca.current_stock ?? 0,
+            novo: novoEstoque,
+          });
           return base44.entities.SparePart.update(peca.id, {
             current_stock: novoEstoque,
             status: novoEstoque <= 0 ? 'Sem Estoque' : novoEstoque <= minimo ? 'Estoque Baixo' : 'Em Estoque',
           });
         }));
         queryClient.invalidateQueries({ queryKey: ['spareParts'] });
+
+        for (const baixa of baixas) {
+          await registrarAuditoria({
+            entidade_tipo: 'ServiceOrder',
+            entidade_id: order.id,
+            entidade_codigo: order.code || '',
+            acao: 'Peça utilizada',
+            campo: 'parts_used',
+            valor_novo: `${baixa.quantidade}× ${baixa.nome}`,
+            motivo: `Baixa de estoque: ${baixa.anterior} → ${baixa.novo}`,
+            tecnico_atribuido_id: order.technician_id || null,
+          });
+        }
       }
 
       const eq = equipmentById[order.equipment_id];

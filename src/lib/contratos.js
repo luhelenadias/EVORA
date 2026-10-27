@@ -217,6 +217,7 @@ export function historicoDeAlteracoes(antes, depois, autor) {
   const agora = new Date().toISOString();
   const registro = (campo, key, anterior, novo) => ({
     campo,
+    chave: key,
     valor_anterior: rotuloValor(key, anterior),
     valor_novo: rotuloValor(key, novo),
     alterado_por: autor || 'Usuário',

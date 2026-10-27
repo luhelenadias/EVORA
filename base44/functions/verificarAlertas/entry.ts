@@ -75,15 +75,42 @@ export default async function (req) {
     };
 
     const contratosParaAtualizar = contratos
-      .map((c) => ({ id: c.id, status: statusPorVigenciaContrato(c), atual: c.status }))
-      .filter((c) => c.status !== c.atual)
-      .map(({ id, status }) => ({ id, status }));
+      .map((c) => ({
+        id: c.id,
+        codigo: c.contract_number || '',
+        status: statusPorVigenciaContrato(c),
+        atual: c.status,
+      }))
+      .filter((c) => c.status !== c.atual);
 
     await Promise.all([
       inserir(),
       resolver(),
-      contratosParaAtualizar.length ? db.Contract.bulkUpdate(contratosParaAtualizar) : null,
+      contratosParaAtualizar.length
+        ? db.Contract.bulkUpdate(contratosParaAtualizar.map(({ id, status }) => ({ id, status })))
+        : null,
     ]);
+
+    // Status recalculado pela vigência é ação do sistema: entra no log de auditoria.
+    for (const contrato of contratosParaAtualizar) {
+      await db.LogAuditoria.create({
+        entidade_tipo: 'Contract',
+        entidade_id: contrato.id,
+        entidade_codigo: contrato.codigo,
+        acao: 'Edição de campo',
+        origem: 'Sistema',
+        campo: 'status',
+        valor_anterior: contrato.atual || '',
+        valor_novo: contrato.status,
+        motivo: 'Status recalculado pela vigência do contrato',
+        usuario_id: null,
+        usuario_nome: '',
+        usuario_email: '',
+        usuario_perfil: null,
+        anterior_a_auditoria: false,
+        data_hora: new Date().toISOString(),
+      });
+    }
 
     return Response.json({
       ok: true,
