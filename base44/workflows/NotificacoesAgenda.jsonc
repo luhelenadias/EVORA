@@ -1,0 +1,47 @@
+{
+  "description": "Despacha a fila de avisos de agenda ao t\u00e9cnico. A cada 5 minutos envia o que j\u00e1 passou do tempo de espera, consolidando mudan\u00e7as em sequ\u00eancia na mesma OS em um \u00fanico e-mail.",
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "notificacoes_agenda",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "enviar_notificacoes_agenda": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "enviarNotificacoesAgenda",
+            "args": {
+              "origem": "rotina_agenda"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Enviar avisos de agenda",
+            "description": "Fila de notifica\u00e7\u00f5es vencidas"
+          }
+        }
+      }
+    ]
+  },
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "*/5 * * * *",
+      "one_time_date": null,
+      "timezone": "UTC",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  },
+  "name": "NotificacoesAgenda"
+}

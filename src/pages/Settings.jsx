@@ -326,6 +326,10 @@ export default function Settings() {
         <TabsContent value="alertas">
           <AlertasConfig />
         </TabsContent>
+
+        <TabsContent value="notificacoes" className="space-y-4">
+          <EmailConfig config={config} />
+        </TabsContent>
       </Tabs>
 
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
