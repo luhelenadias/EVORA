@@ -23,6 +23,17 @@ export default function FilterMultiSelect({ label, options = [], value = [], onC
   const alternar = (valor) =>
     onChange(value.includes(valor) ? value.filter((v) => v !== valor) : [...value, valor]);
 
+  // "Selecionar todos" age sobre as opções visíveis (útil quando há busca).
+  const visiveisMarcadas = visiveis.length > 0 && visiveis.every((opcao) => value.includes(opcao.value));
+  const alternarTodas = () => {
+    const valoresVisiveis = visiveis.map((opcao) => opcao.value);
+    if (visiveisMarcadas) {
+      onChange(value.filter((v) => !valoresVisiveis.includes(v)));
+    } else {
+      onChange([...new Set([...value, ...valoresVisiveis])]);
+    }
+  };
+
   return (
     <Popover onOpenChange={(aberto) => !aberto && setTermo('')}>
       <PopoverTrigger asChild>
@@ -56,6 +67,25 @@ export default function FilterMultiSelect({ label, options = [], value = [], onC
                 className="h-8 pl-7 text-xs"
               />
             </div>
+          </div>
+        )}
+
+        {options.length > 1 && (
+          <div
+            role="option"
+            aria-selected={visiveisMarcadas}
+            tabIndex={0}
+            onClick={alternarTodas}
+            onKeyDown={(evento) => {
+              if (evento.key === 'Enter' || evento.key === ' ') {
+                evento.preventDefault();
+                alternarTodas();
+              }
+            }}
+            className="flex cursor-pointer items-center gap-2 border-b px-3 py-2 text-xs font-semibold outline-none hover:bg-muted"
+          >
+            <Checkbox checked={visiveisMarcadas} tabIndex={-1} className="pointer-events-none" />
+            <span>{visiveisMarcadas ? 'Desmarcar todos' : 'Selecionar todos'}</span>
           </div>
         )}
 
