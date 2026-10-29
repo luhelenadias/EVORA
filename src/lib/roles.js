@@ -23,12 +23,10 @@ export const PERFIS = ['admin', 'tecnico', 'clinico', 'gestor'];
  */
 export const ABAS = [
   { key: 'dashboard', label: 'Dashboard', path: '/' },
-  { key: 'alertas', label: 'Alertas', path: '/alertas' },
   { key: 'chamados', label: 'Chamados', path: '/chamados' },
   { key: 'abrir_chamado', label: 'Abrir Chamado', path: '/chamados/novo' },
   { key: 'equipamentos', label: 'Equipamentos', path: '/equipamentos' },
   { key: 'manutencoes', label: 'Manutenções', path: '/manutencoes' },
-  { key: 'preventivas', label: 'Calendário de Preventivas', path: '/preventivas' },
   { key: 'equipe', label: 'Equipe Técnica', path: '/equipe' },
   { key: 'contratos', label: 'Contratos', path: '/contratos' },
   { key: 'pecas', label: 'Peças', path: '/pecas' },
@@ -41,11 +39,11 @@ export const ABAS = [
 /** Pré-definições por perfil, aplicadas enquanto o administrador não personalizar. */
 export const ACESSOS_PADRAO = {
   admin: [
-    'dashboard', 'alertas', 'chamados', 'equipamentos', 'equipe', 'manutencoes',
-    'preventivas', 'contratos', 'pecas', 'indicadores', 'usuarios', 'auditoria', 'configuracoes',
+    'dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes',
+    'contratos', 'pecas', 'indicadores', 'usuarios', 'auditoria', 'configuracoes',
   ],
-  gestor: ['dashboard', 'alertas', 'chamados', 'equipamentos', 'manutencoes', 'contratos', 'indicadores', 'auditoria'],
-  tecnico: ['alertas', 'chamados', 'manutencoes', 'equipamentos'],
+  gestor: ['dashboard', 'chamados', 'equipamentos', 'manutencoes', 'contratos', 'indicadores', 'auditoria'],
+  tecnico: ['chamados', 'manutencoes', 'equipamentos'],
   clinico: ['abrir_chamado', 'chamados'],
 };
 
@@ -55,7 +53,8 @@ export const ABA_TRAVADA = 'configuracoes';
 /** Chaves de aba liberadas para o perfil: as gravadas ou, sem personalização, as padrão. */
 export function chavesDoPerfil(config, role) {
   const salvo = (config?.acessos_perfil || []).find((registro) => registro.perfil === role);
-  if (Array.isArray(salvo?.abas)) return salvo.abas;
+  // Abas que deixaram de existir não ficam gravadas como chave órfã.
+  if (Array.isArray(salvo?.abas)) return salvo.abas.filter((chave) => ABAS.some((aba) => aba.key === chave));
   return ACESSOS_PADRAO[role] || ACESSOS_PADRAO.clinico;
 }
 

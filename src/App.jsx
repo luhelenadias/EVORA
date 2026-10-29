@@ -20,14 +20,12 @@ import Dashboard from '@/pages/Dashboard';
 import Equipment from '@/pages/Equipment';
 import ServiceOrders from '@/pages/ServiceOrders';
 import Maintenance from '@/pages/Maintenance';
-import PreventiveCalendar from '@/pages/PreventiveCalendar';
 import Contracts from '@/pages/Contracts';
 import TechTeam from '@/pages/TechTeam';
 import SpareParts from '@/pages/SpareParts';
 import Users from '@/pages/Users';
 import Indicators from '@/pages/Indicators';
 import Settings from '@/pages/Settings';
-import Alerts from '@/pages/Alerts';
 import Auditoria from '@/pages/Auditoria';
 
 const AuthenticatedApp = () => {
@@ -62,13 +60,11 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
-          <Route path="/alertas" element={<Alerts />} />
           <Route path="/equipamentos" element={<Equipment />} />
           <Route path="/equipamentos/:id" element={<Equipment />} />
           <Route path="/chamados" element={<ServiceOrders />} />
           <Route path="/chamados/novo" element={<ServiceOrders />} />
           <Route path="/manutencoes" element={<Maintenance />} />
-          <Route path="/preventivas" element={<PreventiveCalendar />} />
           <Route path="/contratos" element={<Contracts />} />
           <Route path="/equipe" element={<TechTeam />} />
           <Route path="/pecas" element={<SpareParts />} />

@@ -6,10 +6,10 @@ import AlertaItem from './AlertaItem';
 import { cn } from '@/lib/utils';
 
 /** Vários alertas do mesmo tipo entram agrupados, com expansão. */
-export default function AlertaGrupo({ grupo }) {
+export default function AlertaGrupo({ grupo, onAbrir }) {
   const [aberto, setAberto] = useState(false);
 
-  if (grupo.itens.length === 1) return <AlertaItem alerta={grupo.itens[0]} />;
+  if (grupo.itens.length === 1) return <AlertaItem alerta={grupo.itens[0]} onAbrir={onAbrir} />;
 
   return (
     <div className="rounded-lg border bg-card">
@@ -27,7 +27,7 @@ export default function AlertaGrupo({ grupo }) {
       {aberto && (
         <div className="space-y-2 border-t p-2">
           {grupo.itens.map((alerta) => (
-            <AlertaItem key={alerta.id} alerta={alerta} />
+            <AlertaItem key={alerta.id} alerta={alerta} onAbrir={onAbrir} />
           ))}
         </div>
       )}

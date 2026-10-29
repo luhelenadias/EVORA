@@ -88,12 +88,12 @@ export function alertaAtivo(alerta) {
 
 /** Tela de origem do alerta. */
 export function destinoDoAlerta(alerta) {
-  if (!alerta) return '/alertas';
+  if (!alerta) return '/manutencoes';
   if (alerta.entidade_tipo === 'Contract') return `/contratos?contrato=${alerta.entidade_id}`;
   if (alerta.entidade_tipo === 'ServiceOrder') return `/manutencoes?os=${alerta.entidade_id}`;
   if (alerta.entidade_tipo === 'SparePart') return '/pecas';
   if (alerta.entidade_tipo === 'Equipment') return `/equipamentos/${alerta.entidade_id}`;
-  return '/alertas';
+  return '/manutencoes';
 }
 
 export function nivelMaisGrave(itens) {

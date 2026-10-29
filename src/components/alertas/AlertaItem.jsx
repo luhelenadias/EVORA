@@ -6,10 +6,13 @@ import AlertaAcoes from './AlertaAcoes';
 import { cn } from '@/lib/utils';
 
 /** Uma linha de alerta: clicar abre o contrato, a OS ou o equipamento de origem. */
-export default function AlertaItem({ alerta, compacto = false }) {
+export default function AlertaItem({ alerta, compacto = false, onAbrir }) {
   const navigate = useNavigate();
   const ui = NIVEL_UI[NIVEIS.includes(alerta.nivel) ? alerta.nivel : 'Informativo'];
-  const abrir = () => navigate(destinoDoAlerta(alerta));
+  const abrir = () => {
+    onAbrir?.();
+    navigate(destinoDoAlerta(alerta));
+  };
 
   return (
     <div

@@ -1,18 +1,22 @@
 import React from 'react';
+import { GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { corDoTecnico, horarioProgramado, temHorario } from '@/lib/preventivas';
 
 /** Item dentro do dia do calendário: código, equipamento, horário e cor do técnico. */
-export default function PreventiveChip({ order, equipment, tecnico, onClick }) {
+export default function PreventiveChip({ order, equipment, tecnico, onClick, arrastavel = false, arrastando = false }) {
   const nomeTecnico = tecnico?.name || order.technician_name;
 
   return (
     <button
       type="button"
       onClick={() => onClick?.(order)}
+      title={arrastavel ? 'Arraste para outro dia ou clique para editar' : 'Clique para ver os detalhes'}
       className={cn(
         'w-full text-left rounded-md border px-1.5 py-1.5 transition-colors bg-card hover:bg-muted/70',
-        order.technician_id ? 'border-border' : 'border-dashed border-warning/70 bg-warning/10'
+        order.technician_id ? 'border-border' : 'border-dashed border-warning/70 bg-warning/10',
+        arrastavel && 'cursor-grab active:cursor-grabbing',
+        arrastando && 'shadow-lg ring-2 ring-primary/40'
       )}
     >
       <div className="flex items-center gap-1.5">
@@ -25,6 +29,7 @@ export default function PreventiveChip({ order, equipment, tecnico, onClick }) {
             {equipment.codigo_equipamento}
           </span>
         )}
+        {arrastavel && <GripVertical className="ml-auto w-3 h-3 flex-shrink-0 text-muted-foreground/50" />}
       </div>
 
       <p className="text-[11px] font-medium leading-tight text-foreground truncate">

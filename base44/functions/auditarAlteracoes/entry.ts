@@ -2,6 +2,9 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { CAMPOS_CONTRATO, CAMPOS_OS, chaveDe, texto } from '../../shared/auditoria.ts';
 
 const JANELA_DEDUPE_MS = 3 * 60 * 1000;
+// A tela grava a ação humana logo depois de salvar a alteração: espera essa
+// gravação chegar antes de decidir, para a mesma ação não entrar duas vezes.
+const ESPERA_TELA_MS = 6000;
 
 /** Ações da OS derivadas dos campos que mudaram no registro. */
 function candidatosOS(evento, atual, anterior, campos) {
@@ -226,6 +229,9 @@ export default async function (req: Request): Promise<Response> {
 
     if (!candidatos.length) return Response.json({ registrados: 0, ignorados: 0 });
 
+    // A tela grava a ação humana instantes depois de salvar; espera para deduplicar.
+    await new Promise((resolve) => setTimeout(resolve, ESPERA_TELA_MS));
+
     // Deduplica com o que a tela gravou nos últimos minutos.
     const desde = new Date(Date.now() - JANELA_DEDUPE_MS).toISOString();
     const { items: recentes } = await base44.asServiceRole.entities.LogAuditoria.filter(
@@ -233,13 +239,16 @@ export default async function (req: Request): Promise<Response> {
       { sort: '-data_hora', limit: 100 }
     );
     const jaGravado = new Set((recentes || []).map((r) => chaveDe(r.acao, r.campo)));
+    // Campo já registrado por uma ação mais específica (ex.: "Relatório confirmado").
+    const camposGravados = new Set((recentes || []).map((r) => r.campo).filter(Boolean));
 
     let registrados = 0;
     let ignorados = 0;
     const vistos = new Set();
     for (const candidato of candidatos) {
       const chave = chaveDe(candidato.acao, candidato.campo);
-      if (jaGravado.has(chave) || vistos.has(chave)) {
+      const jaDescrito = candidato.acao === 'Edição de campo' && camposGravados.has(candidato.campo);
+      if (jaGravado.has(chave) || vistos.has(chave) || jaDescrito) {
         ignorados += 1;
         continue;
       }

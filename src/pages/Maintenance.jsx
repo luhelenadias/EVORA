@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, BarChart2, CheckCircle2, Clock, Search } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { AlertCircle, BarChart2, CalendarDays, CheckCircle2, Clock, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import CentralList from '@/components/maintenance/CentralList';
@@ -17,6 +18,11 @@ import FinalizarManutencaoDialog from '@/components/maintenance/FinalizarManuten
 import GravadorAudioDialog from '@/components/maintenance/GravadorAudioDialog';
 import MaintenanceIndicators from '@/components/maintenance/MaintenanceIndicators';
 import MaintenancePending from '@/components/maintenance/MaintenancePending';
+import ManutencaoCalendario from '@/components/maintenance/ManutencaoCalendario';
+import ConfirmarReagendamentoDialog from '@/components/preventivas/ConfirmarReagendamentoDialog';
+import ReagendarOrdemDialog from '@/components/preventivas/ReagendarOrdemDialog';
+import { dataProgramada, preventivasAbertas } from '@/lib/preventivas';
+import { avisosDeAgenda, novaDataDoArraste } from '@/lib/agenda';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { calcularPreventivasAGerar, calcularProximaPreventiva } from '@/lib/preventiva';
 import { calcularMtbf, calcularMttr, calcularTempoMedioAtendimento, frequenciaPorDias } from '@/lib/indicadores';
@@ -39,6 +45,9 @@ export default function Maintenance() {
   const [salvando, setSalvando] = useState(false);
   const [gravando, setGravando] = useState(null);
   const [trechosPorOrdem, setTrechosPorOrdem] = useState({});
+  const [agenda, setAgenda] = useState(null);
+  const [reagendando, setReagendando] = useState(null);
+  const [atribuindoId, setAtribuindoId] = useState(null);
   const geradasRef = useRef(new Set());
 
   const { data: equipment = [], isLoading: carregandoEquip } = useQuery({
@@ -54,6 +63,11 @@ export default function Maintenance() {
   const { data: contracts = [] } = useQuery({
     queryKey: ['contracts'],
     queryFn: () => base44.entities.Contract.list(),
+  });
+
+  const { data: tecnicos = [] } = useQuery({
+    queryKey: ['techTeam'],
+    queryFn: () => base44.entities.TechTeam.list(),
   });
 
   // ── 1. Geração automática de preventivas ────────────────────────
@@ -87,6 +101,19 @@ export default function Maintenance() {
     equipment.forEach((e) => { mapa[e.id] = e; });
     return mapa;
   }, [equipment]);
+
+  const technicianById = useMemo(() => {
+    const mapa = {};
+    tecnicos.forEach((t) => { mapa[t.id] = t; });
+    return mapa;
+  }, [tecnicos]);
+
+  const preventivas = useMemo(() => preventivasAbertas(orders), [orders]);
+
+  const recalcularAlertas = async () => {
+    await base44.functions.invoke('verificarAlertas', {}).catch(() => {});
+    queryClient.invalidateQueries({ queryKey: ['alertas'] });
+  };
 
   const pendingCount = equipment.filter((e) => e.status_priorizacao === 'pendente_atualizacao').length;
   const showPendingTab = config?.modelo_priorizacao === 'avancado' && pendingCount > 0;
@@ -130,6 +157,19 @@ export default function Maintenance() {
   }), [filtradas]);
 
   const ordemDetalhe = detalhe ? orders.find((o) => o.id === detalhe.id) || detalhe : null;
+  const ordemAgenda = agenda ? orders.find((o) => o.id === agenda.id) || agenda : null;
+  const novaDataDoDrop = reagendando
+    ? novaDataDoArraste(reagendando.order, reagendando.novaData)
+    : null;
+  const avisosDoDrop = reagendando
+    ? avisosDeAgenda({
+        order: reagendando.order,
+        novaData: novaDataDoDrop,
+        tecnicoId: reagendando.order.technician_id,
+        ordens: orders,
+        tecnicos,
+      })
+    : [];
 
   // Vindo de um alerta (/manutencoes?os=<id>): abre a ordem direto.
   const ordemParam = searchParams.get('os');
@@ -165,6 +205,98 @@ export default function Maintenance() {
       });
     } finally {
       setIniciandoId(null);
+    }
+  };
+
+  // ── Agenda: reagendar (arrastar o card) e ajustar técnico/data no painel ──
+  // A tela registra a ação antes da alteração: a automação do servidor deduplica
+  // pelo que já foi gravado, sem repetir a mesma ação.
+  const registrarAgendamento = async (order, alteracoes) => {
+    for (const alteracao of alteracoes) {
+      await registrarAuditoria({
+        entidade_tipo: 'ServiceOrder',
+        entidade_id: order.id,
+        entidade_codigo: order.code || '',
+        tecnico_atribuido_id: order.technician_id || null,
+        ...alteracao,
+      });
+    }
+  };
+
+  const reagendar = async (order, novoDia) => {
+    setReagendando(null);
+    const novaData = novaDataDoArraste(order, novoDia);
+    if (novaData === order.scheduled_date) return;
+    await registrarAgendamento(order, [{
+      acao: 'Edição de campo',
+      campo: 'scheduled_date',
+      valor_anterior: order.scheduled_date || '',
+      valor_novo: novaData,
+      motivo: 'Reagendamento pelo calendário de manutenções',
+    }]);
+    await base44.entities.ServiceOrder.update(order.id, { scheduled_date: novaData });
+    queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+    toast.success(`Reagendada para ${format(parseISO(novaData), 'dd/MM/yyyy')}`);
+    await recalcularAlertas();
+  };
+
+  const salvarAgendamento = async (order, dados) => {
+    const alteracoes = [];
+    if ((dados.scheduled_date || '') !== (order.scheduled_date || '')) {
+      alteracoes.push({
+        acao: 'Edição de campo',
+        campo: 'scheduled_date',
+        valor_anterior: order.scheduled_date || '',
+        valor_novo: dados.scheduled_date || '',
+        motivo: 'Reagendamento na agenda',
+      });
+    }
+    if ((dados.technician_id || '') !== (order.technician_id || '')) {
+      alteracoes.push({
+        acao: order.technician_id ? 'Reatribuição' : 'Atribuição',
+        campo: 'technician_id',
+        valor_anterior: order.technician_name || '(sem técnico)',
+        valor_novo: dados.technician_name || '(sem técnico)',
+        tecnico_atribuido_id: dados.technician_id || null,
+      });
+    }
+    if (!alteracoes.length) {
+      setAgenda(null);
+      return;
+    }
+    await registrarAgendamento(order, alteracoes);
+    await base44.entities.ServiceOrder.update(order.id, {
+      scheduled_date: dados.scheduled_date || order.scheduled_date || '',
+      technician_id: dados.technician_id,
+      technician_name: dados.technician_name,
+    });
+    setAgenda(null);
+    queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+    toast.success('Agenda atualizada');
+    await recalcularAlertas();
+  };
+
+  const atribuirTecnico = async (order, tecnicoId) => {
+    const tecnico = technicianById[tecnicoId];
+    if (!tecnico) return;
+    setAtribuindoId(order.id);
+    try {
+      await registrarAgendamento(order, [{
+        acao: 'Atribuição',
+        campo: 'technician_id',
+        valor_anterior: order.technician_name || '(sem técnico)',
+        valor_novo: tecnico.name,
+        tecnico_atribuido_id: tecnico.id,
+      }]);
+      await base44.entities.ServiceOrder.update(order.id, {
+        technician_id: tecnico.id,
+        technician_name: tecnico.name,
+      });
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      toast.success(`Preventiva de ${order.equipment_name || 'equipamento'} atribuída a ${tecnico.name}`);
+      await recalcularAlertas();
+    } finally {
+      setAtribuindoId(null);
     }
   };
 
@@ -400,6 +532,9 @@ export default function Maintenance() {
           <TabsTrigger value="concluidas" className="gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5" /> Concluídas
           </TabsTrigger>
+          <TabsTrigger value="calendario" className="gap-1.5">
+            <CalendarDays className="w-3.5 h-3.5" /> Calendário
+          </TabsTrigger>
           <TabsTrigger value="indicators" className="gap-1.5">
             <BarChart2 className="w-3.5 h-3.5" /> Indicadores por Equipamento
           </TabsTrigger>
@@ -456,6 +591,19 @@ export default function Maintenance() {
           />
         </TabsContent>
 
+        <TabsContent value="calendario" className="mt-4">
+          <ManutencaoCalendario
+            preventivas={preventivas}
+            equipmentById={equipmentById}
+            tecnicos={tecnicos}
+            technicianById={technicianById}
+            onAbrir={setAgenda}
+            onReagendar={(order, dia) => setReagendando({ order, novaData: dia })}
+            onAtribuir={atribuirTecnico}
+            atribuindoId={atribuindoId}
+          />
+        </TabsContent>
+
         <TabsContent value="indicators" className="mt-4">
           <MaintenanceIndicators initialEquipmentId={equipmentParam} />
         </TabsContent>
@@ -494,6 +642,36 @@ export default function Maintenance() {
           equipment={equipmentById[ordemDetalhe.equipment_id]}
           orders={orders}
           onClose={() => setDetalhe(null)}
+        />
+      )}
+
+      {ordemAgenda && (
+        <ReagendarOrdemDialog
+          ordem={ordemAgenda}
+          equipment={equipmentById[ordemAgenda.equipment_id]}
+          tecnicos={tecnicos}
+          ordens={orders}
+          onSalvar={salvarAgendamento}
+          onAbrirOS={(order) => {
+            setAgenda(null);
+            setSearchParams({ os: order.id });
+          }}
+          onClose={() => setAgenda(null)}
+        />
+      )}
+
+      {reagendando && (
+        <ConfirmarReagendamentoDialog
+          dados={{
+            order: reagendando.order,
+            equipment: equipmentById[reagendando.order.equipment_id],
+            tecnico: technicianById[reagendando.order.technician_id],
+            dataAtual: dataProgramada(reagendando.order),
+            novaData: reagendando.novaData,
+            avisos: avisosDoDrop,
+          }}
+          onConfirmar={() => reagendar(reagendando.order, reagendando.novaData)}
+          onCancelar={() => setReagendando(null)}
         />
       )}
     </div>
