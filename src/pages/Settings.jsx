@@ -18,9 +18,10 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import CodigoManager from '@/components/settings/CodigoManager';
 import AcessosPerfil from '@/components/settings/AcessosPerfil';
 import AlertasConfig from '@/components/settings/AlertasConfig';
+import EmailConfig from '@/components/settings/EmailConfig';
 import TermoTooltip from '@/components/shared/TermoTooltip';
 import { toast } from 'sonner';
-import { ShieldCheck, AlertTriangle, Building2, Stethoscope, RefreshCw, Users } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Building2, Stethoscope, RefreshCw, Users, Mail } from 'lucide-react';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -163,6 +164,9 @@ export default function Settings() {
           </TabsTrigger>
           <TabsTrigger value="alertas" className="gap-1.5">
             <AlertTriangle className="w-3.5 h-3.5" /> Alertas
+          </TabsTrigger>
+          <TabsTrigger value="notificacoes" className="gap-1.5">
+            <Mail className="w-3.5 h-3.5" /> Notificações
           </TabsTrigger>
         </TabsList>
 

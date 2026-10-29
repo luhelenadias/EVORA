@@ -3,26 +3,30 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { format, parseISO } from 'date-fns';
-import { AlertCircle, BarChart2, CalendarDays, CheckCircle2, Clock, Search } from 'lucide-react';
+import { BarChart3, CalendarDays, List } from 'lucide-react';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import CentralList from '@/components/maintenance/CentralList';
 import OrderDetailDialog from '@/components/maintenance/OrderDetailDialog';
 import FinalizarManutencaoDialog from '@/components/maintenance/FinalizarManutencaoDialog';
 import GravadorAudioDialog from '@/components/maintenance/GravadorAudioDialog';
-import MaintenanceIndicators from '@/components/maintenance/MaintenanceIndicators';
 import MaintenancePending from '@/components/maintenance/MaintenancePending';
-import ManutencaoCalendario from '@/components/maintenance/ManutencaoCalendario';
+import MaintenanceCalendar from '@/components/maintenance/MaintenanceCalendar';
+import IndicadoresManutencao from '@/components/maintenance/IndicadoresManutencao';
+import FiltrosLista from '@/components/maintenance/FiltrosLista';
+import FiltrosCalendario from '@/components/maintenance/FiltrosCalendario';
+import FiltrosIndicadores from '@/components/maintenance/FiltrosIndicadores';
 import ConfirmarReagendamentoDialog from '@/components/preventivas/ConfirmarReagendamentoDialog';
 import ReagendarOrdemDialog from '@/components/preventivas/ReagendarOrdemDialog';
 import { dataProgramada, preventivasAbertas } from '@/lib/preventivas';
-import { avisosDeAgenda, novaDataDoArraste } from '@/lib/agenda';
+import { avisosDeAgenda, corretivasSemData, dataDoAgendamento, novaDataDoArraste } from '@/lib/agenda';
+import { eventoDaMudanca, notificarMudancaDeAgenda } from '@/lib/notificacoes';
+import {
+  FILTROS_CALENDARIO_INICIAIS, FILTROS_INDICADORES_INICIAIS, FILTROS_LISTA_INICIAIS,
+  filtrarOrdens, setoresDisponiveis,
+} from '@/lib/filtros';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { calcularPreventivasAGerar, calcularProximaPreventiva } from '@/lib/preventiva';
 import { calcularMtbf, calcularMttr, calcularTempoMedioAtendimento, frequenciaPorDias } from '@/lib/indicadores';
@@ -30,15 +34,21 @@ import { minutosDeAtendimento, slaDeAtendimento } from '@/lib/atendimento';
 import { GRUPOS_CENTRAL, ORDENACOES } from '@/lib/central';
 import { registrarAuditoria } from '@/lib/auditoria';
 
+const PERFIS_COM_INDICADORES_POR_TECNICO = ['admin', 'gestor'];
+
 export default function Maintenance() {
   const queryClient = useQueryClient();
   const { config } = useConfiguracao();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [busca, setBusca] = useState('');
-  const [tipo, setTipo] = useState('Todas');
-  const [ordem, setOrdem] = useState('prioridade');
-  const [abaCentral, setAbaCentral] = useState('pendentes');
+  const [aba, setAba] = useState('lista');
+  const [filtrosLista, setFiltrosLista] = useState(FILTROS_LISTA_INICIAIS);
+  const [filtrosCalendario, setFiltrosCalendario] = useState(FILTROS_CALENDARIO_INICIAIS);
+  const [filtrosIndicadores, setFiltrosIndicadores] = useState(FILTROS_INDICADORES_INICIAIS);
+  const [ordemLista, setOrdemLista] = useState('prioridade');
+  const [visao, setVisao] = useState('mes');
+  const [referencia, setReferencia] = useState(new Date());
+
   const [iniciandoId, setIniciandoId] = useState(null);
   const [finalizando, setFinalizando] = useState(null);
   const [detalhe, setDetalhe] = useState(null);
@@ -47,8 +57,14 @@ export default function Maintenance() {
   const [trechosPorOrdem, setTrechosPorOrdem] = useState({});
   const [agenda, setAgenda] = useState(null);
   const [reagendando, setReagendando] = useState(null);
-  const [atribuindoId, setAtribuindoId] = useState(null);
+  const [gerandoSugestoes, setGerandoSugestoes] = useState(false);
   const geradasRef = useRef(new Set());
+  const sugestoesPedidasRef = useRef(false);
+
+  const { data: user } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => base44.auth.me().catch(() => null),
+  });
 
   const { data: equipment = [], isLoading: carregandoEquip } = useQuery({
     queryKey: ['equipment'],
@@ -70,7 +86,12 @@ export default function Maintenance() {
     queryFn: () => base44.entities.TechTeam.list(),
   });
 
-  // ── 1. Geração automática de preventivas ────────────────────────
+  const { data: sugestoes = [] } = useQuery({
+    queryKey: ['sugestoesAgenda'],
+    queryFn: () => base44.entities.SugestaoAgenda.filter({ status: 'Pendente' }),
+  });
+
+  // ── Geração automática de preventivas ──────────────────────────
   useEffect(() => {
     if (carregandoEquip || carregandoOrdens) return;
     const novas = calcularPreventivasAGerar(equipment, orders).filter(
@@ -108,7 +129,24 @@ export default function Maintenance() {
     return mapa;
   }, [tecnicos]);
 
-  const preventivas = useMemo(() => preventivasAbertas(orders), [orders]);
+  const ordensPorId = useMemo(() => {
+    const mapa = {};
+    orders.forEach((o) => { mapa[o.id] = o; });
+    return mapa;
+  }, [orders]);
+
+  const setores = useMemo(() => setoresDisponiveis(orders, equipmentById), [orders, equipmentById]);
+
+  const role = user?.role || 'clinico';
+  const podeVerPorTecnico = PERFIS_COM_INDICADORES_POR_TECNICO.includes(role);
+
+  const meuTecnicoId = useMemo(() => {
+    if (!user) return null;
+    const email = String(user.email || '').toLowerCase();
+    const meu = tecnicos.find((t) => t.user_id === user.id) ||
+      tecnicos.find((t) => t.email && t.email.toLowerCase() === email);
+    return meu?.id || null;
+  }, [user, tecnicos]);
 
   const recalcularAlertas = async () => {
     await base44.functions.invoke('verificarAlertas', {}).catch(() => {});
@@ -116,60 +154,99 @@ export default function Maintenance() {
   };
 
   const pendingCount = equipment.filter((e) => e.status_priorizacao === 'pendente_atualizacao').length;
-  const showPendingTab = config?.modelo_priorizacao === 'avancado' && pendingCount > 0;
+  const mostrarPendencias = config?.modelo_priorizacao === 'avancado' && pendingCount > 0;
 
+  // ── Aba ativa (aceita link direto ?view=) ───────────────────────
   const viewParam = searchParams.get('view');
-  const equipmentParam = searchParams.get('equipment');
-  const activeTab =
-    viewParam === 'indicators' ? 'indicators'
-      : viewParam === 'pendencias' && showPendingTab ? 'pending'
-        : abaCentral;
+  useEffect(() => {
+    if (viewParam === 'indicators') setAba('indicadores');
+    else if (viewParam === 'calendario') setAba('calendario');
+    else if (viewParam === 'lista') setAba('lista');
+  }, [viewParam]);
 
-  const handleTabChange = (value) => {
-    if (value === 'indicators') {
-      setSearchParams({ view: 'indicators' });
-    } else if (value === 'pending') {
-      setSearchParams({ view: 'pendencias' });
-    } else {
-      setAbaCentral(value);
-      setSearchParams({});
+  const abaAtiva = viewParam === 'indicators' ? 'indicadores'
+    : viewParam === 'calendario' ? 'calendario'
+      : viewParam === 'lista' ? 'lista'
+        : aba;
+
+  const trocarAba = (valor) => {
+    setAba(valor);
+    setSearchParams(valor === 'indicadores' ? { view: 'indicators' } : valor === 'calendario' ? { view: 'calendario' } : {});
+  };
+
+  const equipmentParam = searchParams.get('equipment');
+  useEffect(() => {
+    if (equipmentParam) setFiltrosIndicadores((atual) => ({ ...atual, equipamento: equipmentParam }));
+  }, [equipmentParam]);
+
+  // ── Lista ──────────────────────────────────────────────────────
+  const ordemFiltradas = useMemo(
+    () => filtrarOrdens(orders, filtrosLista, equipmentById),
+    [orders, filtrosLista, equipmentById]
+  );
+
+  const lista = useMemo(() => {
+    const abertas = GRUPOS_CENTRAL.pendentes.concat(GRUPOS_CENTRAL.andamento);
+    if (filtrosLista.status !== 'Todos') return ordemFiltradas;
+    return ordemFiltradas.filter((o) => abertas.includes(o.status) || o.status === 'Concluído');
+  }, [ordemFiltradas, filtrosLista.status]);
+
+  const contagem = useMemo(() => ({
+    pendentes: orders.filter((o) => GRUPOS_CENTRAL.pendentes.includes(o.status)).length,
+    andamento: orders.filter((o) => GRUPOS_CENTRAL.andamento.includes(o.status)).length,
+    concluidas: orders.filter((o) => GRUPOS_CENTRAL.concluidas.includes(o.status)).length,
+  }), [orders]);
+
+  // ── Calendário ─────────────────────────────────────────────────
+  const ordemCalendario = useMemo(
+    () => filtrarOrdens(orders, filtrosCalendario, equipmentById),
+    [orders, filtrosCalendario, equipmentById]
+  );
+
+  const itensCalendario = useMemo(
+    () => ordemCalendario
+      .filter((ordem) => ordem.scheduled_date && ordem.status !== 'Concluído')
+      .map((ordem) => ({ kind: ordem.type === 'Corretiva' ? 'corretiva' : 'preventiva', order: ordem })),
+    [ordemCalendario]
+  );
+
+  const semData = useMemo(() => corretivasSemData(ordemCalendario), [ordemCalendario]);
+
+  const sugestoesVisiveis = useMemo(
+    () => sugestoes.filter((sugestao) => ordensPorId[sugestao.service_order_id] &&
+      ordemCalendario.some((ordem) => ordem.id === sugestao.service_order_id)),
+    [sugestoes, ordemCalendario, ordensPorId]
+  );
+
+  // ── Indicadores ────────────────────────────────────────────────
+  const ordemIndicadores = useMemo(
+    () => filtrarOrdens(orders, filtrosIndicadores, equipmentById),
+    [orders, filtrosIndicadores, equipmentById]
+  );
+
+  const gerarSugestoes = async (silencioso = false) => {
+    if (!silencioso) setGerandoSugestoes(true);
+    try {
+      const resposta = await base44.functions.invoke('sugerirAgenda', {});
+      const geradas = resposta?.data?.geradas || 0;
+      if (geradas) {
+        queryClient.invalidateQueries({ queryKey: ['sugestoesAgenda'] });
+        toast.success(`${geradas} sugestão(ões) de data geradas`);
+      } else if (!silencioso) {
+        toast.info('Nenhuma OS sem data ou atrasada precisa de sugestão agora');
+      }
+    } catch {
+      if (!silencioso) toast.error('Não foi possível gerar as sugestões agora');
+    } finally {
+      if (!silencioso) setGerandoSugestoes(false);
     }
   };
 
-  const filtradas = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-    return orders.filter((o) => {
-      if (tipo !== 'Todas' && o.type !== tipo) return false;
-      if (!termo) return true;
-      return (
-        (o.equipment_name || '').toLowerCase().includes(termo) ||
-        (o.problem_description || '').toLowerCase().includes(termo) ||
-        (o.code || '').toLowerCase().includes(termo) ||
-        (equipmentById[o.equipment_id]?.codigo_equipamento || '').toLowerCase().includes(termo)
-      );
-    });
-  }, [orders, tipo, busca, equipmentById]);
-
-  const grupos = useMemo(() => ({
-    pendentes: filtradas.filter((o) => GRUPOS_CENTRAL.pendentes.includes(o.status)),
-    andamento: filtradas.filter((o) => GRUPOS_CENTRAL.andamento.includes(o.status)),
-    concluidas: filtradas.filter((o) => GRUPOS_CENTRAL.concluidas.includes(o.status)),
-  }), [filtradas]);
-
-  const ordemDetalhe = detalhe ? orders.find((o) => o.id === detalhe.id) || detalhe : null;
-  const ordemAgenda = agenda ? orders.find((o) => o.id === agenda.id) || agenda : null;
-  const novaDataDoDrop = reagendando
-    ? novaDataDoArraste(reagendando.order, reagendando.novaData)
-    : null;
-  const avisosDoDrop = reagendando
-    ? avisosDeAgenda({
-        order: reagendando.order,
-        novaData: novaDataDoDrop,
-        tecnicoId: reagendando.order.technician_id,
-        ordens: orders,
-        tecnicos,
-      })
-    : [];
+  useEffect(() => {
+    if (abaAtiva !== 'calendario' || sugestoesPedidasRef.current || !orders.length) return;
+    sugestoesPedidasRef.current = true;
+    gerarSugestoes(true);
+  }, [abaAtiva, orders.length]);
 
   // Vindo de um alerta (/manutencoes?os=<id>): abre a ordem direto.
   const ordemParam = searchParams.get('os');
@@ -179,7 +256,7 @@ export default function Maintenance() {
     if (alvo) setDetalhe(alvo);
   }, [ordemParam, orders]);
 
-  // ── 5. Fluxo de execução ────────────────────────────────────────
+  // ── Fluxo de execução ──────────────────────────────────────────
   const iniciar = async (order) => {
     setIniciandoId(order.id);
     try {
@@ -208,10 +285,8 @@ export default function Maintenance() {
     }
   };
 
-  // ── Agenda: reagendar (arrastar o card) e ajustar técnico/data no painel ──
-  // A tela registra a ação antes da alteração: a automação do servidor deduplica
-  // pelo que já foi gravado, sem repetir a mesma ação.
-  const registrarAgendamento = async (order, alteracoes) => {
+  // ── Agenda: uma única porta para agendar, reagendar e trocar técnico ──
+  const registrarAlteracoes = async (order, alteracoes) => {
     for (const alteracao of alteracoes) {
       await registrarAuditoria({
         entidade_tipo: 'ServiceOrder',
@@ -223,81 +298,132 @@ export default function Maintenance() {
     }
   };
 
-  const reagendar = async (order, novoDia) => {
-    setReagendando(null);
-    const novaData = novaDataDoArraste(order, novoDia);
-    if (novaData === order.scheduled_date) return;
-    await registrarAgendamento(order, [{
-      acao: 'Edição de campo',
-      campo: 'scheduled_date',
-      valor_anterior: order.scheduled_date || '',
-      valor_novo: novaData,
-      motivo: 'Reagendamento pelo calendário de manutenções',
-    }]);
-    await base44.entities.ServiceOrder.update(order.id, { scheduled_date: novaData });
-    queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-    toast.success(`Reagendada para ${format(parseISO(novaData), 'dd/MM/yyyy')}`);
-    await recalcularAlertas();
-  };
+  const aplicarMudancaDeAgenda = async ({ order, novaData, tecnicoNovo, sugestao, motivo }) => {
+    const antes = {
+      scheduled_date: order.scheduled_date || '',
+      technician_id: order.technician_id || '',
+    };
+    const depois = {
+      scheduled_date: novaData || '',
+      technician_id: tecnicoNovo ? tecnicoNovo.id : order.technician_id || '',
+      technician_name: tecnicoNovo ? tecnicoNovo.name : order.technician_name || '',
+    };
+    const mudouData = antes.scheduled_date !== depois.scheduled_date;
+    const mudouTecnico = antes.technician_id !== depois.technician_id;
+    if (!mudouData && !mudouTecnico) return;
 
-  const salvarAgendamento = async (order, dados) => {
     const alteracoes = [];
-    if ((dados.scheduled_date || '') !== (order.scheduled_date || '')) {
+    if (mudouData) {
       alteracoes.push({
         acao: 'Edição de campo',
         campo: 'scheduled_date',
-        valor_anterior: order.scheduled_date || '',
-        valor_novo: dados.scheduled_date || '',
-        motivo: 'Reagendamento na agenda',
+        valor_anterior: antes.scheduled_date,
+        valor_novo: depois.scheduled_date,
+        motivo,
       });
     }
-    if ((dados.technician_id || '') !== (order.technician_id || '')) {
+    if (mudouTecnico) {
       alteracoes.push({
-        acao: order.technician_id ? 'Reatribuição' : 'Atribuição',
+        acao: antes.technician_id ? 'Reatribuição' : 'Atribuição',
         campo: 'technician_id',
         valor_anterior: order.technician_name || '(sem técnico)',
-        valor_novo: dados.technician_name || '(sem técnico)',
-        tecnico_atribuido_id: dados.technician_id || null,
+        valor_novo: depois.technician_name || '(sem técnico)',
+        tecnico_atribuido_id: depois.technician_id || null,
       });
     }
-    if (!alteracoes.length) {
-      setAgenda(null);
-      return;
-    }
-    await registrarAgendamento(order, alteracoes);
+
+    // A tela registra antes da alteração: a automação do servidor deduplica pelo que já foi gravado.
+    await registrarAlteracoes(order, alteracoes);
+
     await base44.entities.ServiceOrder.update(order.id, {
-      scheduled_date: dados.scheduled_date || order.scheduled_date || '',
-      technician_id: dados.technician_id,
-      technician_name: dados.technician_name,
+      scheduled_date: depois.scheduled_date,
+      ...(mudouTecnico
+        ? { technician_id: depois.technician_id, technician_name: depois.technician_name }
+        : {}),
     });
-    setAgenda(null);
+
+    // Sugestões pendentes desta OS deixam de valer.
+    const pendentesDaOS = sugestoes.filter((s) => s.service_order_id === order.id);
+    for (const pendente of pendentesDaOS) {
+      await base44.entities.SugestaoAgenda.update(pendente.id, {
+        status: sugestao && pendente.id === sugestao.id ? 'Aceita' : 'Expirada',
+        resolvida_em: new Date().toISOString(),
+      });
+    }
+
+    const evento = eventoDaMudanca(antes, depois);
+    if (evento) await notificarMudancaDeAgenda({ order, antes, depois, evento });
+
     queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-    toast.success('Agenda atualizada');
+    queryClient.invalidateQueries({ queryKey: ['sugestoesAgenda'] });
+
+    const quando = depois.scheduled_date
+      ? new Date(depois.scheduled_date).toLocaleDateString('pt-BR')
+      : '';
+    toast.success(
+      !depois.scheduled_date
+        ? 'Agendamento removido'
+        : `${sugestao ? 'Sugestão aceita: ' : ''}agendada para ${quando}`
+    );
     await recalcularAlertas();
   };
 
-  const atribuirTecnico = async (order, tecnicoId) => {
-    const tecnico = technicianById[tecnicoId];
-    if (!tecnico) return;
-    setAtribuindoId(order.id);
-    try {
-      await registrarAgendamento(order, [{
-        acao: 'Atribuição',
-        campo: 'technician_id',
-        valor_anterior: order.technician_name || '(sem técnico)',
-        valor_novo: tecnico.name,
-        tecnico_atribuido_id: tecnico.id,
-      }]);
-      await base44.entities.ServiceOrder.update(order.id, {
-        technician_id: tecnico.id,
-        technician_name: tecnico.name,
-      });
-      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-      toast.success(`Preventiva de ${order.equipment_name || 'equipamento'} atribuída a ${tecnico.name}`);
-      await recalcularAlertas();
-    } finally {
-      setAtribuindoId(null);
-    }
+  const reagendar = (order, dia) => {
+    setReagendando({ order, novaData: novaDataDoArraste(order, dia), origem: 'calendario' });
+  };
+
+  const agendarSemData = (order, dia) => {
+    setReagendando({ order, novaData: dataDoAgendamento(dia), origem: 'sem-data' });
+  };
+
+  const aceitarSugestao = (sugestao, order) => {
+    if (!order) return;
+    setReagendando({
+      order,
+      novaData: sugestao.data_sugerida,
+      tecnicoSugerido: technicianById[sugestao.tecnico_sugerido_id] || null,
+      sugestao,
+      origem: 'sugestao',
+    });
+  };
+
+  const dispensarSugestao = async (sugestao) => {
+    await base44.entities.SugestaoAgenda.update(sugestao.id, {
+      status: 'Dispensada',
+      resolvida_em: new Date().toISOString(),
+    });
+    queryClient.invalidateQueries({ queryKey: ['sugestoesAgenda'] });
+    toast.success('Sugestão dispensada');
+  };
+
+  const confirmarReagendamento = async () => {
+    const dados = reagendando;
+    setReagendando(null);
+    if (!dados) return;
+    await aplicarMudancaDeAgenda({
+      order: dados.order,
+      novaData: dados.novaData,
+      tecnicoNovo: dados.tecnicoSugerido,
+      sugestao: dados.sugestao,
+      motivo: dados.origem === 'sugestao'
+        ? 'Sugestão de data aceita no calendário'
+        : dados.origem === 'sem-data'
+          ? 'Corretiva agendada a partir da bandeja sem data'
+          : 'Reagendamento pelo calendário de manutenções',
+    });
+  };
+
+  const salvarAgendamento = async (order, dados) => {
+    setAgenda(null);
+    const tecnicoNovo = dados.technician_id && dados.technician_id !== order.technician_id
+      ? { id: dados.technician_id, name: dados.technician_name || technicianById[dados.technician_id]?.name || '' }
+      : null;
+    await aplicarMudancaDeAgenda({
+      order,
+      novaData: dados.scheduled_date ?? order.scheduled_date ?? '',
+      tecnicoNovo,
+      motivo: 'Agendamento ajustado no painel da OS',
+    });
   };
 
   // Rascunho de IA: grava nos campos da OS sem concluir nem dar baixa em estoque.
@@ -426,7 +552,7 @@ export default function Maintenance() {
         queryClient.invalidateQueries({ queryKey: ['equipment'] });
       }
 
-      // ── 6. Indicadores automáticos (MTTR / MTBF) ─────────────────
+      // Indicadores automáticos (MTTR / MTBF)
       if (order.type === 'Corretiva') {
         const atualizadas = orders.map((o) =>
           o.id === order.id ? { ...o, ...dados, status: 'Concluído' } : o
@@ -474,145 +600,150 @@ export default function Maintenance() {
     );
   }
 
+  const ordemDetalhe = detalhe ? orders.find((o) => o.id === detalhe.id) || detalhe : null;
+  const ordemAgenda = agenda ? orders.find((o) => o.id === agenda.id) || agenda : null;
+  const tecnicoDoDrop = reagendando
+    ? (reagendando.tecnicoSugerido || technicianById[reagendando.order.technician_id] || null)
+    : null;
+  const avisosDoDrop = reagendando
+    ? avisosDeAgenda({
+        order: reagendando.order,
+        novaData: reagendando.novaData,
+        tecnicoId: tecnicoDoDrop?.id || '',
+        ordens: orders,
+        tecnicos,
+      })
+    : [];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title="Central de Manutenções"
-        subtitle={`${grupos.pendentes.length} pendente(s) · ${grupos.andamento.length} em andamento · ${grupos.concluidas.length} concluída(s)`}
+        subtitle={`${contagem.pendentes} pendente(s) · ${contagem.andamento} em andamento · ${contagem.concluidas} concluída(s)`}
       />
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar equipamento, código ou descrição..."
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={tipo} onValueChange={setTipo}>
-              <SelectTrigger className="w-full sm:w-40"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="Todas">Todos os tipos</SelectItem>
-                <SelectItem value="Preventiva">Preventiva</SelectItem>
-                <SelectItem value="Corretiva">Corretiva</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={ordem} onValueChange={setOrdem}>
-              <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {ORDENACOES.map((o) => (
-                  <SelectItem key={o.value} value={o.value}>Ordenar por {o.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
+      <Tabs value={abaAtiva} onValueChange={trocarAba}>
         <TabsList className="h-auto flex-wrap">
-          <TabsTrigger value="pendentes" className="gap-1.5">
-            <AlertCircle className="w-3.5 h-3.5" /> Pendentes
-            {grupos.pendentes.length > 0 && (
-              <Badge className="ml-1 h-5 text-[10px]">{grupos.pendentes.length}</Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="andamento" className="gap-1.5">
-            <Clock className="w-3.5 h-3.5" /> Em Andamento
-            {grupos.andamento.length > 0 && (
-              <Badge className="ml-1 h-5 text-[10px] bg-warning/20 text-warning-foreground">
-                {grupos.andamento.length}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="concluidas" className="gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Concluídas
+          <TabsTrigger value="lista" className="gap-1.5">
+            <List className="h-3.5 w-3.5" /> Lista
           </TabsTrigger>
           <TabsTrigger value="calendario" className="gap-1.5">
-            <CalendarDays className="w-3.5 h-3.5" /> Calendário
+            <CalendarDays className="h-3.5 w-3.5" /> Calendário
           </TabsTrigger>
-          <TabsTrigger value="indicators" className="gap-1.5">
-            <BarChart2 className="w-3.5 h-3.5" /> Indicadores por Equipamento
+          <TabsTrigger value="indicadores" className="gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5" /> Indicadores
           </TabsTrigger>
-          {showPendingTab && (
-            <TabsTrigger value="pending" className="gap-1.5">
-              <AlertCircle className="w-3.5 h-3.5" /> Pendências
-              <Badge className="ml-1 h-5 text-[10px] bg-destructive/15 text-destructive">{pendingCount}</Badge>
-            </TabsTrigger>
-          )}
         </TabsList>
 
-        <TabsContent value="pendentes" className="mt-4">
+        <TabsContent value="lista" className="mt-4 space-y-3">
+          <Card>
+            <CardContent className="p-4">
+              <FiltrosLista
+                filtros={filtrosLista}
+                onChange={setFiltrosLista}
+                tecnicos={tecnicos}
+                equipamentos={equipment}
+                setores={setores}
+              />
+            </CardContent>
+          </Card>
+
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              {ordemFiltradas.length} manutenção(ões) com os filtros atuais
+            </p>
+            <div className="flex gap-2">
+              {ORDENACOES.map((opcao) => (
+                <button
+                  key={opcao.value}
+                  type="button"
+                  onClick={() => setOrdemLista(opcao.value)}
+                  className={`rounded-md border px-2 py-1 text-[11px] font-medium transition-colors ${
+                    ordemLista === opcao.value
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-card text-muted-foreground hover:bg-muted'
+                  }`}
+                >
+                  {opcao.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <CentralList
-            orders={grupos.pendentes}
+            orders={lista}
             equipmentById={equipmentById}
-            ordem={ordem}
+            ordem={ordemLista}
             iniciandoId={iniciandoId}
             onStart={iniciar}
             onFinish={setFinalizando}
             onRecord={setGravando}
             onOpen={setDetalhe}
-            title="Nenhuma manutenção pendente"
-            description="As preventivas são agendadas automaticamente conforme a periodicidade de cada equipamento."
+            title="Nenhuma manutenção com esses filtros"
+            description="Ajuste o status, o período ou os demais filtros para encontrar a manutenção."
           />
         </TabsContent>
 
-        <TabsContent value="andamento" className="mt-4">
-          <CentralList
-            orders={grupos.andamento}
-            equipmentById={equipmentById}
-            ordem={ordem}
-            iniciandoId={iniciandoId}
-            onStart={iniciar}
-            onFinish={setFinalizando}
-            onRecord={setGravando}
-            onOpen={setDetalhe}
-            title="Nenhuma manutenção em andamento"
-            description="Inicie uma manutenção na aba Pendentes para acompanhá-la aqui."
-          />
-        </TabsContent>
+        <TabsContent value="calendario" className="mt-4 space-y-3">
+          <Card>
+            <CardContent className="p-4">
+              <FiltrosCalendario
+                filtros={filtrosCalendario}
+                onChange={setFiltrosCalendario}
+                tecnicos={tecnicos}
+                setores={setores}
+                mostrarMinhaAgenda={role === 'tecnico' && !!meuTecnicoId}
+                minhaAgendaAtiva={!!meuTecnicoId && filtrosCalendario.tecnico === meuTecnicoId}
+                onMinhaAgenda={() => setFiltrosCalendario((atual) => ({
+                  ...atual,
+                  tecnico: atual.tecnico === meuTecnicoId ? 'todos' : meuTecnicoId,
+                }))}
+                sugestoesPendentes={sugestoesVisiveis.length}
+                onGerarSugestoes={() => gerarSugestoes(false)}
+                gerandoSugestoes={gerandoSugestoes}
+              />
+            </CardContent>
+          </Card>
 
-        <TabsContent value="concluidas" className="mt-4">
-          <CentralList
-            orders={grupos.concluidas}
-            equipmentById={equipmentById}
-            ordem={ordem}
-            iniciandoId={iniciandoId}
-            onStart={iniciar}
-            onFinish={setFinalizando}
-            onRecord={setGravando}
-            onOpen={setDetalhe}
-            title="Nenhuma manutenção concluída"
-            description="As manutenções finalizadas aparecem aqui com o laudo técnico."
-          />
-        </TabsContent>
-
-        <TabsContent value="calendario" className="mt-4">
-          <ManutencaoCalendario
-            preventivas={preventivas}
-            equipmentById={equipmentById}
-            tecnicos={tecnicos}
+          <MaintenanceCalendar
+            items={itensCalendario}
+            semData={semData}
+            sugestoes={sugestoesVisiveis}
+            ordensPorId={ordensPorId}
             technicianById={technicianById}
+            visao={visao}
+            onVisaoChange={setVisao}
+            referencia={referencia}
+            onReferenciaChange={setReferencia}
             onAbrir={setAgenda}
-            onReagendar={(order, dia) => setReagendando({ order, novaData: dia })}
-            onAtribuir={atribuirTecnico}
-            atribuindoId={atribuindoId}
+            onReagendar={reagendar}
+            onAgendarSemData={agendarSemData}
+            onSugestaoAceitar={aceitarSugestao}
+            onSugestaoDispensar={dispensarSugestao}
           />
         </TabsContent>
 
-        <TabsContent value="indicators" className="mt-4">
-          <MaintenanceIndicators initialEquipmentId={equipmentParam} />
-        </TabsContent>
+        <TabsContent value="indicadores" className="mt-4 space-y-3">
+          <Card>
+            <CardContent className="p-4">
+              <FiltrosIndicadores
+                filtros={filtrosIndicadores}
+                onChange={setFiltrosIndicadores}
+                tecnicos={tecnicos}
+                equipamentos={equipment}
+              />
+            </CardContent>
+          </Card>
 
-        {showPendingTab && (
-          <TabsContent value="pending" className="mt-4">
-            <MaintenancePending />
-          </TabsContent>
-        )}
+          {mostrarPendencias && <MaintenancePending />}
+
+          <IndicadoresManutencao
+            ordens={ordemIndicadores}
+            tecnicos={tecnicos}
+            equipment={equipment}
+            podeVerPorTecnico={podeVerPorTecnico}
+          />
+        </TabsContent>
       </Tabs>
 
       <FinalizarManutencaoDialog
@@ -665,12 +796,14 @@ export default function Maintenance() {
           dados={{
             order: reagendando.order,
             equipment: equipmentById[reagendando.order.equipment_id],
-            tecnico: technicianById[reagendando.order.technician_id],
-            dataAtual: dataProgramada(reagendando.order),
+            tecnico: tecnicoDoDrop,
+            dataAtual: reagendando.origem === 'sem-data' ? null : dataProgramada(reagendando.order),
             novaData: reagendando.novaData,
             avisos: avisosDoDrop,
+            origem: reagendando.origem,
+            motivoSugestao: reagendando.sugestao?.motivo || '',
           }}
-          onConfirmar={() => reagendar(reagendando.order, reagendando.novaData)}
+          onConfirmar={confirmarReagendamento}
           onCancelar={() => setReagendando(null)}
         />
       )}

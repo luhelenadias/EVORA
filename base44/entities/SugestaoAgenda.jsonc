@@ -1,0 +1,126 @@
+{
+  "name": "SugestaoAgenda",
+  "type": "object",
+  "properties": {
+    "service_order_id": {
+      "type": "string",
+      "description": "OS (ainda sem data, ou atrasada) para a qual a data \u00e9 sugerida"
+    },
+    "service_order_code": {
+      "type": "string",
+      "description": "C\u00f3digo da OS (cache)"
+    },
+    "equipment_id": {
+      "type": "string"
+    },
+    "data_sugerida": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora sugerida. \u00c9 apenas sugest\u00e3o: n\u00e3o altera a OS at\u00e9 ser aceita."
+    },
+    "tecnico_sugerido_id": {
+      "type": "string",
+      "description": "TechTeam sugerido (respeitando f\u00e9rias/afastamento e carga)"
+    },
+    "tecnico_sugerido_nome": {
+      "type": "string"
+    },
+    "motivo": {
+      "type": "string",
+      "description": "Explica\u00e7\u00e3o curta do porqu\u00ea (gerada por IA a partir dos fatos calculados pelas regras)"
+    },
+    "criterios": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "Fatos usados pela regra: vencimento, carga do t\u00e9cnico no dia, prioridade do equipamento, indisponibilidades"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Pendente",
+        "Aceita",
+        "Dispensada",
+        "Expirada"
+      ],
+      "default": "Pendente",
+      "description": "Aceita = virou agendamento real (scheduled_date da OS), passando por confirma\u00e7\u00e3o, notifica\u00e7\u00e3o e log. Sugest\u00e3o n\u00e3o conta em indicadores, n\u00e3o gera alerta, n\u00e3o entra no log e n\u00e3o notifica t\u00e9cnico."
+    },
+    "gerada_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolvida_em": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "service_order_id",
+    "data_sugerida",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "tecnico"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "tecnico"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "tecnico"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

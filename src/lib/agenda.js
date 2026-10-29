@@ -1,12 +1,25 @@
 import { format, isSameDay, parseISO } from 'date-fns';
 import { dataProgramada, horarioProgramado, temHorario } from '@/lib/preventivas';
+import { dataReferencia } from '@/lib/central';
 
 /**
- * Agenda da manutenção: só o que ainda não começou pode ser movido.
- * Em Andamento e Concluídas ficam travadas no calendário.
+ * Agenda da manutenção. Só o que ainda não começou pode ser movido: em
+ * andamento e concluídas ficam travadas no calendário.
  */
 export function podeReagendar(order) {
-  return order?.status === 'Novo';
+  if (!order) return false;
+  return order.status !== 'Em Andamento' && order.status !== 'Concluído';
+}
+
+/** Corretivas abertas que ainda não têm data — vão para a bandeja "Sem data". */
+export function corretivasSemData(orders = []) {
+  return (orders || []).filter(
+    (ordem) => ordem.type === 'Corretiva' && ordem.status !== 'Concluído' && !ordem.scheduled_date
+  );
+}
+
+export function prioridadeCritica(order) {
+  return order?.priority === 'Crítica';
 }
 
 /** Data escolhida (dia) no mesmo formato da OS: com horário quando ela já tinha um. */
@@ -15,6 +28,12 @@ export function novaDataDoArraste(order, dia) {
   const hora = temHorario(order) && atual ? format(atual, 'HH:mm') : '';
   const base = format(dia, 'yyyy-MM-dd');
   return hora ? new Date(`${base}T${hora}:00`).toISOString() : base;
+}
+
+/** Primeiro agendamento de uma OS que estava sem data. */
+export function dataDoAgendamento(dia, hora = '08:00') {
+  const base = format(dia, 'yyyy-MM-dd');
+  return new Date(`${base}T${hora}:00`).toISOString();
 }
 
 /** Junta dia + hora digitados no painel no formato gravado em scheduled_date. */

@@ -10,6 +10,15 @@ export function preventivasAbertas(orders = []) {
   return (orders || []).filter((o) => o.type === 'Preventiva' && o.status !== 'Concluído');
 }
 
+/** 'yyyy-MM-dd' de um campo de data ou data/hora (vazio quando não há data). */
+export function diaIso(valor) {
+  if (!valor) return '';
+  const texto = String(valor);
+  if (/^\d{4}-\d{2}-\d{2}/.test(texto)) return texto.slice(0, 10);
+  const data = new Date(texto);
+  return Number.isNaN(data.getTime()) ? '' : format(data, 'yyyy-MM-dd');
+}
+
 /** Data programada da preventiva (scheduled_date; abertura como fallback). */
 export function dataProgramada(order) {
   const referencia = dataReferencia(order);

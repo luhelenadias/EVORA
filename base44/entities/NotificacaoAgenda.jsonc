@@ -1,0 +1,164 @@
+{
+  "name": "NotificacaoAgenda",
+  "type": "object",
+  "properties": {
+    "service_order_id": {
+      "type": "string",
+      "description": "OS que sofreu a mudan\u00e7a de agenda"
+    },
+    "service_order_code": {
+      "type": "string"
+    },
+    "equipment_name": {
+      "type": "string"
+    },
+    "sector": {
+      "type": "string"
+    },
+    "tipo_ordem": {
+      "type": "string",
+      "description": "Preventiva, Corretiva, Calibra\u00e7\u00e3o ou Instala\u00e7\u00e3o"
+    },
+    "evento": {
+      "type": "string",
+      "enum": [
+        "Agendamento",
+        "Reagendamento",
+        "Troca de t\u00e9cnico",
+        "Agendamento e troca de t\u00e9cnico",
+        "Cancelamento"
+      ],
+      "description": "Motivo do aviso ao t\u00e9cnico"
+    },
+    "papel": {
+      "type": "string",
+      "enum": [
+        "Novo respons\u00e1vel",
+        "Anterior respons\u00e1vel"
+      ],
+      "default": "Novo respons\u00e1vel",
+      "description": "Lugar do destinat\u00e1rio na mudan\u00e7a: quem passa a responder pela OS ou quem deixou de responder"
+    },
+    "tecnico_id": {
+      "type": "string"
+    },
+    "tecnico_nome": {
+      "type": "string"
+    },
+    "tecnico_email": {
+      "type": "string",
+      "description": "Destinat\u00e1rio real desta notifica\u00e7\u00e3o. No modo teste o envio vai para ConfiguracaoInstituicao.email_teste_destino."
+    },
+    "tecnico_anterior_id": {
+      "type": "string"
+    },
+    "tecnico_anterior_nome": {
+      "type": "string"
+    },
+    "tecnico_anterior_email": {
+      "type": "string"
+    },
+    "data_anterior": {
+      "type": "string",
+      "description": "Agendamento antes da mudan\u00e7a (texto ISO ou vazio quando n\u00e3o havia data)"
+    },
+    "data_nova": {
+      "type": "string"
+    },
+    "alterado_por": {
+      "type": "string",
+      "description": "Nome de quem alterou a agenda"
+    },
+    "alterado_por_email": {
+      "type": "string"
+    },
+    "alterado_por_id": {
+      "type": "string"
+    },
+    "enviar_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "S\u00f3 \u00e9 enviado depois deste instante: mudan\u00e7as em sequ\u00eancia na mesma OS s\u00e3o consolidadas em um \u00fanico e-mail com a mudan\u00e7a final."
+    },
+    "enviado_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Pendente",
+        "Enviado",
+        "Erro",
+        "Ignorado"
+      ],
+      "default": "Pendente"
+    },
+    "modo_teste": {
+      "type": "boolean",
+      "default": true,
+      "description": "Verdadeiro quando o e-mail foi redirecionado para o endere\u00e7o de teste"
+    },
+    "destino_usado": {
+      "type": "string",
+      "description": "Endere\u00e7o que efetivamente recebeu o e-mail"
+    },
+    "erro": {
+      "type": "string"
+    },
+    "tentativas": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "service_order_id",
+    "evento",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "tecnico"
+          }
+        }
+      ]
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

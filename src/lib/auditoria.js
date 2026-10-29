@@ -5,7 +5,7 @@ export const ACOES = [
   'Abertura', 'Atribuição', 'Reatribuição', 'Início do atendimento', 'Mudança de status',
   'Mudança de prioridade', 'Edição de campo', 'Peça utilizada', 'Rascunho de relatório gerado por IA',
   'Relatório confirmado', 'Fechamento', 'Reabertura', 'Cancelamento', 'Upload de documento',
-  'Extração por IA', 'Ajuste administrativo',
+  'Extração por IA', 'Notificação ao técnico', 'Ajuste administrativo',
 ];
 
 export const ENTIDADES = [
@@ -36,6 +36,7 @@ const VERBOS = {
   Cancelamento: 'cancelou o chamado',
   'Upload de documento': 'enviou novo documento',
   'Extração por IA': 'extraiu dados do PDF por IA',
+  'Notificação ao técnico': 'notificou o técnico',
   'Ajuste administrativo': 'fez ajuste administrativo',
 };
 

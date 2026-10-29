@@ -18,6 +18,7 @@ export const ACOES = [
   'Cancelamento',
   'Upload de documento',
   'Extração por IA',
+  'Notificação ao técnico',
   'Ajuste administrativo',
 ];
 
