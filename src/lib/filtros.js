@@ -4,7 +4,7 @@ import { dataReferencia } from '@/lib/central';
 /** Filtros das três abas de Manutenções (Lista, Calendário e Indicadores). */
 
 export const PERIODOS = [
-  { value: 'todos', label: 'Todo o período' },
+  { value: 'todos', label: 'Período' },
   { value: 'hoje', label: 'Hoje' },
   { value: '7', label: 'Últimos 7 dias' },
   { value: '30', label: 'Últimos 30 dias' },
@@ -25,29 +25,30 @@ export const TIPOS_ORDEM = ['Preventiva', 'Corretiva', 'Calibração', 'Instala�
 
 export const PRIORIDADES = ['Baixa', 'Média', 'Alta', 'Crítica'];
 
+/** Cada filtro é uma lista de opções marcadas; lista vazia = sem filtro. */
 export const FILTROS_LISTA_INICIAIS = {
-  status: 'Todos',
-  tecnico: 'todos',
+  status: [],
+  tecnico: [],
   periodo: 'todos',
-  tipo: 'Todas',
-  prioridade: 'Todas',
-  setor: 'todos',
-  equipamento: 'todos',
+  tipo: [],
+  prioridade: [],
+  setor: [],
+  equipamento: [],
   busca: '',
 };
 
 export const FILTROS_CALENDARIO_INICIAIS = {
-  tecnico: 'todos',
-  tipo: 'Todas',
-  status: 'Todos',
-  setor: 'todos',
+  tecnico: [],
+  tipo: [],
+  status: [],
+  setor: [],
 };
 
 export const FILTROS_INDICADORES_INICIAIS = {
   periodo: '90',
-  tecnico: 'todos',
-  tipo: 'Todas',
-  equipamento: 'todos',
+  tecnico: [],
+  tipo: [],
+  equipamento: [],
 };
 
 export function periodoInicial(periodo) {
@@ -74,16 +75,28 @@ export function setorDaOrdem(ordem, equipmentById = {}) {
   return ordem.sector || equipmentById[ordem.equipment_id]?.location_sector || '';
 }
 
+/** Verdadeiro quando o filtro está desligado (nenhuma opção marcada). */
+export function semSelecao(selecao) {
+  if (Array.isArray(selecao)) return selecao.length === 0;
+  return !selecao || ['todos', 'Todos', 'Todas'].includes(selecao);
+}
+
+/** Valor aceito quando a opção está entre as marcadas (ou nada está marcado). */
+function corresponde(valor, selecao) {
+  if (semSelecao(selecao)) return true;
+  return Array.isArray(selecao) ? selecao.includes(valor) : valor === selecao;
+}
+
 /** Aplica os filtros que existirem no objeto (campos ausentes não filtram). */
 export function filtrarOrdens(ordens = [], filtros = {}, equipmentById = {}) {
   const termo = String(filtros.busca || '').trim().toLowerCase();
   return (ordens || []).filter((ordem) => {
-    if (filtros.status && filtros.status !== 'Todos' && ordem.status !== filtros.status) return false;
-    if (filtros.tipo && filtros.tipo !== 'Todas' && ordem.type !== filtros.tipo) return false;
-    if (filtros.prioridade && filtros.prioridade !== 'Todas' && ordem.priority !== filtros.prioridade) return false;
-    if (filtros.tecnico && filtros.tecnico !== 'todos' && ordem.technician_id !== filtros.tecnico) return false;
-    if (filtros.equipamento && filtros.equipamento !== 'todos' && ordem.equipment_id !== filtros.equipamento) return false;
-    if (filtros.setor && filtros.setor !== 'todos' && setorDaOrdem(ordem, equipmentById) !== filtros.setor) return false;
+    if (!corresponde(ordem.status, filtros.status)) return false;
+    if (!corresponde(ordem.type, filtros.tipo)) return false;
+    if (!corresponde(ordem.priority, filtros.prioridade)) return false;
+    if (!corresponde(ordem.technician_id, filtros.tecnico)) return false;
+    if (!corresponde(ordem.equipment_id, filtros.equipamento)) return false;
+    if (!corresponde(setorDaOrdem(ordem, equipmentById), filtros.setor)) return false;
     if (filtros.periodo && !dentroDoPeriodo(ordem, filtros.periodo)) return false;
     if (!termo) return true;
     const equipamento = equipmentById[ordem.equipment_id];

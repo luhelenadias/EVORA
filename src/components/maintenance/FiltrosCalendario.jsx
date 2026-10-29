@@ -1,8 +1,10 @@
 import React from 'react';
 import { CalendarClock, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import FilterSelect from '@/components/maintenance/FilterSelect';
+import FilterMultiSelect from '@/components/maintenance/FilterMultiSelect';
 import { STATUS_ORDEM, TIPOS_ORDEM } from '@/lib/filtros';
+
+const comoOpcoes = (lista = []) => lista.map((valor) => ({ value: valor, label: valor }));
 
 /** Filtros do calendário: técnico, tipo, status e setor. A visão dia/semana/mês fica no calendário. */
 export default function FiltrosCalendario({
@@ -21,36 +23,36 @@ export default function FiltrosCalendario({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <FilterSelect
-        ariaLabel="Técnico"
-        className="w-full sm:w-48"
-        value={filtros.tecnico}
-        onChange={alterar('tecnico')}
-        options={[
-          { value: 'todos', label: 'Todos os técnicos' },
-          ...tecnicos.map((t) => ({ value: t.id, label: `${t.name}${t.status !== 'Ativo' ? ` · ${t.status}` : ''}` })),
-        ]}
-      />
-      <FilterSelect
-        ariaLabel="Tipo"
-        className="w-full sm:w-40"
-        value={filtros.tipo}
-        onChange={alterar('tipo')}
-        options={[{ value: 'Todas', label: 'Todos os tipos' }, ...TIPOS_ORDEM.map((t) => ({ value: t, label: t }))]}
-      />
-      <FilterSelect
-        ariaLabel="Status"
+      <FilterMultiSelect
+        label="Técnico"
         className="w-full sm:w-44"
-        value={filtros.status}
-        onChange={alterar('status')}
-        options={[{ value: 'Todos', label: 'Todos os status' }, ...STATUS_ORDEM.map((s) => ({ value: s, label: s }))]}
+        value={filtros.tecnico || []}
+        onChange={alterar('tecnico')}
+        options={tecnicos.map((t) => ({
+          value: t.id,
+          label: `${t.name}${t.status !== 'Ativo' ? ` · ${t.status}` : ''}`,
+        }))}
       />
-      <FilterSelect
-        ariaLabel="Setor"
-        className="w-full sm:w-40"
-        value={filtros.setor}
+      <FilterMultiSelect
+        label="Tipo"
+        className="w-full sm:w-32"
+        value={filtros.tipo || []}
+        onChange={alterar('tipo')}
+        options={comoOpcoes(TIPOS_ORDEM)}
+      />
+      <FilterMultiSelect
+        label="Status"
+        className="w-full sm:w-36"
+        value={filtros.status || []}
+        onChange={alterar('status')}
+        options={comoOpcoes(STATUS_ORDEM)}
+      />
+      <FilterMultiSelect
+        label="Setor"
+        className="w-full sm:w-32"
+        value={filtros.setor || []}
         onChange={alterar('setor')}
-        options={[{ value: 'todos', label: 'Todos os setores' }, ...setores.map((s) => ({ value: s, label: s }))]}
+        options={comoOpcoes(setores)}
       />
 
       {mostrarMinhaAgenda && (

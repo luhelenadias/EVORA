@@ -1,6 +1,9 @@
 import React from 'react';
 import FilterSelect from '@/components/maintenance/FilterSelect';
+import FilterMultiSelect from '@/components/maintenance/FilterMultiSelect';
 import { PERIODOS, TIPOS_ORDEM } from '@/lib/filtros';
+
+const comoOpcoes = (lista = []) => lista.map((valor) => ({ value: valor, label: valor }));
 
 /** Filtros dos indicadores: período, técnico, tipo e equipamento. */
 export default function FiltrosIndicadores({ filtros, onChange, tecnicos = [], equipamentos = [] }) {
@@ -14,29 +17,23 @@ export default function FiltrosIndicadores({ filtros, onChange, tecnicos = [], e
         onChange={alterar('periodo')}
         options={PERIODOS}
       />
-      <FilterSelect
-        ariaLabel="Técnico"
-        value={filtros.tecnico}
+      <FilterMultiSelect
+        label="Técnico"
+        value={filtros.tecnico || []}
         onChange={alterar('tecnico')}
-        options={[
-          { value: 'todos', label: 'Todos os técnicos' },
-          ...tecnicos.map((t) => ({ value: t.id, label: t.name })),
-        ]}
+        options={tecnicos.map((t) => ({ value: t.id, label: t.name }))}
       />
-      <FilterSelect
-        ariaLabel="Tipo"
-        value={filtros.tipo}
+      <FilterMultiSelect
+        label="Tipo"
+        value={filtros.tipo || []}
         onChange={alterar('tipo')}
-        options={[{ value: 'Todas', label: 'Todos os tipos' }, ...TIPOS_ORDEM.map((t) => ({ value: t, label: t }))]}
+        options={comoOpcoes(TIPOS_ORDEM)}
       />
-      <FilterSelect
-        ariaLabel="Equipamento"
-        value={filtros.equipamento}
+      <FilterMultiSelect
+        label="Equipamento"
+        value={filtros.equipamento || []}
         onChange={alterar('equipamento')}
-        options={[
-          { value: 'todos', label: 'Todos os equipamentos' },
-          ...equipamentos.map((e) => ({ value: e.id, label: e.name })),
-        ]}
+        options={equipamentos.map((e) => ({ value: e.id, label: e.name }))}
       />
     </div>
   );

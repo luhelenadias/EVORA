@@ -3,9 +3,10 @@ import { Search, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import FilterSelect from '@/components/maintenance/FilterSelect';
-import { PERIODOS, PRIORIDADES, STATUS_ORDEM, TIPOS_ORDEM } from '@/lib/filtros';
+import FilterMultiSelect from '@/components/maintenance/FilterMultiSelect';
+import { FILTROS_LISTA_INICIAIS, PERIODOS, PRIORIDADES, STATUS_ORDEM, TIPOS_ORDEM } from '@/lib/filtros';
 
-const comTodos = (lista, rotulo) => [{ value: 'todos', label: rotulo }, ...lista.map((v) => ({ value: v, label: v }))];
+const comoOpcoes = (lista = []) => lista.map((valor) => ({ value: valor, label: valor }));
 
 /** Filtros da aba Lista: status, técnico, período, tipo, prioridade, setor e equipamento. */
 export default function FiltrosLista({ filtros, onChange, tecnicos = [], equipamentos = [], setores = [] }) {
@@ -24,20 +25,17 @@ export default function FiltrosLista({ filtros, onChange, tecnicos = [], equipam
       </div>
 
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
-        <FilterSelect
-          ariaLabel="Status"
-          value={filtros.status}
+        <FilterMultiSelect
+          label="Status"
+          value={filtros.status || []}
           onChange={alterar('status')}
-          options={[{ value: 'Todos', label: 'Todos os status' }, ...STATUS_ORDEM.map((s) => ({ value: s, label: s }))]}
+          options={comoOpcoes(STATUS_ORDEM)}
         />
-        <FilterSelect
-          ariaLabel="Técnico"
-          value={filtros.tecnico}
+        <FilterMultiSelect
+          label="Técnico"
+          value={filtros.tecnico || []}
           onChange={alterar('tecnico')}
-          options={[
-            { value: 'todos', label: 'Todos os técnicos' },
-            ...tecnicos.map((t) => ({ value: t.id, label: t.name })),
-          ]}
+          options={tecnicos.map((t) => ({ value: t.id, label: t.name }))}
         />
         <FilterSelect
           ariaLabel="Período"
@@ -45,32 +43,29 @@ export default function FiltrosLista({ filtros, onChange, tecnicos = [], equipam
           onChange={alterar('periodo')}
           options={PERIODOS}
         />
-        <FilterSelect
-          ariaLabel="Tipo"
-          value={filtros.tipo}
+        <FilterMultiSelect
+          label="Tipo"
+          value={filtros.tipo || []}
           onChange={alterar('tipo')}
-          options={[{ value: 'Todas', label: 'Todos os tipos' }, ...TIPOS_ORDEM.map((t) => ({ value: t, label: t }))]}
+          options={comoOpcoes(TIPOS_ORDEM)}
         />
-        <FilterSelect
-          ariaLabel="Prioridade"
-          value={filtros.prioridade}
+        <FilterMultiSelect
+          label="Prioridade"
+          value={filtros.prioridade || []}
           onChange={alterar('prioridade')}
-          options={[{ value: 'Todas', label: 'Todas as prioridades' }, ...PRIORIDADES.map((p) => ({ value: p, label: p }))]}
+          options={comoOpcoes(PRIORIDADES)}
         />
-        <FilterSelect
-          ariaLabel="Setor"
-          value={filtros.setor}
+        <FilterMultiSelect
+          label="Setor"
+          value={filtros.setor || []}
           onChange={alterar('setor')}
-          options={comTodos(setores, 'Todos os setores')}
+          options={comoOpcoes(setores)}
         />
-        <FilterSelect
-          ariaLabel="Equipamento"
-          value={filtros.equipamento}
+        <FilterMultiSelect
+          label="Equipamento"
+          value={filtros.equipamento || []}
           onChange={alterar('equipamento')}
-          options={[
-            { value: 'todos', label: 'Todos os equipamentos' },
-            ...equipamentos.map((e) => ({ value: e.id, label: e.name })),
-          ]}
+          options={equipamentos.map((e) => ({ value: e.id, label: e.name }))}
         />
       </div>
 
@@ -79,7 +74,7 @@ export default function FiltrosLista({ filtros, onChange, tecnicos = [], equipam
           variant="ghost"
           size="sm"
           className="h-7 gap-1 text-xs text-muted-foreground"
-          onClick={() => onChange({ ...filtros, busca: '', status: 'Todos', tecnico: 'todos', periodo: 'todos', tipo: 'Todas', prioridade: 'Todas', setor: 'todos', equipamento: 'todos' })}
+          onClick={() => onChange({ ...FILTROS_LISTA_INICIAIS })}
         >
           <X className="h-3 w-3" /> Limpar filtros
         </Button>

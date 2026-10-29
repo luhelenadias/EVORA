@@ -25,7 +25,7 @@ import { avisosDeAgenda, corretivasSemData, dataDoAgendamento, novaDataDoArraste
 import { eventoDaMudanca, notificarMudancaDeAgenda } from '@/lib/notificacoes';
 import {
   FILTROS_CALENDARIO_INICIAIS, FILTROS_INDICADORES_INICIAIS, FILTROS_LISTA_INICIAIS,
-  filtrarOrdens, setoresDisponiveis,
+  filtrarOrdens, semSelecao, setoresDisponiveis,
 } from '@/lib/filtros';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { calcularPreventivasAGerar, calcularProximaPreventiva } from '@/lib/preventiva';
@@ -176,7 +176,7 @@ export default function Maintenance() {
 
   const equipmentParam = searchParams.get('equipment');
   useEffect(() => {
-    if (equipmentParam) setFiltrosIndicadores((atual) => ({ ...atual, equipamento: equipmentParam }));
+    if (equipmentParam) setFiltrosIndicadores((atual) => ({ ...atual, equipamento: [equipmentParam] }));
   }, [equipmentParam]);
 
   // ── Lista ──────────────────────────────────────────────────────
@@ -187,7 +187,7 @@ export default function Maintenance() {
 
   const lista = useMemo(() => {
     const abertas = GRUPOS_CENTRAL.pendentes.concat(GRUPOS_CENTRAL.andamento);
-    if (filtrosLista.status !== 'Todos') return ordemFiltradas;
+    if (!semSelecao(filtrosLista.status)) return ordemFiltradas;
     return ordemFiltradas.filter((o) => abertas.includes(o.status) || o.status === 'Concluído');
   }, [ordemFiltradas, filtrosLista.status]);
 
@@ -693,10 +693,10 @@ export default function Maintenance() {
                 tecnicos={tecnicos}
                 setores={setores}
                 mostrarMinhaAgenda={role === 'tecnico' && !!meuTecnicoId}
-                minhaAgendaAtiva={!!meuTecnicoId && filtrosCalendario.tecnico === meuTecnicoId}
+                minhaAgendaAtiva={!!meuTecnicoId && (filtrosCalendario.tecnico || []).includes(meuTecnicoId)}
                 onMinhaAgenda={() => setFiltrosCalendario((atual) => ({
                   ...atual,
-                  tecnico: atual.tecnico === meuTecnicoId ? 'todos' : meuTecnicoId,
+                  tecnico: (atual.tecnico || []).includes(meuTecnicoId) ? [] : [meuTecnicoId],
                 }))}
                 sugestoesPendentes={sugestoesVisiveis.length}
                 onGerarSugestoes={() => gerarSugestoes(false)}
