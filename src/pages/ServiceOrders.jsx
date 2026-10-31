@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,9 +27,23 @@ export default function ServiceOrders() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [showForm, setShowForm] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Atalho vindo da ficha do equipamento: já abre o formulário com ele escolhido.
+  const equipamentoInicial = searchParams.get('equipamento') || '';
+  const [showForm, setShowForm] = useState(Boolean(equipamentoInicial));
   const [editingItem, setEditingItem] = useState(null);
   const queryClient = useQueryClient();
+
+  // Atalho com a tela já aberta (link entre abas): abre o formulário já preenchido.
+  useEffect(() => {
+    if (equipamentoInicial) setShowForm(true);
+  }, [equipamentoInicial]);
+
+  const fecharFormulario = () => {
+    setShowForm(false);
+    setEditingItem(null);
+    if (equipamentoInicial) setSearchParams({}, { replace: true });
+  };
 
   const isClinical = user?.role === 'clinico';
   const isTechnician = user?.role === 'tecnico';
@@ -64,7 +78,7 @@ export default function ServiceOrders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-      setShowForm(false);
+      fecharFormulario();
       toast.success('Chamado criado com sucesso!');
     },
   });
@@ -78,8 +92,7 @@ export default function ServiceOrders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
-      setShowForm(false);
-      setEditingItem(null);
+      fecharFormulario();
       toast.success('Chamado atualizado!');
     },
   });
@@ -341,7 +354,7 @@ export default function ServiceOrders() {
       </Tabs>
 
       {/* Form Dialog */}
-      <Dialog open={showForm} onOpenChange={() => { setShowForm(false); setEditingItem(null); }}>
+      <Dialog open={showForm} onOpenChange={fecharFormulario}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="font-display">
@@ -350,8 +363,9 @@ export default function ServiceOrders() {
           </DialogHeader>
           <OrderForm
             order={editingItem}
+            equipamentoInicial={equipamentoInicial}
             onSubmit={handleSubmit}
-            onCancel={() => { setShowForm(false); setEditingItem(null); }}
+            onCancel={fecharFormulario}
             isLoading={createMutation.isPending || updateMutation.isPending}
             user={user}
           />

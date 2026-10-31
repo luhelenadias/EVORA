@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, Wrench, Monitor, FileText,
   ClipboardList, Settings, ChevronLeft, ChevronRight,
-  PlusCircle, Package, LogOut, Menu, X, BarChart2, UserCog, ScrollText, UserRound } from
+  Package, LogOut, Menu, X, BarChart2, UserCog, ScrollText, UserRound } from
 'lucide-react';
 import EvoraLogo from '@/components/brand/EvoraLogo';
 import { ROLES, ROLE_LABELS, abasDoPerfil } from '@/lib/roles';
@@ -21,7 +21,6 @@ import {
 const ICONES = {
   dashboard: LayoutDashboard,
   chamados: ClipboardList,
-  abrir_chamado: PlusCircle,
   equipamentos: Monitor,
   manutencoes: Wrench,
   contratos: FileText,

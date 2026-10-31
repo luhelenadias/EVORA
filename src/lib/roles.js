@@ -24,7 +24,6 @@ export const PERFIS = ['admin', 'tecnico', 'clinico', 'gestor'];
 export const ABAS = [
   { key: 'dashboard', label: 'Dashboard', path: '/' },
   { key: 'chamados', label: 'Chamados', path: '/chamados' },
-  { key: 'abrir_chamado', label: 'Abrir Chamado', path: '/chamados/novo' },
   { key: 'equipamentos', label: 'Equipamentos', path: '/equipamentos' },
   { key: 'manutencoes', label: 'Manutenções', path: '/manutencoes' },
   { key: 'contratos', label: 'Contratos', path: '/contratos' },
@@ -42,7 +41,7 @@ export const ACESSOS_PADRAO = {
   ],
   gestor: ['dashboard', 'chamados', 'equipamentos', 'manutencoes', 'contratos', 'indicadores'],
   tecnico: ['chamados', 'manutencoes', 'equipamentos'],
-  clinico: ['abrir_chamado', 'chamados'],
+  clinico: ['chamados'],
 };
 
 /** Aba que não pode ser retirada do Administrador, para não travar o próprio ajuste. */

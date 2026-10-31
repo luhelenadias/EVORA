@@ -106,7 +106,7 @@ export default function EquipmentDetail({ equipment, user, onEdit, onShowQr, all
         <div className="flex items-center gap-2 flex-wrap justify-end">
           <StatusBadge value={equipment.operational_status} />
           <StatusBadge value={equipment.criticality} type="criticality" />
-          <Button size="sm" className="gap-1.5" onClick={() => navigate(`/chamados/novo?equipamento=${equipment.id}`)}>
+          <Button size="sm" className="gap-1.5" onClick={() => navigate(`/chamados?equipamento=${equipment.id}`)}>
             <Wrench className="w-3.5 h-3.5" /> Abrir chamado
           </Button>
           {onShowQr && (

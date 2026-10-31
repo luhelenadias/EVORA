@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { Input } from '@/components/ui/input';
@@ -10,7 +10,7 @@ import { suggestPriorityDeEquipamento } from '@/lib/maintenance';
 import { rotuloScore } from '@/lib/priorizacao';
 import { useTecnicos } from '@/lib/tecnicos';
 
-export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }) {
+export default function OrderForm({ order, equipamentoInicial, onSubmit, onCancel, isLoading, user }) {
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment'],
     queryFn: () => base44.entities.Equipment.list(),
@@ -62,6 +62,12 @@ export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }
       update('equipment_id', eqId);
     }
   };
+
+  // Equipamento já escolhido na ficha do equipamento: preenche nome, setor e sugestão de prioridade.
+  useEffect(() => {
+    if (order || !equipamentoInicial || form.equipment_id || !equipment.length) return;
+    if (equipment.some(e => e.id === equipamentoInicial)) handleEquipmentChange(equipamentoInicial);
+  }, [equipamentoInicial, equipment, form.equipment_id]);
 
   const precisaMotivo = !order && sugestao && form.priority !== sugestao.priority;
 
