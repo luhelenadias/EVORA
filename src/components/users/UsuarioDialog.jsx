@@ -6,6 +6,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PERFIS, ROLE_LABELS } from '@/lib/roles';
 import { ESPECIALIDADES, NIVEIS_TECNICOS, PERFIL_TECNICO, SITUACOES, situacaoDoUsuario } from '@/lib/tecnicos';
+import { useConfiguracao } from '@/hooks/useConfiguracao';
+import AcessosUsuario from '@/components/users/AcessosUsuario';
 
 const vazio = {
   nome: '',
@@ -15,14 +17,17 @@ const vazio = {
   nivel: '',
   phone: '',
   department: '',
+  acessos: { personalizado: false, chaves: [] },
 };
 
 /** Edição do usuário: tipo, situação e — só para a equipe técnica — especialidade e nível. */
 export default function UsuarioDialog({ usuario, onClose, onSalvar, salvando }) {
   const [form, setForm] = useState(vazio);
+  const { config } = useConfiguracao();
 
   useEffect(() => {
     if (!usuario) return;
+    const individuais = Array.isArray(usuario.acessos_individuais) ? usuario.acessos_individuais : [];
     setForm({
       nome: usuario.nome_completo || usuario.full_name || '',
       role: usuario.role || 'clinico',
@@ -31,6 +36,7 @@ export default function UsuarioDialog({ usuario, onClose, onSalvar, salvando }) 
       nivel: usuario.nivel || '',
       phone: usuario.phone || '',
       department: usuario.department || '',
+      acessos: { personalizado: individuais.length > 0, chaves: individuais },
     });
   }, [usuario]);
 
@@ -119,6 +125,13 @@ export default function UsuarioDialog({ usuario, onClose, onSalvar, salvando }) 
                 <Input value={form.department} onChange={(evento) => alterar('department', evento.target.value)} />
               </div>
             </div>
+
+            <AcessosUsuario
+              role={form.role}
+              config={config}
+              valor={form.acessos}
+              onChange={(acessos) => alterar('acessos', acessos)}
+            />
 
             {ehTecnico && form.situacao !== 'Ativo' && (
               <p className="text-xs text-muted-foreground">

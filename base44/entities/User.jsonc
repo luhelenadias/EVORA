@@ -54,6 +54,13 @@
         "S\u00eanior"
       ],
       "description": "N\u00edvel t\u00e9cnico \u2014 usada apenas no perfil tecnico (Equipe t\u00e9cnica)"
+    },
+    "acessos_individuais": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Abas liberadas s\u00f3 para esta pessoa, sobrepondo o perfil (chaves de src/lib/roles.js). Vazio = segue os acessos do perfil. Edit\u00e1vel apenas pelo administrador, com registro na auditoria."
     }
   }
 }

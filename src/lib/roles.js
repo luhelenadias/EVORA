@@ -71,3 +71,30 @@ export function rotaDaAba(aba, pathname) {
 export function abaPermitida(config, role, pathname) {
   return abasDoPerfil(config, role).find((aba) => rotaDaAba(aba, pathname)) || null;
 }
+
+/** Chaves do usuário: as individuais, quando ele tem acessos próprios; senão as do perfil. */
+export function chavesDoUsuario(config, user) {
+  const individuais = (user?.acessos_individuais || []).filter((chave) =>
+    ABAS.some((aba) => aba.key === chave)
+  );
+  if (!individuais.length) return chavesDoPerfil(config, user?.role);
+  // O Administrador não perde a própria tela de configuração de acessos.
+  return user?.role === ROLES.ADMIN ? [...new Set([...individuais, ABA_TRAVADA])] : individuais;
+}
+
+/** Abas liberadas para o usuário, já na ordem do menu. */
+export function abasDoUsuario(config, user) {
+  const chaves = chavesDoUsuario(config, user);
+  return ABAS.filter((aba) => chaves.includes(aba.key));
+}
+
+/** Aba liberada que cobre a rota atual para este usuário; null quando não tem acesso. */
+export function abaPermitidaDoUsuario(config, user, pathname) {
+  return abasDoUsuario(config, user).find((aba) => rotaDaAba(aba, pathname)) || null;
+}
+
+/** Nomes das abas, para o log de auditoria. */
+export function rotulosDeAcessos(chaves) {
+  if (!chaves?.length) return 'segue o perfil';
+  return ABAS.filter((aba) => chaves.includes(aba.key)).map((aba) => aba.label).join(', ');
+}

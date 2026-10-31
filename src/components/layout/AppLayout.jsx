@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
-import { ROLES, abaPermitida, abasDoPerfil } from '@/lib/roles';
+import { ROLES, abaPermitidaDoUsuario, abasDoUsuario } from '@/lib/roles';
 import Sidebar from './Sidebar';
 import SemAcesso from './SemAcesso';
 import AlertasBell from '@/components/alertas/AlertasBell';
@@ -42,14 +42,14 @@ export default function AppLayout() {
   }, [queryClient]);
 
   const role = user?.role || ROLES.CLINICO;
-  const abas = abasDoPerfil(config, role);
+  const abas = abasDoUsuario(config, user);
   // Enquanto usuário/configuração carregam, não decide acesso (evita bloquear por engano).
   const carregando = isLoading || carregandoUsuario || !user;
   const liberada =
     carregando ||
     ROTAS_SEMPRE_LIBERADAS.includes(location.pathname) ||
     (role === ROLES.ADMIN && ROTAS_SOMENTE_ADMIN.includes(location.pathname)) ||
-    !!abaPermitida(config, role, location.pathname);
+    !!abaPermitidaDoUsuario(config, user, location.pathname);
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,7 +66,11 @@ export default function AppLayout() {
           ) : location.pathname === '/' && abas[0] ? (
             <Navigate to={abas[0].path} replace />
           ) : (
-            <SemAcesso abas={abas} perfil={role} />
+            <SemAcesso
+              abas={abas}
+              perfil={role}
+              personalizado={!!(user?.acessos_individuais || []).length}
+            />
           )}
         </div>
       </main>

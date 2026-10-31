@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { ROLE_LABELS } from '@/lib/roles';
 
 /** Aviso de aba não liberada para o perfil do usuário, com atalhos para o que ele pode acessar. */
-export default function SemAcesso({ abas = [], perfil }) {
+export default function SemAcesso({ abas = [], perfil, personalizado = false }) {
   return (
     <Card className="max-w-xl mx-auto mt-8">
       <CardContent className="p-8 text-center space-y-4">
@@ -16,8 +16,9 @@ export default function SemAcesso({ abas = [], perfil }) {
         <div className="space-y-1">
           <p className="font-display text-lg font-semibold">Sem acesso a esta área</p>
           <p className="text-sm text-muted-foreground">
-            O perfil {ROLE_LABELS[perfil] || 'do usuário'} não tem esta aba liberada. Peça ao administrador para
-            ajustar em Configurações → Acessos por Perfil.
+            {personalizado
+              ? 'Os seus acessos foram personalizados e esta aba não está incluída. Peça ao administrador para ajustar em Usuários → Editar usuário.'
+              : `O perfil ${ROLE_LABELS[perfil] || 'do usuário'} não tem esta aba liberada. Peça ao administrador para ajustar em Configurações → Acessos por Perfil.`}
           </p>
         </div>
         {abas.length > 0 && (

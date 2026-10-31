@@ -6,7 +6,7 @@ import {
   Package, LogOut, Menu, X, BarChart2, UserCog, ScrollText, UserRound } from
 'lucide-react';
 import EvoraLogo from '@/components/brand/EvoraLogo';
-import { ROLES, ROLE_LABELS, abasDoPerfil } from '@/lib/roles';
+import { ROLES, ROLE_LABELS, abasDoUsuario } from '@/lib/roles';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -46,8 +46,8 @@ export default function Sidebar({ user, onCollapsedChange }) {
   const nomeUsuario = nomeDaPessoa(user);
   const { config } = useConfiguracao();
 
-  // Abas liberadas para o perfil — definidas em Configurações → Acessos por Perfil.
-  const menuItems = abasDoPerfil(config, userRole).map((aba) => ({
+  // Abas liberadas: as individuais do usuário ou, sem personalização, as do perfil.
+  const menuItems = abasDoUsuario(config, user || { role: userRole }).map((aba) => ({
     ...aba,
     icon: ICONES[aba.key] || ClipboardList
   }));

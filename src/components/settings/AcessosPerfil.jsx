@@ -70,7 +70,7 @@ export default function AcessosPerfil({ config }) {
         </CardTitle>
         <CardDescription>
           Escolha quais abas cada perfil enxerga. O que não estiver marcado sai do menu e fica bloqueado para o
-          perfil, mesmo por link direto.
+          perfil, mesmo por link direto. Quem tem acessos personalizados em Usuários não é afetado por esta matriz.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

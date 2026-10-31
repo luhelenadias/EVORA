@@ -22,6 +22,7 @@ import UsuariosTabela from '@/components/users/UsuariosTabela';
 import UsuarioDialog from '@/components/users/UsuarioDialog';
 import ConviteDialog from '@/components/users/ConviteDialog';
 import { PERFIL_TECNICO, nomeDaPessoa, situacaoDoUsuario } from '@/lib/tecnicos';
+import { rotulosDeAcessos } from '@/lib/roles';
 import { registrarAuditoria } from '@/lib/auditoria';
 
 const CONVITE_PENDENTE = 'Convite pendente';
@@ -167,6 +168,8 @@ export default function Users() {
     try {
       // Valor de partida lido na hora: duas edições seguidas não perdem o registro no log.
       const antes = await base44.entities.User.get(usuario.id).catch(() => usuario);
+      // Acessos próprios só quando personalizados; vazio = segue o perfil.
+      const acessos = form.acessos?.personalizado ? form.acessos.chaves : [];
       await base44.entities.User.update(usuario.id, {
         nome_completo: form.nome.trim(),
         role: form.role,
@@ -175,9 +178,16 @@ export default function Users() {
         nivel: ehTecnico ? form.nivel : usuario.nivel || '',
         phone: form.phone,
         department: form.department,
+        acessos_individuais: acessos,
       });
       await auditarPerfil(usuario, 'role', antes.role, form.role);
       await auditarPerfil(usuario, 'situacao', situacaoDoUsuario(antes), form.situacao);
+      await auditarPerfil(
+        usuario,
+        'acessos',
+        rotulosDeAcessos(antes.acessos_individuais),
+        rotulosDeAcessos(acessos)
+      );
       setEditando(null);
       toast.success('Usuário atualizado');
       recarregar();
