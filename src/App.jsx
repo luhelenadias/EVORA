@@ -16,14 +16,14 @@ import ResetPassword from '@/pages/ResetPassword';
 
 // App pages
 import AppLayout from '@/components/layout/AppLayout';
-import Dashboard from '@/pages/Dashboard';
+import Indicadores from '@/pages/Indicadores';
 import Equipment from '@/pages/Equipment';
 import ServiceOrders from '@/pages/ServiceOrders';
 import Maintenance from '@/pages/Maintenance';
 import Contracts from '@/pages/Contracts';
 import SpareParts from '@/pages/SpareParts';
 import Users from '@/pages/Users';
-import Indicators from '@/pages/Indicators';
+
 import Settings from '@/pages/Settings';
 import Auditoria from '@/pages/Auditoria';
 import MeuPerfil from '@/pages/MeuPerfil';
@@ -60,8 +60,9 @@ const AuthenticatedApp = () => {
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         {/* Equipe Técnica foi fundida em Usuários */}
         <Route path="/equipe" element={<Navigate to="/usuarios" replace />} />
+        <Route path="/indicadores" element={<Navigate to="/" replace />} />
         <Route element={<AppLayout />}>
-          <Route path="/" element={<Dashboard />} />
+          <Route path="/" element={<Indicadores />} />
           <Route path="/equipamentos" element={<Equipment />} />
           <Route path="/equipamentos/:id" element={<Equipment />} />
           <Route path="/chamados" element={<ServiceOrders />} />
@@ -73,7 +74,6 @@ const AuthenticatedApp = () => {
           <Route path="/usuarios" element={<Users />} />
           <Route path="/meu-perfil" element={<MeuPerfil />} />
           <Route path="/auditoria" element={<Auditoria />} />
-          <Route path="/indicadores" element={<Indicators />} />
           <Route path="/configuracoes" element={<Settings />} />
         </Route>
       </Route>

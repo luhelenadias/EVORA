@@ -81,6 +81,10 @@
       "description": "Se verdadeiro, o modelo avan\u00e7ado usa a f\u00f3rmula com utiliza\u00e7\u00e3o (AEMR) e passa a exigir o campo utilizacao_u. Se falso, usa a f\u00f3rmula sem utiliza\u00e7\u00e3o (EMR).",
       "type": "boolean"
     },
+    "custo_hora_tecnica": {
+      "description": "Custo m\u00e9dio da hora t\u00e9cnica em R$. Usado em Indicadores \u2192 Equipe para estimar o custo da m\u00e3o de obra interna (horas registradas em OS \u00d7 custo da hora). Sem esse valor, o indicador mostra aviso em vez de estimar.",
+      "type": "number"
+    },
     "email_modo_teste": {
       "default": true,
       "description": "Modo teste de e-mail. Enquanto ligado, TODO e-mail para t\u00e9cnico \u00e9 redirecionado para email_teste_destino, com o destinat\u00e1rio real indicado no assunto e no corpo. Exibido em Configura\u00e7\u00f5es \u2192 Notifica\u00e7\u00f5es. Desligue apenas quando os e-mails dos t\u00e9cnicos forem reais e verificados.",
@@ -120,6 +124,11 @@
         "avancado"
       ],
       "type": "string"
+    },
+    "rechamada_dias": {
+      "default": 30,
+      "description": "Janela em dias para considerar rechamada: uma nova corretiva no mesmo equipamento aberta at\u00e9 X dias depois de uma corretiva conclu\u00edda. Padr\u00e3o 30. Usado em Indicadores \u2192 Confiabilidade.",
+      "type": "number"
     }
   },
   "required": [],

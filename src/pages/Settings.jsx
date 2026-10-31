@@ -21,9 +21,10 @@ import AcessosPerfil from '@/components/settings/AcessosPerfil';
 import AlertasConfig from '@/components/settings/AlertasConfig';
 import EmailConfig from '@/components/settings/EmailConfig';
 import AuditoriaConteudo from '@/components/auditoria/AuditoriaConteudo';
+import IndicadoresConfig from '@/components/settings/IndicadoresConfig';
 import TermoTooltip from '@/components/shared/TermoTooltip';
 import { toast } from 'sonner';
-import { ShieldCheck, ShieldAlert, AlertTriangle, Building2, Stethoscope, RefreshCw, Users, Mail } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, AlertTriangle, BarChart3, Building2, Stethoscope, RefreshCw, Users, Mail } from 'lucide-react';
 
 export default function Settings() {
   const queryClient = useQueryClient();
@@ -171,6 +172,9 @@ export default function Settings() {
           </TabsTrigger>
           <TabsTrigger value="notificacoes" className="gap-1.5">
             <Mail className="w-3.5 h-3.5" /> Notificações
+          </TabsTrigger>
+          <TabsTrigger value="indicadores" className="gap-1.5">
+            <BarChart3 className="w-3.5 h-3.5" /> Indicadores
           </TabsTrigger>
           {eAdmin && (
             <TabsTrigger value="seguranca" className="gap-1.5">
@@ -338,6 +342,10 @@ export default function Settings() {
 
         <TabsContent value="notificacoes" className="space-y-4">
           <EmailConfig config={config} />
+        </TabsContent>
+
+        <TabsContent value="indicadores" className="space-y-4">
+          <IndicadoresConfig config={config} />
         </TabsContent>
 
         {eAdmin && (

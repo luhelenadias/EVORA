@@ -178,6 +178,7 @@ export default function Users() {
         nivel: ehTecnico ? form.nivel : usuario.nivel || '',
         phone: form.phone,
         department: form.department,
+        carga_horaria_mensal_h: ehTecnico ? Number(form.carga_horaria_mensal_h) || null : null,
         acessos_individuais: acessos,
       });
       await auditarPerfil(usuario, 'role', antes.role, form.role);

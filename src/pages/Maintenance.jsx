@@ -5,47 +5,44 @@ import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { BarChart3, CalendarDays, List } from 'lucide-react';
+import { CalendarDays, List, X } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import CentralList from '@/components/maintenance/CentralList';
 import OrderDetailDialog from '@/components/maintenance/OrderDetailDialog';
 import FinalizarManutencaoDialog from '@/components/maintenance/FinalizarManutencaoDialog';
 import GravadorAudioDialog from '@/components/maintenance/GravadorAudioDialog';
-import MaintenancePending from '@/components/maintenance/MaintenancePending';
 import MaintenanceCalendar from '@/components/maintenance/MaintenanceCalendar';
-import IndicadoresManutencao from '@/components/maintenance/IndicadoresManutencao';
 import FiltrosLista from '@/components/maintenance/FiltrosLista';
 import FiltrosCalendario from '@/components/maintenance/FiltrosCalendario';
-import FiltrosIndicadores from '@/components/maintenance/FiltrosIndicadores';
 import ConfirmarReagendamentoDialog from '@/components/preventivas/ConfirmarReagendamentoDialog';
 import ReagendarOrdemDialog from '@/components/preventivas/ReagendarOrdemDialog';
 import { dataProgramada, preventivasAbertas } from '@/lib/preventivas';
 import { avisosDeAgenda, corretivasSemData, dataDoAgendamento, novaDataDoArraste } from '@/lib/agenda';
 import { eventoDaMudanca, notificarMudancaDeAgenda } from '@/lib/notificacoes';
 import {
-  FILTROS_CALENDARIO_INICIAIS, FILTROS_INDICADORES_INICIAIS, FILTROS_LISTA_INICIAIS,
+  FILTROS_CALENDARIO_INICIAIS, FILTROS_LISTA_INICIAIS,
   filtrarOrdens, semSelecao, setoresDisponiveis,
 } from '@/lib/filtros';
-import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { calcularPreventivasAGerar, calcularProximaPreventiva } from '@/lib/preventiva';
 import { calcularMtbf, calcularMttr, calcularTempoMedioAtendimento, frequenciaPorDias } from '@/lib/indicadores';
 import { minutosDeAtendimento, slaDeAtendimento } from '@/lib/atendimento';
-import { GRUPOS_CENTRAL, ORDENACOES } from '@/lib/central';
+import { GRUPOS_CENTRAL, ORDENACOES, ordemAtrasada } from '@/lib/central';
 import { registrarAuditoria } from '@/lib/auditoria';
 import { useTecnicos } from '@/lib/tecnicos';
 
-const PERFIS_COM_INDICADORES_POR_TECNICO = ['admin', 'gestor'];
+const RECORTES_VAZIOS = { abertas: false, atrasadas: false, semTecnico: false };
 
 export default function Maintenance() {
   const queryClient = useQueryClient();
-  const { config } = useConfiguracao();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [aba, setAba] = useState('lista');
   const [filtrosLista, setFiltrosLista] = useState(FILTROS_LISTA_INICIAIS);
   const [filtrosCalendario, setFiltrosCalendario] = useState(FILTROS_CALENDARIO_INICIAIS);
-  const [filtrosIndicadores, setFiltrosIndicadores] = useState(FILTROS_INDICADORES_INICIAIS);
+  // Recortes vindos dos Indicadores (só abertas, atrasadas, sem técnico).
+  const [recortes, setRecortes] = useState(RECORTES_VAZIOS);
   const [ordemLista, setOrdemLista] = useState('prioridade');
   const [visao, setVisao] = useState('mes');
   const [referencia, setReferencia] = useState(new Date());
@@ -142,7 +139,6 @@ export default function Maintenance() {
   const setores = useMemo(() => setoresDisponiveis(orders, equipmentById), [orders, equipmentById]);
 
   const role = user?.role || 'clinico';
-  const podeVerPorTecnico = PERFIS_COM_INDICADORES_POR_TECNICO.includes(role);
 
   // Técnico é o próprio usuário: as OS atribuídas a ele guardam o ID da conta.
   const meuTecnicoId = role === 'tecnico' ? user?.id || null : null;
@@ -160,31 +156,44 @@ export default function Maintenance() {
     queryClient.invalidateQueries({ queryKey: ['alertas'] });
   };
 
-  const pendingCount = equipment.filter((e) => e.status_priorizacao === 'pendente_atualizacao').length;
-  const mostrarPendencias = config?.modelo_priorizacao === 'avancado' && pendingCount > 0;
-
   // ── Aba ativa (aceita link direto ?view=) ───────────────────────
   const viewParam = searchParams.get('view');
   useEffect(() => {
-    if (viewParam === 'indicators') setAba('indicadores');
-    else if (viewParam === 'calendario') setAba('calendario');
+    if (viewParam === 'calendario') setAba('calendario');
     else if (viewParam === 'lista') setAba('lista');
   }, [viewParam]);
 
-  const abaAtiva = viewParam === 'indicators' ? 'indicadores'
-    : viewParam === 'calendario' ? 'calendario'
-      : viewParam === 'lista' ? 'lista'
-        : aba;
+  const abaAtiva = viewParam === 'calendario' ? 'calendario' : viewParam === 'lista' ? 'lista' : aba;
 
   const trocarAba = (valor) => {
     setAba(valor);
-    setSearchParams(valor === 'indicadores' ? { view: 'indicators' } : valor === 'calendario' ? { view: 'calendario' } : {});
+    setSearchParams(valor === 'calendario' ? { view: 'calendario' } : {});
   };
 
-  const equipmentParam = searchParams.get('equipment');
+  // Links dos indicadores: /manutencoes?abertas=1&atrasadas=1&tipo=Corretiva&tecnico=<id>&equipamento=<id>
   useEffect(() => {
-    if (equipmentParam) setFiltrosIndicadores((atual) => ({ ...atual, equipamento: [equipmentParam] }));
-  }, [equipmentParam]);
+    const marcados = (chave) => String(searchParams.get(chave) || '').split(',').filter(Boolean);
+    const ajustes = {};
+    ['status', 'tipo', 'tecnico', 'equipamento', 'setor'].forEach((chave) => {
+      const valores = marcados(chave);
+      if (valores.length) ajustes[chave] = valores;
+    });
+    // Compatibilidade com o atalho antigo ?equipment=<id>
+    const equipamentoAntigo = searchParams.get('equipment');
+    if (equipamentoAntigo && !ajustes.equipamento) ajustes.equipamento = [equipamentoAntigo];
+    if (searchParams.get('periodo')) ajustes.periodo = searchParams.get('periodo');
+
+    const novosRecortes = {
+      abertas: searchParams.get('abertas') === '1',
+      atrasadas: searchParams.get('atrasadas') === '1',
+      semTecnico: searchParams.get('sem-tecnico') === '1',
+    };
+    setRecortes(novosRecortes);
+    if (Object.keys(ajustes).length) setFiltrosLista({ ...FILTROS_LISTA_INICIAIS, ...ajustes });
+    if (Object.keys(ajustes).length || novosRecortes.abertas || novosRecortes.atrasadas || novosRecortes.semTecnico) {
+      setAba('lista');
+    }
+  }, [searchParams]);
 
   // ── Lista ──────────────────────────────────────────────────────
   const ordemFiltradas = useMemo(
@@ -194,9 +203,14 @@ export default function Maintenance() {
 
   const lista = useMemo(() => {
     const abertas = GRUPOS_CENTRAL.pendentes.concat(GRUPOS_CENTRAL.andamento);
-    if (!semSelecao(filtrosLista.status)) return ordemFiltradas;
-    return ordemFiltradas.filter((o) => abertas.includes(o.status) || o.status === 'Concluído');
-  }, [ordemFiltradas, filtrosLista.status]);
+    let base = semSelecao(filtrosLista.status)
+      ? ordemFiltradas.filter((o) => abertas.includes(o.status) || o.status === 'Concluído')
+      : ordemFiltradas;
+    if (recortes.abertas) base = base.filter((o) => o.status !== 'Concluído');
+    if (recortes.atrasadas) base = base.filter(ordemAtrasada);
+    if (recortes.semTecnico) base = base.filter((o) => o.status !== 'Concluído' && !o.technician_id);
+    return base;
+  }, [ordemFiltradas, filtrosLista.status, recortes]);
 
   const contagem = useMemo(() => ({
     pendentes: orders.filter((o) => GRUPOS_CENTRAL.pendentes.includes(o.status)).length,
@@ -223,12 +237,6 @@ export default function Maintenance() {
     () => sugestoes.filter((sugestao) => ordensPorId[sugestao.service_order_id] &&
       ordemCalendario.some((ordem) => ordem.id === sugestao.service_order_id)),
     [sugestoes, ordemCalendario, ordensPorId]
-  );
-
-  // ── Indicadores ────────────────────────────────────────────────
-  const ordemIndicadores = useMemo(
-    () => filtrarOrdens(orders, filtrosIndicadores, equipmentById),
-    [orders, filtrosIndicadores, equipmentById]
   );
 
   const gerarSugestoes = async (silencioso = false) => {
@@ -271,10 +279,12 @@ export default function Maintenance() {
     try {
       const inicio = new Date();
       const resposta = slaDeAtendimento(order, contracts);
+      // Preventiva agendada não tem espera de atendimento: o prazo dela é a data programada.
+      const medeEspera = order.type !== 'Preventiva' || order.origin !== 'Agendada';
       await base44.entities.ServiceOrder.update(order.id, {
         status: 'Em Andamento',
         start_date: inicio.toISOString(),
-        response_time_minutes: minutosDeAtendimento(order.open_date, inicio),
+        ...(medeEspera ? { response_time_minutes: minutosDeAtendimento(order.open_date, inicio) } : {}),
         ...(resposta.deadline ? { sla_response_deadline: resposta.deadline.toISOString() } : {}),
         sla_response_status: resposta.status,
       });
@@ -639,9 +649,6 @@ export default function Maintenance() {
           <TabsTrigger value="calendario" className="gap-1.5">
             <CalendarDays className="h-3.5 w-3.5" /> Calendário
           </TabsTrigger>
-          <TabsTrigger value="indicadores" className="gap-1.5">
-            <BarChart3 className="h-3.5 w-3.5" /> Indicadores
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="lista" className="mt-4 space-y-3">
@@ -678,6 +685,23 @@ export default function Maintenance() {
               ))}
             </div>
           </div>
+
+          {(recortes.abertas || recortes.atrasadas || recortes.semTecnico) && (
+            <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+              <span className="text-[11px] font-medium text-primary">Recorte dos indicadores:</span>
+              {recortes.abertas && <span className="rounded-full bg-card px-2 py-0.5 text-[11px]">somente abertas</span>}
+              {recortes.atrasadas && <span className="rounded-full bg-card px-2 py-0.5 text-[11px]">atrasadas</span>}
+              {recortes.semTecnico && <span className="rounded-full bg-card px-2 py-0.5 text-[11px]">sem técnico</span>}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 gap-1 px-2 text-[11px]"
+                onClick={() => setRecortes(RECORTES_VAZIOS)}
+              >
+                <X className="h-3 w-3" /> limpar
+              </Button>
+            </div>
+          )}
 
           <CentralList
             orders={lista}
@@ -732,27 +756,6 @@ export default function Maintenance() {
           />
         </TabsContent>
 
-        <TabsContent value="indicadores" className="mt-4 space-y-3">
-          <Card>
-            <CardContent className="p-4">
-              <FiltrosIndicadores
-                filtros={filtrosIndicadores}
-                onChange={setFiltrosIndicadores}
-                tecnicos={tecnicos}
-                equipamentos={equipment}
-              />
-            </CardContent>
-          </Card>
-
-          {mostrarPendencias && <MaintenancePending />}
-
-          <IndicadoresManutencao
-            ordens={ordemIndicadores}
-            tecnicos={tecnicos}
-            equipment={equipment}
-            podeVerPorTecnico={podeVerPorTecnico}
-          />
-        </TabsContent>
       </Tabs>
 
       <FinalizarManutencaoDialog

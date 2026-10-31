@@ -13,6 +13,15 @@ export const ORDENACOES = [
   { value: 'equipamento', label: 'Equipamento' },
 ];
 
+/** OS aberta com a data programada vencida ou o prazo de SLA estourado. */
+export function ordemAtrasada(order) {
+  if (!order || order.status === 'Concluído') return false;
+  const agora = Date.now();
+  const agendada = order.scheduled_date ? new Date(order.scheduled_date).getTime() : null;
+  const prazo = order.sla_deadline ? new Date(order.sla_deadline).getTime() : null;
+  return (agendada != null && agendada < agora) || (prazo != null && prazo < agora);
+}
+
 export function dataReferencia(order) {
   if (order.status === 'Concluído') return order.completion_date || order.open_date || null;
   return order.scheduled_date || order.open_date || null;

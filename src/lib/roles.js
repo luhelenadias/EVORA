@@ -20,15 +20,15 @@ export const PERFIS = ['admin', 'tecnico', 'clinico', 'gestor'];
 /**
  * Fonte única das abas da barra lateral. A chave é o que fica gravado em
  * ConfiguracaoInstituicao.acessos_perfil; a ordem é a ordem do menu.
+ * Indicadores é a página inicial e substituiu o antigo Dashboard.
  */
 export const ABAS = [
-  { key: 'dashboard', label: 'Dashboard', path: '/' },
+  { key: 'indicadores', label: 'Indicadores', path: '/' },
   { key: 'chamados', label: 'Chamados', path: '/chamados' },
   { key: 'equipamentos', label: 'Equipamentos', path: '/equipamentos' },
   { key: 'manutencoes', label: 'Manutenções', path: '/manutencoes' },
   { key: 'contratos', label: 'Contratos', path: '/contratos' },
   { key: 'pecas', label: 'Peças', path: '/pecas' },
-  { key: 'indicadores', label: 'Indicadores', path: '/indicadores' },
   { key: 'usuarios', label: 'Usuários', path: '/usuarios' },
   { key: 'configuracoes', label: 'Configurações', path: '/configuracoes' },
 ];
@@ -36,22 +36,31 @@ export const ABAS = [
 /** Pré-definições por perfil, aplicadas enquanto o administrador não personalizar. */
 export const ACESSOS_PADRAO = {
   admin: [
-    'dashboard', 'chamados', 'equipamentos', 'manutencoes',
-    'contratos', 'pecas', 'indicadores', 'usuarios', 'configuracoes',
+    'indicadores', 'chamados', 'equipamentos', 'manutencoes',
+    'contratos', 'pecas', 'usuarios', 'configuracoes',
   ],
-  gestor: ['dashboard', 'chamados', 'equipamentos', 'manutencoes', 'contratos', 'indicadores'],
-  tecnico: ['chamados', 'manutencoes', 'equipamentos'],
-  clinico: ['chamados'],
+  gestor: ['indicadores', 'chamados', 'equipamentos', 'manutencoes', 'contratos'],
+  tecnico: ['indicadores', 'chamados', 'manutencoes', 'equipamentos'],
+  clinico: ['indicadores', 'chamados'],
 };
 
 /** Aba que não pode ser retirada do Administrador, para não travar o próprio ajuste. */
 export const ABA_TRAVADA = 'configuracoes';
 
+/** 'dashboard' era a chave do antigo painel: agora a página inicial é Indicadores. */
+const CHAVES_RENOMEADAS = { dashboard: 'indicadores' };
+
+/** Mantém apenas abas existentes, aplicando os nomes antigos. */
+function chavesValidas(lista = []) {
+  const chaves = lista.map((chave) => CHAVES_RENOMEADAS[chave] || chave);
+  return [...new Set(chaves.filter((chave) => ABAS.some((aba) => aba.key === chave)))];
+}
+
 /** Chaves de aba liberadas para o perfil: as gravadas ou, sem personalização, as padrão. */
 export function chavesDoPerfil(config, role) {
   const salvo = (config?.acessos_perfil || []).find((registro) => registro.perfil === role);
   // Abas que deixaram de existir não ficam gravadas como chave órfã.
-  if (Array.isArray(salvo?.abas)) return salvo.abas.filter((chave) => ABAS.some((aba) => aba.key === chave));
+  if (Array.isArray(salvo?.abas)) return chavesValidas(salvo.abas);
   return ACESSOS_PADRAO[role] || ACESSOS_PADRAO.clinico;
 }
 
@@ -74,9 +83,7 @@ export function abaPermitida(config, role, pathname) {
 
 /** Chaves do usuário: as individuais, quando ele tem acessos próprios; senão as do perfil. */
 export function chavesDoUsuario(config, user) {
-  const individuais = (user?.acessos_individuais || []).filter((chave) =>
-    ABAS.some((aba) => aba.key === chave)
-  );
+  const individuais = chavesValidas(user?.acessos_individuais || []);
   if (!individuais.length) return chavesDoPerfil(config, user?.role);
   // O Administrador não perde a própria tela de configuração de acessos.
   return user?.role === ROLES.ADMIN ? [...new Set([...individuais, ABA_TRAVADA])] : individuais;

@@ -55,6 +55,10 @@
       ],
       "description": "N\u00edvel t\u00e9cnico \u2014 usada apenas no perfil tecnico (Equipe t\u00e9cnica)"
     },
+    "carga_horaria_mensal_h": {
+      "type": "number",
+      "description": "Carga hor\u00e1ria mensal contratada em horas (ex.: 176). Base do c\u00e1lculo de produtividade em Indicadores \u2192 Equipe (tempo registrado em OS \u00f7 tempo pago). Edit\u00e1vel apenas pelo administrador."
+    },
     "acessos_individuais": {
       "type": "array",
       "items": {

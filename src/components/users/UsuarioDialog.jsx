@@ -17,6 +17,7 @@ const vazio = {
   nivel: '',
   phone: '',
   department: '',
+  carga_horaria_mensal_h: '',
   acessos: { personalizado: false, chaves: [] },
 };
 
@@ -36,6 +37,8 @@ export default function UsuarioDialog({ usuario, onClose, onSalvar, salvando }) 
       nivel: usuario.nivel || '',
       phone: usuario.phone || '',
       department: usuario.department || '',
+      carga_horaria_mensal_h:
+        usuario.carga_horaria_mensal_h != null ? String(usuario.carga_horaria_mensal_h) : '',
       acessos: { personalizado: individuais.length > 0, chaves: individuais },
     });
   }, [usuario]);
@@ -124,6 +127,22 @@ export default function UsuarioDialog({ usuario, onClose, onSalvar, salvando }) 
                 <Label className="text-xs">Setor</Label>
                 <Input value={form.department} onChange={(evento) => alterar('department', evento.target.value)} />
               </div>
+
+              {ehTecnico && (
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Carga horária mensal (h)</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    placeholder="Ex.: 176"
+                    value={form.carga_horaria_mensal_h}
+                    onChange={(evento) => alterar('carga_horaria_mensal_h', evento.target.value)}
+                  />
+                  <p className="text-[10px] text-muted-foreground">
+                    Base do indicador de produtividade (tempo em OS ÷ tempo pago).
+                  </p>
+                </div>
+              )}
             </div>
 
             <AcessosUsuario

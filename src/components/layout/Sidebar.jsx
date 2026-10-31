@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Wrench, Monitor, FileText,
+  Wrench, Monitor, FileText,
   ClipboardList, Settings, ChevronLeft, ChevronRight,
   Package, LogOut, Menu, X, BarChart2, UserCog, ScrollText, UserRound } from
 'lucide-react';
@@ -19,7 +19,6 @@ import {
 
 /** Ícone de cada aba (as abas em si vêm de src/lib/roles.js). */
 const ICONES = {
-  dashboard: LayoutDashboard,
   chamados: ClipboardList,
   equipamentos: Monitor,
   manutencoes: Wrench,
