@@ -27,7 +27,7 @@ export default function OrderExecutionDetails({ order }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <InfoField label="Técnico responsável" value={order.technician_name || 'Não atribuído'} />
+        <InfoField label="Técnico responsável" value={order.technician_name || 'Não atribuída'} />
         <InfoField label="Execução por" value={order.execution_by} />
         <InfoField label="Início do atendimento" value={formatarDataHora(order.start_date)} />
         {order.response_time_minutes != null && (

@@ -90,6 +90,7 @@ export function alertaAtivo(alerta) {
 export function destinoDoAlerta(alerta) {
   if (!alerta) return '/manutencoes';
   if (alerta.entidade_tipo === 'Contract') return `/contratos?contrato=${alerta.entidade_id}`;
+  if (alerta.tipo === 'OS sem técnico') return '/manutencoes?view=lista';
   if (alerta.entidade_tipo === 'ServiceOrder') return `/manutencoes?os=${alerta.entidade_id}`;
   if (alerta.entidade_tipo === 'SparePart') return '/pecas';
   if (alerta.entidade_tipo === 'Equipment') return `/equipamentos/${alerta.entidade_id}`;

@@ -335,8 +335,8 @@ export default function Maintenance() {
       alteracoes.push({
         acao: antes.technician_id ? 'Reatribuição' : 'Atribuição',
         campo: 'technician_id',
-        valor_anterior: order.technician_name || '(sem técnico)',
-        valor_novo: depois.technician_name || '(sem técnico)',
+        valor_anterior: order.technician_name || '(não atribuída)',
+        valor_novo: depois.technician_name || '(não atribuída)',
         tecnico_atribuido_id: depois.technician_id || null,
       });
     }

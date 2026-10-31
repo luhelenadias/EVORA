@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, Wrench, Monitor, Users, FileText,
+  LayoutDashboard, Wrench, Monitor, FileText,
   ClipboardList, Settings, ChevronLeft, ChevronRight,
-  PlusCircle, Package, LogOut, Menu, X, BarChart2, UserCog, ScrollText } from
+  PlusCircle, Package, LogOut, Menu, X, BarChart2, UserCog, ScrollText, UserRound } from
 'lucide-react';
 import EvoraLogo from '@/components/brand/EvoraLogo';
 import { ROLES, ROLE_LABELS, abasDoPerfil } from '@/lib/roles';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { base44 } from '@/api/base44Client';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { nomeDaPessoa } from '@/lib/tecnicos';
+import { iniciaisDoNome } from '@/lib/preventivas';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 /** Ícone de cada aba (as abas em si vêm de src/lib/roles.js). */
 const ICONES = {
@@ -39,6 +44,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
   };
 
   const userRole = user?.role || ROLES.CLINICO;
+  const nomeUsuario = nomeDaPessoa(user);
   const { config } = useConfiguracao();
 
   // Abas liberadas para o perfil — definidas em Configurações → Acessos por Perfil.
@@ -96,24 +102,43 @@ export default function Sidebar({ user, onCollapsedChange }) {
       "border-t border-sidebar-border p-3",
       collapsed && "px-2"
     )}>
-        {!collapsed &&
-      <div className="mb-2 px-2">
-            <p className="text-xs font-medium text-sidebar-foreground truncate">{user?.full_name || 'Usuário'}</p>
-            <p className="text-[10px] text-sidebar-foreground/50">{ROLE_LABELS[userRole]}</p>
-          </div>
-      }
-        <Button
-        variant="ghost"
-        size="sm"
-        onClick={handleLogout}
-        className={cn(
-          "w-full text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent",
-          collapsed ? "justify-center px-2" : "justify-start gap-2"
-        )}>
-        
-          <LogOut className="w-4 h-4" />
-          {!collapsed && "Sair"}
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              title="Menu do usuário"
+              className={cn(
+                "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-sidebar-accent",
+                collapsed && "justify-center px-1"
+              )}>
+              <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-[11px] font-semibold text-sidebar-primary-foreground">
+                {iniciaisDoNome(nomeUsuario)}
+              </span>
+              {!collapsed &&
+              <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-medium text-sidebar-foreground">{nomeUsuario}</span>
+                  <span className="block truncate text-[10px] text-sidebar-foreground/50">{ROLE_LABELS[userRole]}</span>
+                </span>
+              }
+            </button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent align="start" side="top" className="w-56">
+            <DropdownMenuLabel className="text-xs">
+              <span className="block truncate font-medium">{nomeUsuario}</span>
+              <span className="block truncate font-normal text-muted-foreground">{user?.email || ''}</span>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem asChild className="gap-2 text-xs">
+              <Link to="/meu-perfil" onClick={() => setMobileOpen(false)}>
+                <UserRound className="h-3.5 w-3.5" /> Meu perfil
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout} className="gap-2 text-xs">
+              <LogOut className="h-3.5 w-3.5" /> Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Collapse button - desktop only */}

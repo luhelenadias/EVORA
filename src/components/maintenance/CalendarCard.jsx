@@ -33,7 +33,8 @@ export default function CalendarCard({ item, tecnico, onClick, arrastavel = fals
   const tipo = TIPOS[item.kind] || TIPOS.preventiva;
   const Icone = tipo.Icone;
   const critica = order.priority === 'Crítica';
-  const nomeTecnico = tecnico?.name || order.technician_name;
+  // OS sem técnico nunca quebra o card: aparece como "Não atribuída".
+  const nomeTecnico = tecnico?.name || order.technician_name || 'Não atribuída';
   const hora = horario(order.scheduled_date);
 
   return (
@@ -75,7 +76,7 @@ export default function CalendarCard({ item, tecnico, onClick, arrastavel = fals
         />
         <span className="truncate">
           {hora ? `${hora} · ` : ''}
-          {order.technician_id ? nomeTecnico || 'Técnico atribuído' : 'Sem técnico'}
+          {nomeTecnico}
         </span>
       </span>
     </button>

@@ -19,6 +19,7 @@ export const ACOES = [
   'Upload de documento',
   'Extração por IA',
   'Notificação ao técnico',
+  'Mudança de perfil',
   'Ajuste administrativo',
 ];
 
@@ -34,6 +35,7 @@ export const ENTIDADES = [
   'MaintenancePlan',
   'Acquisition',
   'ConfiguracaoInstituicao',
+  'User',
 ];
 
 /** Campos de texto/valor da OS que entram como "Edição de campo". */

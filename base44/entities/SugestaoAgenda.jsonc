@@ -20,7 +20,7 @@
     },
     "tecnico_sugerido_id": {
       "type": "string",
-      "description": "TechTeam sugerido (respeitando f\u00e9rias/afastamento e carga)"
+      "description": "Usu\u00e1rio da equipe t\u00e9cnica sugerido (respeitando f\u00e9rias/afastamento e carga)"
     },
     "tecnico_sugerido_nome": {
       "type": "string"

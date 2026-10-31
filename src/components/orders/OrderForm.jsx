@@ -65,7 +65,8 @@ export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }
 
   const precisaMotivo = !order && sugestao && form.priority !== sugestao.priority;
 
-  const handleTechnicianChange = (techId) => {
+  const handleTechnicianChange = (valor) => {
+    const techId = valor === 'sem' ? '' : valor;
     const tech = technicians.find(t => t.id === techId);
     setForm(prev => ({
       ...prev,
@@ -151,11 +152,19 @@ export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }
 
             <div className="space-y-1.5">
               <Label className="text-xs">Técnico Responsável</Label>
-              <Select value={form.technician_id} onValueChange={handleTechnicianChange}>
+              <Select value={form.technician_id || 'sem'} onValueChange={handleTechnicianChange}>
                 <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="sem">Não atribuída</SelectItem>
+                  {form.technician_id && !technicians.some(t => t.id === form.technician_id) && (
+                    <SelectItem value={form.technician_id}>
+                      {order?.technician_name || 'Técnico atual (fora da equipe ativa)'}
+                    </SelectItem>
+                  )}
                   {technicians.map(t => (
-                    <SelectItem key={t.id} value={t.id}>{t.name} ({t.specialty})</SelectItem>
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.name}{t.specialty ? ` (${t.specialty})` : ''}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

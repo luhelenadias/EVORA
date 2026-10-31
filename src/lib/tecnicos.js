@@ -21,11 +21,17 @@ export function situacaoDoUsuario(usuario) {
   return usuario?.situacao || 'Ativo';
 }
 
+/** Nome exibido da pessoa: o nome editável em Meu perfil, senão o da conta. */
+export function nomeDaPessoa(usuario) {
+  const nome = String(usuario?.nome_completo || usuario?.full_name || usuario?.email || '').trim();
+  return nome || 'Sem nome';
+}
+
 /** Usuário no formato usado nas telas de manutenção. */
 export function comoTecnico(usuario) {
   return {
     ...usuario,
-    name: usuario?.full_name || usuario?.email || 'Técnico',
+    name: nomeDaPessoa(usuario),
     status: situacaoDoUsuario(usuario),
     specialty: usuario?.especialidade || '',
     level: usuario?.nivel || '',
@@ -52,7 +58,8 @@ export function nomeDoTecnico(id, tecnicos = []) {
 export function useTecnicos({ ativos = false, enabled = true } = {}) {
   const { data = [], isLoading } = useQuery({
     queryKey: ['usuarios-tecnicos'],
-    queryFn: () => base44.entities.User.list(),
+    // Quem não é administrador não lê a lista completa: a tela segue sem equipe.
+    queryFn: () => base44.entities.User.list().catch(() => []),
     enabled,
   });
 

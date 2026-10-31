@@ -5,7 +5,7 @@ export const ACOES = [
   'Abertura', 'Atribuição', 'Reatribuição', 'Início do atendimento', 'Mudança de status',
   'Mudança de prioridade', 'Edição de campo', 'Peça utilizada', 'Rascunho de relatório gerado por IA',
   'Relatório confirmado', 'Fechamento', 'Reabertura', 'Cancelamento', 'Upload de documento',
-  'Extração por IA', 'Notificação ao técnico', 'Ajuste administrativo',
+  'Extração por IA', 'Notificação ao técnico', 'Mudança de perfil', 'Ajuste administrativo',
 ];
 
 export const ENTIDADES = [
@@ -16,6 +16,7 @@ export const ENTIDADES = [
   { valor: 'MaintenancePlan', label: 'Plano de manutenção' },
   { valor: 'Acquisition', label: 'Aquisição' },
   { valor: 'ConfiguracaoInstituicao', label: 'Configuração' },
+  { valor: 'User', label: 'Usuário' },
 ];
 
 export const ORIGENS = ['Usuário', 'IA', 'Sistema', 'Ajuste administrativo'];
@@ -37,6 +38,7 @@ const VERBOS = {
   'Upload de documento': 'enviou novo documento',
   'Extração por IA': 'extraiu dados do PDF por IA',
   'Notificação ao técnico': 'notificou o técnico',
+  'Mudança de perfil': 'alterou o perfil',
   'Ajuste administrativo': 'fez ajuste administrativo',
 };
 
@@ -86,6 +88,9 @@ export const ROTULOS_CAMPO = {
   fontes_extracao: 'Extração por IA',
   extracao_status: 'Situação da extração',
   campos_revisar: 'Campos a revisar',
+  role: 'Tipo de usuário',
+  situacao: 'Situação',
+  nome_completo: 'Nome completo',
 };
 
 export function rotuloCampo(campo) {
@@ -202,8 +207,8 @@ export function alteracoesDaOS(antes, depois) {
     lista.push({
       acao: antes.technician_id ? 'Reatribuição' : 'Atribuição',
       campo: 'technician_id',
-      valor_anterior: antes.technician_name || antes.technician_id || '(sem técnico)',
-      valor_novo: depois.technician_name || depois.technician_id || '(sem técnico)',
+      valor_anterior: antes.technician_name || antes.technician_id || '(não atribuída)',
+      valor_novo: depois.technician_name || depois.technician_id || '(não atribuída)',
       tecnico_atribuido_id: depois.technician_id || null,
     });
   }

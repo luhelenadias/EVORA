@@ -8,6 +8,7 @@ import { PERFIS, ROLE_LABELS } from '@/lib/roles';
 import { ESPECIALIDADES, NIVEIS_TECNICOS, PERFIL_TECNICO, SITUACOES, situacaoDoUsuario } from '@/lib/tecnicos';
 
 const vazio = {
+  nome: '',
   role: 'clinico',
   situacao: 'Ativo',
   especialidade: '',
@@ -23,6 +24,7 @@ export default function UsuarioDialog({ usuario, onClose, onSalvar, salvando }) 
   useEffect(() => {
     if (!usuario) return;
     setForm({
+      nome: usuario.nome_completo || usuario.full_name || '',
       role: usuario.role || 'clinico',
       situacao: situacaoDoUsuario(usuario),
       especialidade: usuario.especialidade || '',
@@ -44,9 +46,12 @@ export default function UsuarioDialog({ usuario, onClose, onSalvar, salvando }) 
 
         {usuario && (
           <div className="space-y-4">
-            <div className="rounded-lg bg-muted/40 px-3 py-2">
-              <p className="text-sm font-medium">{usuario.full_name || 'Sem nome cadastrado'}</p>
-              <p className="text-xs text-muted-foreground">{usuario.email}</p>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Nome completo</Label>
+              <Input value={form.nome} onChange={(evento) => alterar('nome', evento.target.value)} />
+              <p className="text-[11px] text-muted-foreground">
+                A própria pessoa também pode ajustar esse nome em Meu perfil. Conta: {usuario.email}
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

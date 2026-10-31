@@ -38,11 +38,25 @@ export default async function (req) {
 
     const chavesDesejadas = new Set();
     const novos = [];
+    const atualizacoes = [];
     for (const desejado of desejados) {
       const chave = chaveAlerta(desejado.tipo, desejado.entidade_id, desejado.nivel);
       if (chavesDesejadas.has(chave)) continue;
       chavesDesejadas.add(chave);
-      if (abertos.has(chave)) continue;
+
+      const existente = abertos.get(chave);
+      if (existente) {
+        // O texto do alerta agrupado (ex.: "18 OS sem técnico") acompanha a situação atual.
+        if (existente.titulo !== desejado.titulo || existente.mensagem !== desejado.mensagem) {
+          atualizacoes.push({
+            id: existente.id,
+            titulo: desejado.titulo,
+            mensagem: desejado.mensagem,
+          });
+        }
+        continue;
+      }
+
       novos.push({ ...desejado, chave_dedupe: chave, status: 'Novo' });
     }
 
@@ -74,6 +88,10 @@ export default async function (req) {
       }
     };
 
+    const atualizar = async () => {
+      if (atualizacoes.length) await db.Alerta.bulkUpdate(atualizacoes);
+    };
+
     const contratosParaAtualizar = contratos
       .map((c) => ({
         id: c.id,
@@ -86,6 +104,7 @@ export default async function (req) {
     await Promise.all([
       inserir(),
       resolver(),
+      atualizar(),
       contratosParaAtualizar.length
         ? db.Contract.bulkUpdate(contratosParaAtualizar.map(({ id, status }) => ({ id, status })))
         : null,
@@ -115,6 +134,7 @@ export default async function (req) {
     return Response.json({
       ok: true,
       criados: novos.length,
+      atualizados: atualizacoes.length,
       resolvidos: paraResolver.length,
       desejados: desejados.length,
       contratosAtualizados: contratosParaAtualizar.length,

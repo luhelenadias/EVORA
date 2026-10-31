@@ -10,10 +10,15 @@ export function situacaoDoUsuario(usuario: any) {
   return usuario?.situacao || 'Ativo';
 }
 
+/** Nome exibido da pessoa: o nome editável em Meu perfil, senão o da conta. */
+export function nomeDaPessoa(usuario: any) {
+  return String(usuario?.nome_completo || usuario?.full_name || usuario?.email || '').trim() || 'Sem nome';
+}
+
 export function comoTecnico(usuario: any) {
   return {
     id: usuario?.id || '',
-    name: usuario?.full_name || usuario?.email || 'Técnico',
+    name: nomeDaPessoa(usuario),
     email: usuario?.email || '',
     phone: usuario?.phone || '',
     status: situacaoDoUsuario(usuario),

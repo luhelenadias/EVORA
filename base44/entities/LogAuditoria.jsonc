@@ -20,6 +20,7 @@
         "Upload de documento",
         "Extra\u00e7\u00e3o por IA",
         "Notifica\u00e7\u00e3o ao t\u00e9cnico",
+        "Mudan\u00e7a de perfil",
         "Ajuste administrativo"
       ],
       "type": "string"
@@ -39,7 +40,7 @@
       "type": "string"
     },
     "entidade_codigo": {
-      "description": "C\u00f3digo leg\u00edvel (c\u00f3digo da OS, n\u00ba do contrato, c\u00f3digo do equipamento)",
+      "description": "C\u00f3digo leg\u00edvel (c\u00f3digo da OS, n\u00ba do contrato, c\u00f3digo do equipamento, e-mail do usu\u00e1rio)",
       "type": "string"
     },
     "entidade_id": {
@@ -55,7 +56,8 @@
         "SparePart",
         "MaintenancePlan",
         "Acquisition",
-        "ConfiguracaoInstituicao"
+        "ConfiguracaoInstituicao",
+        "User"
       ],
       "type": "string"
     },
@@ -75,7 +77,7 @@
       "type": "string"
     },
     "tecnico_atribuido_id": {
-      "description": "TechTeam atribu\u00eddo \u00e0 OS no momento (pode diferir de quem executou a a\u00e7\u00e3o)",
+      "description": "Usu\u00e1rio da equipe t\u00e9cnica atribu\u00eddo \u00e0 OS no momento (pode diferir de quem executou a a\u00e7\u00e3o)",
       "type": "string"
     },
     "usuario_email": {

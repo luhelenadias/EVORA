@@ -5,7 +5,7 @@ import { corDoTecnico, horarioProgramado, temHorario } from '@/lib/preventivas';
 
 /** Item dentro do dia do calendário: código, equipamento, horário e cor do técnico. */
 export default function PreventiveChip({ order, equipment, tecnico, onClick, arrastavel = false, arrastando = false }) {
-  const nomeTecnico = tecnico?.name || order.technician_name;
+  const nomeTecnico = tecnico?.name || order.technician_name || 'Não atribuída';
 
   return (
     <button
@@ -38,7 +38,7 @@ export default function PreventiveChip({ order, equipment, tecnico, onClick, arr
 
       <p className="text-[10px] leading-tight text-muted-foreground truncate">
         {temHorario(order) && <span>{horarioProgramado(order)} · </span>}
-        {order.technician_id ? nomeTecnico || 'Técnico atribuído' : 'Sem técnico'}
+        {nomeTecnico}
       </p>
     </button>
   );

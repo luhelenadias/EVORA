@@ -11,15 +11,19 @@
         "gestor"
       ],
       "default": "clinico",
-      "description": "Tipo de usu\u00e1rio: admin = Administrativo, tecnico = Equipe t\u00e9cnica, clinico = Cl\u00ednica, gestor = Gest\u00e3o"
+      "description": "Tipo de usu\u00e1rio: admin = Administrativo, tecnico = Equipe t\u00e9cnica, clinico = Cl\u00ednica, gestor = Gest\u00e3o. Edit\u00e1vel apenas pelo administrador."
+    },
+    "nome_completo": {
+      "type": "string",
+      "description": "Nome completo edit\u00e1vel pela pr\u00f3pria pessoa em Meu perfil (o full_name da conta \u00e9 imut\u00e1vel e serve de valor inicial). \u00c9 o nome exibido em todo o sistema."
     },
     "phone": {
       "type": "string",
-      "description": "Telefone de contato"
+      "description": "Telefone de contato, edit\u00e1vel pela pr\u00f3pria pessoa"
     },
     "department": {
       "type": "string",
-      "description": "Setor/Departamento"
+      "description": "Setor/Departamento, edit\u00e1vel pela pr\u00f3pria pessoa"
     },
     "situacao": {
       "type": "string",
@@ -30,7 +34,7 @@
         "Inativo"
       ],
       "default": "Ativo",
-      "description": "Situa\u00e7\u00e3o do usu\u00e1rio. 'Inativo' substitui a exclus\u00e3o: o hist\u00f3rico de OS, agenda e auditoria \u00e9 preservado. S\u00f3 a Equipe t\u00e9cnica Ativa pode receber chamados."
+      "description": "Situa\u00e7\u00e3o do usu\u00e1rio. 'Inativo' substitui a exclus\u00e3o: o hist\u00f3rico de OS, agenda e auditoria \u00e9 preservado. S\u00f3 a Equipe t\u00e9cnica Ativa pode receber chamados. Edit\u00e1vel apenas pelo administrador."
     },
     "especialidade": {
       "type": "string",

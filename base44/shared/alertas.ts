@@ -65,6 +65,9 @@ const MS_DIA = 24 * 60 * 60 * 1000;
 const HORA = 60 * 60 * 1000;
 export const STATUS_AGUARDANDO = ['Aguardando Peça', 'Aguardando Fornecedor', 'Pendente'];
 
+/** Alerta único que agrupa as OS abertas sem técnico responsável. */
+export const SEM_TECNICO_ID = 'os-sem-tecnico';
+
 /** Chave de deduplicação: um alerta por tipo + registro + nível. */
 export function chaveAlerta(tipo, entidadeId, nivel) {
   return `${tipo}|${entidadeId}|${nivel}`;
@@ -334,17 +337,6 @@ export function gerarAlertas({ config, contratos = [], equipamentos = [], ordens
       tecnico_id: ordem.technician_id,
     };
 
-    if (ordem.status === 'Novo' && !ordem.technician_id) {
-      add({
-        ...base,
-        tipo: 'OS sem técnico',
-        nivel: 'Atenção',
-        titulo: `OS sem técnico — ${nome}`,
-        mensagem: `Aberta em ${dataBr(ordem.open_date)} e ainda sem responsável.`,
-        prazo_referencia: paraIso(ordem.open_date),
-      });
-    }
-
     if (STATUS_AGUARDANDO.includes(ordem.status)) {
       const diasParado = diasEntre(ordem.updated_date || ordem.open_date, agora);
       if (diasParado !== null && diasParado > cfg.alerta_chamado_parado_dias) {
@@ -359,6 +351,22 @@ export function gerarAlertas({ config, contratos = [], equipamentos = [], ordens
         });
       }
     }
+  }
+
+  // ── OS sem técnico: um único alerta agrupado, para não virar enxurrada ──
+  const semTecnico = ordens.filter((ordem) => ordem.status === 'Novo' && !ordem.technician_id);
+  if (semTecnico.length) {
+    const codigos = semTecnico.map((ordem) => ordem.code || ordem.equipment_name || '').filter(Boolean);
+    const lista = codigos.slice(0, 6).join(', ');
+    add({
+      tipo: 'OS sem técnico',
+      nivel: 'Atenção',
+      entidade_tipo: 'ServiceOrder',
+      entidade_id: SEM_TECNICO_ID,
+      entidade_codigo: `${semTecnico.length} OS`,
+      titulo: `${semTecnico.length} OS sem técnico`,
+      mensagem: `Abertas sem responsável: ${lista}${codigos.length > 6 ? ` e mais ${codigos.length - 6}` : ''}.`,
+    });
   }
 
   // ── Garantia e calibração (desligados por padrão) ──────────────

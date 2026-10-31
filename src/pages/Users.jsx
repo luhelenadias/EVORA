@@ -21,14 +21,14 @@ import UsuariosFiltros, { FILTROS_USUARIOS_INICIAIS } from '@/components/users/U
 import UsuariosTabela from '@/components/users/UsuariosTabela';
 import UsuarioDialog from '@/components/users/UsuarioDialog';
 import ConviteDialog from '@/components/users/ConviteDialog';
-import { PERFIL_TECNICO, situacaoDoUsuario } from '@/lib/tecnicos';
+import { PERFIL_TECNICO, nomeDaPessoa, situacaoDoUsuario } from '@/lib/tecnicos';
+import { registrarAuditoria } from '@/lib/auditoria';
 
-const SEM_ACESSO = 'Convite pendente';
+const CONVITE_PENDENTE = 'Convite pendente';
 
 /**
- * Tela única de pessoas: substitui a antiga Equipe Técnica. Quem é da equipe
- * técnica é um usuário com perfil técnico — especialidade, nível e situação
- * ficam no próprio cadastro.
+ * Tela única de pessoas: quem é da equipe técnica é um usuário com perfil
+ * técnico — especialidade, nível e situação ficam no próprio cadastro.
  */
 export default function Users() {
   const queryClient = useQueryClient();
@@ -46,41 +46,21 @@ export default function Users() {
         base44.entities.User.list(),
         base44.entities.ConviteUsuario.list(),
       ]);
-
-      // Quem foi convidado e já entrou recebe o tipo combinado no convite.
-      const pendentes = [];
-      let repontar = false;
-      for (const convite of convites || []) {
-        const email = String(convite.email || '').toLowerCase();
-        const pessoa = (usuarios || []).find((u) => String(u.email || '').toLowerCase() === email);
-        if (!pessoa) {
-          pendentes.push(convite);
-          continue;
-        }
-        await base44.entities.User.update(pessoa.id, {
-          role: convite.role,
-          ...(convite.especialidade ? { especialidade: convite.especialidade } : {}),
-          ...(convite.nivel ? { nivel: convite.nivel } : {}),
-        });
-        await base44.entities.ConviteUsuario.delete(convite.id);
-        repontar = true;
-      }
-
-      // Convite herdado da antiga Equipe Técnica: ao entrar, o histórico antigo
-      // (OS, alertas, agenda) passa a apontar para o ID do usuário.
-      if (repontar) await base44.functions.invoke('migrarEquipeTecnica', {}).catch(() => {});
-
-      return { usuarios: usuarios || [], convites: pendentes };
+      return { usuarios: usuarios || [], convites: convites || [] };
     },
   });
 
-  const recarregar = () => queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+  const recarregar = () => {
+    queryClient.invalidateQueries({ queryKey: ['usuarios'] });
+    queryClient.invalidateQueries({ queryKey: ['usuarios-tecnicos'] });
+    queryClient.invalidateQueries({ queryKey: ['me'] });
+  };
 
   const linhas = useMemo(() => {
     const pessoas = data.usuarios.map((usuario) => ({
       key: usuario.id,
       usuario,
-      nome: usuario.full_name || 'Sem nome cadastrado',
+      nome: nomeDaPessoa(usuario),
       email: usuario.email,
       role: usuario.role || 'clinico',
       situacao: situacaoDoUsuario(usuario),
@@ -93,10 +73,10 @@ export default function Users() {
     const convites = data.convites.map((convite) => ({
       key: `convite-${convite.id}`,
       convite,
-      nome: convite.nome || 'Convite enviado',
+      nome: convite.nome || 'Convite sem nome',
       email: convite.email,
       role: convite.role || 'clinico',
-      situacao: SEM_ACESSO,
+      situacao: CONVITE_PENDENTE,
       especialidade: convite.especialidade || '',
       nivel: convite.nivel || '',
       department: '',
@@ -116,21 +96,61 @@ export default function Users() {
       .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
   }, [data, filtros]);
 
+  /** Perfil e situação só mudam pelo administrador — e isso fica no log. */
+  const auditarPerfil = async (usuario, campo, anterior, novo) => {
+    if (String(anterior || '') === String(novo || '')) return;
+    await registrarAuditoria({
+      entidade_tipo: 'User',
+      entidade_id: usuario.id,
+      entidade_codigo: usuario.email || '',
+      acao: 'Mudança de perfil',
+      campo,
+      valor_anterior: anterior || '',
+      valor_novo: novo || '',
+      motivo: `Alterado pelo administrador · ${nomeDaPessoa(usuario)}`,
+    });
+  };
+
+  /** Aviso personalizado com o nome; o e-mail de acesso é o do convite. */
+  const enviarEmailDeConvite = async ({ nome, email, role }) => {
+    try {
+      await base44.integrations.Core.SendEmail({
+        to: email,
+        template_name: 'ConviteUsuario',
+        variables: { nome, email, tipo: role },
+        category: 'transactional',
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const convidar = async (form, fechar) => {
     const email = form.email.trim().toLowerCase();
+    const nome = form.nome.trim();
+    if (!nome) {
+      toast.error('Informe o nome completo de quem vai ser convidado');
+      return;
+    }
     setEnviandoConvite(true);
     try {
       await base44.users.inviteUser(email, form.role === 'admin' ? 'admin' : 'user');
       await base44.entities.ConviteUsuario.create({
         email,
-        nome: '',
+        nome,
         role: form.role,
         especialidade: form.especialidade || '',
         nivel: form.nivel || '',
         convidado_em: new Date().toISOString(),
       });
+      const enviado = await enviarEmailDeConvite({ nome, email, role: form.role });
       fechar();
-      toast.success(`Convite enviado para ${email}`);
+      toast.success(
+        enviado
+          ? `Convite enviado para ${nome} (${email})`
+          : `Convite registrado para ${email}. O e-mail de acesso é o do convite do sistema.`
+      );
       recarregar();
     } catch (erro) {
       toast.error(erro?.message || 'Não foi possível enviar o convite');
@@ -141,16 +161,23 @@ export default function Users() {
 
   const salvarUsuario = async (form) => {
     if (!editando) return;
+    const usuario = editando.usuario;
+    const ehTecnico = form.role === PERFIL_TECNICO;
     setSalvando(true);
     try {
-      await base44.entities.User.update(editando.usuario.id, {
+      // Valor de partida lido na hora: duas edições seguidas não perdem o registro no log.
+      const antes = await base44.entities.User.get(usuario.id).catch(() => usuario);
+      await base44.entities.User.update(usuario.id, {
+        nome_completo: form.nome.trim(),
         role: form.role,
         situacao: form.situacao,
-        especialidade: form.role === PERFIL_TECNICO ? form.especialidade : editando.usuario.especialidade || '',
-        nivel: form.role === PERFIL_TECNICO ? form.nivel : editando.usuario.nivel || '',
+        especialidade: ehTecnico ? form.especialidade : usuario.especialidade || '',
+        nivel: ehTecnico ? form.nivel : usuario.nivel || '',
         phone: form.phone,
         department: form.department,
       });
+      await auditarPerfil(usuario, 'role', antes.role, form.role);
+      await auditarPerfil(usuario, 'situacao', situacaoDoUsuario(antes), form.situacao);
       setEditando(null);
       toast.success('Usuário atualizado');
       recarregar();
@@ -162,9 +189,15 @@ export default function Users() {
   };
 
   const mudarSituacao = async (usuario, situacao) => {
-    await base44.entities.User.update(usuario.id, { situacao });
-    toast.success(situacao === 'Inativo' ? 'Usuário desativado — histórico preservado' : 'Usuário reativado');
-    recarregar();
+    try {
+      const antes = await base44.entities.User.get(usuario.id).catch(() => usuario);
+      await base44.entities.User.update(usuario.id, { situacao });
+      await auditarPerfil(usuario, 'situacao', situacaoDoUsuario(antes), situacao);
+      toast.success(situacao === 'Inativo' ? 'Usuário desativado — histórico preservado' : 'Usuário reativado');
+      recarregar();
+    } catch (erro) {
+      toast.error(erro?.message || 'Não foi possível alterar a situação');
+    }
   };
 
   const desativar = async () => {
@@ -179,6 +212,7 @@ export default function Users() {
       await base44.entities.ConviteUsuario.update(linha.convite.id, {
         convidado_em: new Date().toISOString(),
       });
+      await enviarEmailDeConvite({ nome: linha.convite.nome || linha.nome, email: linha.email, role: linha.role });
       toast.success(`Convite reenviado para ${linha.email}`);
     } catch (erro) {
       toast.error(erro?.message || 'Não foi possível reenviar o convite');
@@ -186,9 +220,13 @@ export default function Users() {
   };
 
   const cancelarConvite = async (linha) => {
-    await base44.entities.ConviteUsuario.delete(linha.convite.id);
-    toast.success('Convite cancelado');
-    recarregar();
+    try {
+      await base44.entities.ConviteUsuario.delete(linha.convite.id);
+      toast.success('Convite cancelado');
+      recarregar();
+    } catch (erro) {
+      toast.error(erro?.message || 'Não foi possível cancelar o convite');
+    }
   };
 
   if (isLoading) {

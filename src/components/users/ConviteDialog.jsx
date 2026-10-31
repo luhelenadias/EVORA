@@ -9,14 +9,16 @@ import { PERFIS, ROLE_LABELS } from '@/lib/roles';
 import { ESPECIALIDADES, NIVEIS_TECNICOS, PERFIL_TECNICO } from '@/lib/tecnicos';
 
 /** Convite de usuário: e-mail, tipo e, para a equipe técnica, especialidade e nível. */
+const VAZIO = { nome: '', email: '', role: 'tecnico', especialidade: '', nivel: '' };
+
 export default function ConviteDialog({ open, onClose, onConvidar, enviando }) {
-  const [form, setForm] = useState({ email: '', role: 'tecnico', especialidade: '', nivel: '' });
+  const [form, setForm] = useState(VAZIO);
 
   const alterar = (campo, valor) => setForm((atual) => ({ ...atual, [campo]: valor }));
   const ehTecnico = form.role === PERFIL_TECNICO;
 
   const fechar = () => {
-    setForm({ email: '', role: 'tecnico', especialidade: '', nivel: '' });
+    setForm(VAZIO);
     onClose();
   };
 
@@ -33,6 +35,19 @@ export default function ConviteDialog({ open, onClose, onConvidar, enviando }) {
         </DialogHeader>
 
         <form onSubmit={enviar} className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Nome completo *</Label>
+            <Input
+              value={form.nome}
+              onChange={(evento) => alterar('nome', evento.target.value)}
+              placeholder="Ex: Maria Souza"
+              required
+            />
+            <p className="text-[11px] text-muted-foreground">
+              Esse nome aparece no e-mail do convite e já fica gravado no perfil quando a pessoa entrar.
+            </p>
+          </div>
+
           <div className="space-y-1.5">
             <Label className="text-xs">E-mail *</Label>
             <Input

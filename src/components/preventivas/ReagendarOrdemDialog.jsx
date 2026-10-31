@@ -88,7 +88,7 @@ export default function ReagendarOrdemDialog({ ordem, equipment, tecnicos = [], 
                 <Select value={tecnicoId} onValueChange={setTecnicoId}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sem">Sem técnico</SelectItem>
+                    <SelectItem value="sem">Não atribuída</SelectItem>
                     {tecnicos.map((tecnico) => (
                       <SelectItem key={tecnico.id} value={tecnico.id}>
                         {tecnico.name}{tecnico.status && tecnico.status !== 'Ativo' ? ` · ${tecnico.status}` : ''}

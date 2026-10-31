@@ -74,7 +74,7 @@ export default function ConfirmarReagendamentoDialog({ dados, onConfirmar, onCan
             }
           />
           <Linha rotulo="Prioridade" valor={order?.priority || '—'} />
-          <Linha rotulo="Técnico" valor={tecnico?.name || order?.technician_name || 'Sem técnico'} />
+          <Linha rotulo="Técnico" valor={tecnico?.name || order?.technician_name || 'Não atribuída'} />
           <Linha rotulo="Data atual" valor={formatarData(dataAtual)} />
           <div className="flex items-center justify-end gap-2 py-2">
             <ArrowRight className="h-4 w-4 text-muted-foreground" />

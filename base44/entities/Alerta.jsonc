@@ -32,7 +32,7 @@
       "type": "string"
     },
     "entidade_id": {
-      "description": "ID do registro que originou o alerta",
+      "description": "ID do registro que originou o alerta. No alerta agrupado 'OS sem t\u00e9cnico' vale o identificador fixo 'os-sem-tecnico'.",
       "type": "string"
     },
     "entidade_tipo": {
@@ -91,7 +91,7 @@
       "type": "string"
     },
     "tecnico_id": {
-      "description": "ID do TechTeam respons\u00e1vel, quando o alerta \u00e9 pessoal (ex.: preventiva atribu\u00edda a ele)",
+      "description": "Usu\u00e1rio da equipe t\u00e9cnica respons\u00e1vel, quando o alerta \u00e9 pessoal (ex.: preventiva atribu\u00edda a ele)",
       "type": "string"
     },
     "tipo": {
