@@ -1,185 +1,267 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useMemo, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
-import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Settings, Search, Pencil, UserPlus } from 'lucide-react';
+import { Users as UsersIcon } from 'lucide-react';
+import { toast } from 'sonner';
+import { Card } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
-import { ROLE_LABELS } from '@/lib/roles';
-import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import UsuariosFiltros, { FILTROS_USUARIOS_INICIAIS } from '@/components/users/UsuariosFiltros';
+import UsuariosTabela from '@/components/users/UsuariosTabela';
+import UsuarioDialog from '@/components/users/UsuarioDialog';
+import ConviteDialog from '@/components/users/ConviteDialog';
+import { PERFIL_TECNICO, situacaoDoUsuario } from '@/lib/tecnicos';
 
-const roleBadgeColors = {
-  admin: 'bg-primary/10 text-primary border-primary/20',
-  tecnico: 'bg-warning/20 text-warning-foreground border-warning/40',
-  clinico: 'bg-primary/10 text-primary border-primary/25',
-  gestor: 'bg-muted text-muted-foreground border-border',
-};
+const SEM_ACESSO = 'Convite pendente';
 
+/**
+ * Tela única de pessoas: substitui a antiga Equipe Técnica. Quem é da equipe
+ * técnica é um usuário com perfil técnico — especialidade, nível e situação
+ * ficam no próprio cadastro.
+ */
 export default function Users() {
-  const [search, setSearch] = useState('');
-  const [showInvite, setShowInvite] = useState(false);
-  const [editingUser, setEditingUser] = useState(null);
-  const [inviteForm, setInviteForm] = useState({ email: '', role: 'clinico' });
   const queryClient = useQueryClient();
+  const [filtros, setFiltros] = useState(FILTROS_USUARIOS_INICIAIS);
+  const [editando, setEditando] = useState(null);
+  const [convidando, setConvidando] = useState(false);
+  const [enviandoConvite, setEnviandoConvite] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [desativando, setDesativando] = useState(null);
 
-  const { data: users = [], isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => base44.entities.User.list(),
-  });
+  const { data = { usuarios: [], convites: [] }, isLoading } = useQuery({
+    queryKey: ['usuarios'],
+    queryFn: async () => {
+      const [usuarios, convites] = await Promise.all([
+        base44.entities.User.list(),
+        base44.entities.ConviteUsuario.list(),
+      ]);
 
-  const updateMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.User.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      setEditingUser(null);
-      toast.success('Usuário atualizado!');
+      // Quem foi convidado e já entrou recebe o tipo combinado no convite.
+      const pendentes = [];
+      let repontar = false;
+      for (const convite of convites || []) {
+        const email = String(convite.email || '').toLowerCase();
+        const pessoa = (usuarios || []).find((u) => String(u.email || '').toLowerCase() === email);
+        if (!pessoa) {
+          pendentes.push(convite);
+          continue;
+        }
+        await base44.entities.User.update(pessoa.id, {
+          role: convite.role,
+          ...(convite.especialidade ? { especialidade: convite.especialidade } : {}),
+          ...(convite.nivel ? { nivel: convite.nivel } : {}),
+        });
+        await base44.entities.ConviteUsuario.delete(convite.id);
+        repontar = true;
+      }
+
+      // Convite herdado da antiga Equipe Técnica: ao entrar, o histórico antigo
+      // (OS, alertas, agenda) passa a apontar para o ID do usuário.
+      if (repontar) await base44.functions.invoke('migrarEquipeTecnica', {}).catch(() => {});
+
+      return { usuarios: usuarios || [], convites: pendentes };
     },
   });
 
-  const filtered = users.filter(u =>
-    !search || u.full_name?.toLowerCase().includes(search.toLowerCase()) || u.email?.toLowerCase().includes(search.toLowerCase())
-  );
+  const recarregar = () => queryClient.invalidateQueries({ queryKey: ['usuarios'] });
 
-  const handleInvite = async (e) => {
-    e.preventDefault();
-    const roleMap = { admin: 'admin', tecnico: 'user', clinico: 'user', gestor: 'user' };
-    await base44.users.inviteUser(inviteForm.email, roleMap[inviteForm.role] || 'user');
-    toast.success('Convite enviado!');
-    setShowInvite(false);
-    setInviteForm({ email: '', role: 'clinico' });
+  const linhas = useMemo(() => {
+    const pessoas = data.usuarios.map((usuario) => ({
+      key: usuario.id,
+      usuario,
+      nome: usuario.full_name || 'Sem nome cadastrado',
+      email: usuario.email,
+      role: usuario.role || 'clinico',
+      situacao: situacaoDoUsuario(usuario),
+      especialidade: usuario.especialidade || '',
+      nivel: usuario.nivel || '',
+      department: usuario.department || '',
+      convitePendente: false,
+    }));
+
+    const convites = data.convites.map((convite) => ({
+      key: `convite-${convite.id}`,
+      convite,
+      nome: convite.nome || 'Convite enviado',
+      email: convite.email,
+      role: convite.role || 'clinico',
+      situacao: SEM_ACESSO,
+      especialidade: convite.especialidade || '',
+      nivel: convite.nivel || '',
+      department: '',
+      convitePendente: true,
+    }));
+
+    const termo = filtros.busca.trim().toLowerCase();
+    return [...pessoas, ...convites]
+      .filter((linha) => !filtros.tipo.length || filtros.tipo.includes(linha.role))
+      .filter((linha) => !filtros.situacao.length || filtros.situacao.includes(linha.situacao))
+      .filter(
+        (linha) =>
+          !termo ||
+          linha.nome.toLowerCase().includes(termo) ||
+          String(linha.email || '').toLowerCase().includes(termo)
+      )
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  }, [data, filtros]);
+
+  const convidar = async (form, fechar) => {
+    const email = form.email.trim().toLowerCase();
+    setEnviandoConvite(true);
+    try {
+      await base44.users.inviteUser(email, form.role === 'admin' ? 'admin' : 'user');
+      await base44.entities.ConviteUsuario.create({
+        email,
+        nome: '',
+        role: form.role,
+        especialidade: form.especialidade || '',
+        nivel: form.nivel || '',
+        convidado_em: new Date().toISOString(),
+      });
+      fechar();
+      toast.success(`Convite enviado para ${email}`);
+      recarregar();
+    } catch (erro) {
+      toast.error(erro?.message || 'Não foi possível enviar o convite');
+    } finally {
+      setEnviandoConvite(false);
+    }
   };
 
-  const handleRoleUpdate = () => {
-    if (editingUser) {
-      updateMutation.mutate({ id: editingUser.id, data: { role: editingUser.role } });
+  const salvarUsuario = async (form) => {
+    if (!editando) return;
+    setSalvando(true);
+    try {
+      await base44.entities.User.update(editando.usuario.id, {
+        role: form.role,
+        situacao: form.situacao,
+        especialidade: form.role === PERFIL_TECNICO ? form.especialidade : editando.usuario.especialidade || '',
+        nivel: form.role === PERFIL_TECNICO ? form.nivel : editando.usuario.nivel || '',
+        phone: form.phone,
+        department: form.department,
+      });
+      setEditando(null);
+      toast.success('Usuário atualizado');
+      recarregar();
+    } catch (erro) {
+      toast.error(erro?.message || 'Não foi possível salvar');
+    } finally {
+      setSalvando(false);
     }
+  };
+
+  const mudarSituacao = async (usuario, situacao) => {
+    await base44.entities.User.update(usuario.id, { situacao });
+    toast.success(situacao === 'Inativo' ? 'Usuário desativado — histórico preservado' : 'Usuário reativado');
+    recarregar();
+  };
+
+  const desativar = async () => {
+    if (!desativando) return;
+    await mudarSituacao(desativando.usuario, 'Inativo');
+    setDesativando(null);
+  };
+
+  const reenviarConvite = async (linha) => {
+    try {
+      await base44.users.inviteUser(linha.email, linha.role === 'admin' ? 'admin' : 'user');
+      await base44.entities.ConviteUsuario.update(linha.convite.id, {
+        convidado_em: new Date().toISOString(),
+      });
+      toast.success(`Convite reenviado para ${linha.email}`);
+    } catch (erro) {
+      toast.error(erro?.message || 'Não foi possível reenviar o convite');
+    }
+  };
+
+  const cancelarConvite = async (linha) => {
+    await base44.entities.ConviteUsuario.delete(linha.convite.id);
+    toast.success('Convite cancelado');
+    recarregar();
   };
 
   if (isLoading) {
     return <div className="space-y-6"><Skeleton className="h-8 w-48" /><Skeleton className="h-72" /></div>;
   }
 
+  const tecnicosAtivos = data.usuarios.filter(
+    (u) => u.role === PERFIL_TECNICO && situacaoDoUsuario(u) === 'Ativo'
+  ).length;
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Usuários" subtitle={`${users.length} usuários`} onAdd={() => setShowInvite(true)} addLabel="Convidar Usuário" />
+      <PageHeader
+        title="Usuários"
+        subtitle={`${data.usuarios.length} usuário(s) · ${data.convites.length} convite(s) pendente(s) · ${tecnicosAtivos} na equipe técnica ativa`}
+        onAdd={() => setConvidando(true)}
+        addLabel="Convidar usuário"
+      />
 
       <Card>
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input placeholder="Buscar por nome ou e-mail..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
-          </div>
-        </CardContent>
+        <div className="p-4">
+          <UsuariosFiltros filtros={filtros} onChange={setFiltros} />
+        </div>
       </Card>
 
-      {filtered.length === 0 ? (
-        <EmptyState icon={Settings} title="Nenhum usuário encontrado" />
+      {linhas.length === 0 ? (
+        <EmptyState
+          icon={UsersIcon}
+          title="Nenhuma pessoa com esses filtros"
+          description="Ajuste o tipo, a situação ou a busca para encontrar quem procura."
+        />
       ) : (
         <Card>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-muted/50">
-                  <TableHead className="text-xs font-semibold">Nome</TableHead>
-                  <TableHead className="text-xs font-semibold">E-mail</TableHead>
-                  <TableHead className="text-xs font-semibold">Perfil</TableHead>
-                  <TableHead className="text-xs font-semibold w-16"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(u => (
-                  <TableRow key={u.id}>
-                    <TableCell className="font-medium text-sm">{u.full_name || '—'}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={`text-[11px] border ${roleBadgeColors[u.role] || roleBadgeColors.clinico}`}>
-                        {ROLE_LABELS[u.role] || u.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setEditingUser({ ...u })}>
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <UsuariosTabela
+            linhas={linhas}
+            onEditar={setEditando}
+            onDesativar={setDesativando}
+            onReativar={(linha) => mudarSituacao(linha.usuario, 'Ativo')}
+            onReenviarConvite={reenviarConvite}
+            onCancelarConvite={cancelarConvite}
+          />
         </Card>
       )}
 
-      {/* Invite dialog */}
-      <Dialog open={showInvite} onOpenChange={setShowInvite}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">Convidar Usuário</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleInvite} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">E-mail *</Label>
-              <Input type="email" value={inviteForm.email} onChange={e => setInviteForm(p => ({...p, email: e.target.value}))} required />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Perfil</Label>
-              <Select value={inviteForm.role} onValueChange={v => setInviteForm(p => ({...p, role: v}))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="tecnico">Técnico de Manutenção</SelectItem>
-                  <SelectItem value="clinico">Clínico</SelectItem>
-                  <SelectItem value="gestor">Gestor de Eng. Clínica</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button type="button" variant="outline" onClick={() => setShowInvite(false)}>Cancelar</Button>
-              <Button type="submit" className="gap-1.5"><UserPlus className="w-4 h-4" /> Enviar Convite</Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <UsuarioDialog
+        usuario={editando?.usuario || null}
+        onClose={() => setEditando(null)}
+        onSalvar={salvarUsuario}
+        salvando={salvando}
+      />
 
-      {/* Edit role dialog */}
-      <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="font-display">Editar Perfil do Usuário</DialogTitle>
-          </DialogHeader>
-          {editingUser && (
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium">{editingUser.full_name}</p>
-                <p className="text-xs text-muted-foreground">{editingUser.email}</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Perfil</Label>
-                <Select value={editingUser.role || 'clinico'} onValueChange={v => setEditingUser(p => ({...p, role: v}))}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Administrador</SelectItem>
-                    <SelectItem value="tecnico">Técnico de Manutenção</SelectItem>
-                    <SelectItem value="clinico">Clínico</SelectItem>
-                    <SelectItem value="gestor">Gestor de Eng. Clínica</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button variant="outline" onClick={() => setEditingUser(null)}>Cancelar</Button>
-                <Button onClick={handleRoleUpdate} disabled={updateMutation.isPending}>Salvar</Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <ConviteDialog
+        open={convidando}
+        onClose={() => setConvidando(false)}
+        onConvidar={convidar}
+        enviando={enviandoConvite}
+      />
+
+      <AlertDialog open={!!desativando} onOpenChange={(aberto) => !aberto && setDesativando(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar este usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {desativando?.nome} sai da equipe ativa, mas o histórico de chamados, agenda e auditoria continua intacto.
+              Nada é excluído.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={desativar}>Desativar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

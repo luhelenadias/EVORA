@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { candidatasASugestao, motivoPadrao, formatarDiaBr, sugerirData } from '../../shared/agendaRegras.ts';
+import { listarTecnicos } from '../../shared/tecnicos.ts';
 
 const LIMITE = 12;
 
@@ -18,11 +19,24 @@ export default async function (req: Request): Promise<Response> {
     const [ordens, equipamentos, tecnicos, pendentes] = await Promise.all([
       base44.entities.ServiceOrder.list(),
       base44.entities.Equipment.list(),
-      base44.entities.TechTeam.list(),
+      listarTecnicos(base44),
       base44.entities.SugestaoAgenda.filter({ status: 'Pendente' }),
     ]);
 
-    const comSugestao = new Set((pendentes || []).map((s: any) => s.service_order_id));
+    // Sugestão com data já passada não vale mais: expira e é gerada de novo abaixo.
+    const agoraIso = new Date().toISOString();
+    const vencidas = (pendentes || []).filter(
+      (s: any) => s.data_sugerida && new Date(s.data_sugerida).getTime() < Date.now()
+    );
+    if (vencidas.length) {
+      await base44.entities.SugestaoAgenda.bulkUpdate(
+        vencidas.map((s: any) => ({ id: s.id, status: 'Expirada', resolvida_em: agoraIso }))
+      );
+    }
+    const vencidasIds = new Set(vencidas.map((s: any) => s.id));
+    const vigentes = (pendentes || []).filter((s: any) => !vencidasIds.has(s.id));
+
+    const comSugestao = new Set(vigentes.map((s: any) => s.service_order_id));
     const equipamentoPorId = new Map((equipamentos || []).map((e: any) => [e.id, e]));
 
     const candidatas = candidatasASugestao(ordens || [])
@@ -54,7 +68,7 @@ export default async function (req: Request): Promise<Response> {
     }
 
     if (!sugestoes.length) {
-      return Response.json({ geradas: 0, sugestoes: [] });
+      return Response.json({ geradas: 0, expiradas: vencidas.length, sugestoes: [] });
     }
 
     const criadas = await base44.entities.SugestaoAgenda.bulkCreate(sugestoes);
@@ -123,7 +137,7 @@ ${JSON.stringify(fatos, null, 2)}`,
       // Sem IA, fica o motivo determinístico já gravado.
     }
 
-    return Response.json({ geradas: (criadas || []).length });
+    return Response.json({ geradas: (criadas || []).length, expiradas: vencidas.length });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

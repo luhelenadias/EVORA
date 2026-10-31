@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { suggestPriorityDeEquipamento } from '@/lib/maintenance';
 import { rotuloScore } from '@/lib/priorizacao';
+import { useTecnicos } from '@/lib/tecnicos';
 
 export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }) {
   const { data: equipment = [] } = useQuery({
@@ -15,10 +16,8 @@ export default function OrderForm({ order, onSubmit, onCancel, isLoading, user }
     queryFn: () => base44.entities.Equipment.list(),
   });
 
-  const { data: technicians = [] } = useQuery({
-    queryKey: ['techTeam'],
-    queryFn: () => base44.entities.TechTeam.filter({ status: 'Ativo' }),
-  });
+  // Só a equipe técnica ativa pode receber chamados.
+  const { tecnicos: technicians } = useTecnicos({ ativos: true });
 
   const [form, setForm] = useState({
     type: order?.type || 'Corretiva',

@@ -33,6 +33,7 @@ import { calcularMtbf, calcularMttr, calcularTempoMedioAtendimento, frequenciaPo
 import { minutosDeAtendimento, slaDeAtendimento } from '@/lib/atendimento';
 import { GRUPOS_CENTRAL, ORDENACOES } from '@/lib/central';
 import { registrarAuditoria } from '@/lib/auditoria';
+import { useTecnicos } from '@/lib/tecnicos';
 
 const PERFIS_COM_INDICADORES_POR_TECNICO = ['admin', 'gestor'];
 
@@ -81,10 +82,13 @@ export default function Maintenance() {
     queryFn: () => base44.entities.Contract.list(),
   });
 
-  const { data: tecnicos = [] } = useQuery({
-    queryKey: ['techTeam'],
-    queryFn: () => base44.entities.TechTeam.list(),
-  });
+  // Equipe técnica = usuários com perfil técnico (ver src/lib/tecnicos.js).
+  const { tecnicos } = useTecnicos();
+  // Quem está Inativo sai da equipe: aparece no histórico, não recebe atribuição.
+  const tecnicosAtribuiveis = useMemo(
+    () => tecnicos.filter((tecnico) => tecnico.status !== 'Inativo'),
+    [tecnicos]
+  );
 
   const { data: sugestoes = [] } = useQuery({
     queryKey: ['sugestoesAgenda'],
@@ -140,13 +144,16 @@ export default function Maintenance() {
   const role = user?.role || 'clinico';
   const podeVerPorTecnico = PERFIS_COM_INDICADORES_POR_TECNICO.includes(role);
 
-  const meuTecnicoId = useMemo(() => {
-    if (!user) return null;
-    const email = String(user.email || '').toLowerCase();
-    const meu = tecnicos.find((t) => t.user_id === user.id) ||
-      tecnicos.find((t) => t.email && t.email.toLowerCase() === email);
-    return meu?.id || null;
-  }, [user, tecnicos]);
+  // Técnico é o próprio usuário: as OS atribuídas a ele guardam o ID da conta.
+  const meuTecnicoId = role === 'tecnico' ? user?.id || null : null;
+
+  // Quem é da equipe técnica abre o calendário já em "Minha agenda".
+  useEffect(() => {
+    if (!meuTecnicoId) return;
+    setFiltrosCalendario((atual) =>
+      (atual.tecnico || []).length ? atual : { ...atual, tecnico: [meuTecnicoId] }
+    );
+  }, [meuTecnicoId]);
 
   const recalcularAlertas = async () => {
     await base44.functions.invoke('verificarAlertas', {}).catch(() => {});
@@ -229,8 +236,10 @@ export default function Maintenance() {
     try {
       const resposta = await base44.functions.invoke('sugerirAgenda', {});
       const geradas = resposta?.data?.geradas || 0;
+      const expiradas = resposta?.data?.expiradas || 0;
+      // Sugestões vencidas saem da lista mesmo quando nada novo é gerado.
+      if (geradas || expiradas) queryClient.invalidateQueries({ queryKey: ['sugestoesAgenda'] });
       if (geradas) {
-        queryClient.invalidateQueries({ queryKey: ['sugestoesAgenda'] });
         toast.success(`${geradas} sugestão(ões) de data geradas`);
       } else if (!silencioso) {
         toast.info('Nenhuma OS sem data ou atrasada precisa de sugestão agora');
@@ -780,7 +789,7 @@ export default function Maintenance() {
         <ReagendarOrdemDialog
           ordem={ordemAgenda}
           equipment={equipmentById[ordemAgenda.equipment_id]}
-          tecnicos={tecnicos}
+          tecnicos={tecnicosAtribuiveis}
           ordens={orders}
           onSalvar={salvarAgendamento}
           onAbrirOS={(order) => {

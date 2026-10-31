@@ -19,7 +19,6 @@ const ICONES = {
   abrir_chamado: PlusCircle,
   equipamentos: Monitor,
   manutencoes: Wrench,
-  equipe: Users,
   contratos: FileText,
   pecas: Package,
   indicadores: BarChart2,

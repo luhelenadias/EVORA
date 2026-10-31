@@ -27,6 +27,8 @@ const statusStyles = {
   'Sem Estoque': alerta,
   'Em Férias': atencao,
   'Afastado': neutro,
+  'Inativo': neutro,
+  'Convite pendente': atencao,
   'Suspenso': neutro,
   'Dentro do Prazo': ok,
   'Atrasado': alerta,

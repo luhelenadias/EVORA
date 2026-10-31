@@ -13,12 +13,6 @@ export function useAlertas() {
     queryFn: () => base44.auth.me().catch(() => null),
   });
 
-  const { data: tecnicos = [] } = useQuery({
-    queryKey: ['techteam'],
-    queryFn: () => base44.entities.TechTeam.list(),
-    enabled: !!user,
-  });
-
   const { data: alertas = [], isLoading } = useQuery({
     queryKey: ['alertas'],
     queryFn: () => base44.entities.Alerta.list(),
@@ -27,15 +21,8 @@ export function useAlertas() {
 
   const role = user?.role || 'clinico';
 
-  const tecnico = useMemo(() => {
-    if (role !== 'tecnico' || !user) return null;
-    const email = (user.email || '').toLowerCase();
-    return (
-      tecnicos.find((t) => t.user_id === user.id) ||
-      tecnicos.find((t) => t.email && t.email.toLowerCase() === email) ||
-      null
-    );
-  }, [role, user, tecnicos]);
+  // O técnico é o próprio usuário: os alertas guardam o ID da conta.
+  const tecnico = role === 'tecnico' ? user : null;
 
   const visiveis = useMemo(
     () => alertas.filter((a) => alertaVisivel(a, role, tecnico?.id)),

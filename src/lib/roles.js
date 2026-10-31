@@ -8,10 +8,10 @@ export const ROLES = {
 };
 
 export const ROLE_LABELS = {
-  admin: 'Administrador',
-  tecnico: 'Técnico de Manutenção',
-  clinico: 'Clínico',
-  gestor: 'Gestor de Eng. Clínica',
+  admin: 'Administrativo',
+  tecnico: 'Equipe técnica',
+  clinico: 'Clínica',
+  gestor: 'Gestão',
 };
 
 /** Perfis na ordem em que aparecem nas telas de configuração. */
@@ -27,7 +27,6 @@ export const ABAS = [
   { key: 'abrir_chamado', label: 'Abrir Chamado', path: '/chamados/novo' },
   { key: 'equipamentos', label: 'Equipamentos', path: '/equipamentos' },
   { key: 'manutencoes', label: 'Manutenções', path: '/manutencoes' },
-  { key: 'equipe', label: 'Equipe Técnica', path: '/equipe' },
   { key: 'contratos', label: 'Contratos', path: '/contratos' },
   { key: 'pecas', label: 'Peças', path: '/pecas' },
   { key: 'indicadores', label: 'Indicadores', path: '/indicadores' },
@@ -39,7 +38,7 @@ export const ABAS = [
 /** Pré-definições por perfil, aplicadas enquanto o administrador não personalizar. */
 export const ACESSOS_PADRAO = {
   admin: [
-    'dashboard', 'chamados', 'equipamentos', 'equipe', 'manutencoes',
+    'dashboard', 'chamados', 'equipamentos', 'manutencoes',
     'contratos', 'pecas', 'indicadores', 'usuarios', 'auditoria', 'configuracoes',
   ],
   gestor: ['dashboard', 'chamados', 'equipamentos', 'manutencoes', 'contratos', 'indicadores', 'auditoria'],

@@ -1,0 +1,76 @@
+{
+  "name": "ConviteUsuario",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "E-mail convidado"
+    },
+    "nome": {
+      "type": "string",
+      "description": "Nome, quando conhecido (convites trazidos da antiga Equipe T\u00e9cnica)"
+    },
+    "role": {
+      "type": "string",
+      "enum": [
+        "admin",
+        "tecnico",
+        "clinico",
+        "gestor"
+      ],
+      "default": "clinico",
+      "description": "Tipo de usu\u00e1rio escolhido no convite; aplicado ao cadastro quando a pessoa entra"
+    },
+    "especialidade": {
+      "type": "string",
+      "enum": [
+        "El\u00e9trica",
+        "Mec\u00e2nica",
+        "Biom\u00e9dica",
+        "TI"
+      ]
+    },
+    "nivel": {
+      "type": "string",
+      "enum": [
+        "J\u00fanior",
+        "Pleno",
+        "S\u00eanior"
+      ]
+    },
+    "convidado_por": {
+      "type": "string",
+      "description": "Nome de quem enviou o convite"
+    },
+    "convidado_em": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "email",
+    "role"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

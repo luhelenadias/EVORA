@@ -21,7 +21,6 @@ import Equipment from '@/pages/Equipment';
 import ServiceOrders from '@/pages/ServiceOrders';
 import Maintenance from '@/pages/Maintenance';
 import Contracts from '@/pages/Contracts';
-import TechTeam from '@/pages/TechTeam';
 import SpareParts from '@/pages/SpareParts';
 import Users from '@/pages/Users';
 import Indicators from '@/pages/Indicators';
@@ -58,6 +57,8 @@ const AuthenticatedApp = () => {
 
       {/* Protected app routes */}
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        {/* Equipe Técnica foi fundida em Usuários */}
+        <Route path="/equipe" element={<Navigate to="/usuarios" replace />} />
         <Route element={<AppLayout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/equipamentos" element={<Equipment />} />
@@ -66,7 +67,7 @@ const AuthenticatedApp = () => {
           <Route path="/chamados/novo" element={<ServiceOrders />} />
           <Route path="/manutencoes" element={<Maintenance />} />
           <Route path="/contratos" element={<Contracts />} />
-          <Route path="/equipe" element={<TechTeam />} />
+
           <Route path="/pecas" element={<SpareParts />} />
           <Route path="/usuarios" element={<Users />} />
           <Route path="/auditoria" element={<Auditoria />} />

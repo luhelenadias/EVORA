@@ -1,5 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 import { EVENTOS, juntarEvento } from '../../shared/notificacaoEmail.ts';
+import { listarTecnicos } from '../../shared/tecnicos.ts';
 
 /** Espera antes do envio: várias mudanças seguidas na mesma OS viram um só e-mail. */
 const ESPERA_MINUTOS = 3;
@@ -27,7 +28,8 @@ export default async function (req: Request): Promise<Response> {
       .catch((e) => (e.status === 404 ? null : Promise.reject(e)));
     if (!ordem) return Response.json({ error: 'Ordem de serviço não encontrada' }, { status: 404 });
 
-    const tecnicos = await base44.asServiceRole.entities.TechTeam.list();
+    // O responsável pela OS é um usuário (perfil Equipe técnica): o e-mail vem da conta dele.
+    const tecnicos = await listarTecnicos(base44);
     const encontrar = (id: string) => (id ? tecnicos.find((t: any) => t.id === id) || null : null);
 
     const novo = encontrar(depois?.technician_id);
@@ -37,7 +39,7 @@ export default async function (req: Request): Promise<Response> {
     // Quem alterou não recebe aviso da própria mudança.
     const ehProprio = (tecnico: any) => {
       if (!tecnico) return false;
-      if (tecnico.user_id && tecnico.user_id === user.id) return true;
+      if (tecnico.id && tecnico.id === user.id) return true;
       const emailTecnico = String(tecnico.email || '').toLowerCase();
       return !!emailTecnico && emailTecnico === String(user.email || '').toLowerCase();
     };
