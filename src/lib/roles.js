@@ -31,7 +31,6 @@ export const ABAS = [
   { key: 'pecas', label: 'Peças', path: '/pecas' },
   { key: 'indicadores', label: 'Indicadores', path: '/indicadores' },
   { key: 'usuarios', label: 'Usuários', path: '/usuarios' },
-  { key: 'auditoria', label: 'Auditoria', path: '/auditoria' },
   { key: 'configuracoes', label: 'Configurações', path: '/configuracoes' },
 ];
 
@@ -39,9 +38,9 @@ export const ABAS = [
 export const ACESSOS_PADRAO = {
   admin: [
     'dashboard', 'chamados', 'equipamentos', 'manutencoes',
-    'contratos', 'pecas', 'indicadores', 'usuarios', 'auditoria', 'configuracoes',
+    'contratos', 'pecas', 'indicadores', 'usuarios', 'configuracoes',
   ],
-  gestor: ['dashboard', 'chamados', 'equipamentos', 'manutencoes', 'contratos', 'indicadores', 'auditoria'],
+  gestor: ['dashboard', 'chamados', 'equipamentos', 'manutencoes', 'contratos', 'indicadores'],
   tecnico: ['chamados', 'manutencoes', 'equipamentos'],
   clinico: ['abrir_chamado', 'chamados'],
 };

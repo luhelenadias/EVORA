@@ -48,7 +48,7 @@
       "type": "string"
     },
     "entidade_tipo": {
-      "description": "Entidade afetada",
+      "description": "Entidade afetada. 'LogAuditoria' identifica a\u00e7\u00f5es sobre o pr\u00f3prio log (exporta\u00e7\u00e3o em CSV).",
       "enum": [
         "ServiceOrder",
         "Contract",
@@ -57,7 +57,8 @@
         "MaintenancePlan",
         "Acquisition",
         "ConfiguracaoInstituicao",
-        "User"
+        "User",
+        "LogAuditoria"
       ],
       "type": "string"
     },
@@ -119,26 +120,17 @@
     "data_hora"
   ],
   "rls": {
-    "delete": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
       "user_condition": {
         "role": "nobody"
       }
     },
-    "read": {
-      "$or": [
-        {
-          "user_condition": {
-            "role": "admin"
-          }
-        },
-        {
-          "user_condition": {
-            "role": "gestor"
-          }
-        }
-      ]
-    },
-    "update": {
+    "delete": {
       "user_condition": {
         "role": "nobody"
       }

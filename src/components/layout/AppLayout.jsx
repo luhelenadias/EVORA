@@ -12,6 +12,9 @@ import AlertasBell from '@/components/alertas/AlertasBell';
 /** Rotas que não são abas da barra lateral, mas todo mundo acessa. */
 const ROTAS_SEMPRE_LIBERADAS = ['/meu-perfil'];
 
+/** Rotas fora do menu, liberadas apenas para o perfil administrador (auditoria). */
+const ROTAS_SOMENTE_ADMIN = ['/auditoria'];
+
 export default function AppLayout() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { config, isLoading } = useConfiguracao();
@@ -45,6 +48,7 @@ export default function AppLayout() {
   const liberada =
     carregando ||
     ROTAS_SEMPRE_LIBERADAS.includes(location.pathname) ||
+    (role === ROLES.ADMIN && ROTAS_SOMENTE_ADMIN.includes(location.pathname)) ||
     !!abaPermitida(config, role, location.pathname);
 
   return (

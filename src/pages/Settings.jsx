@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useOutletContext } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import {
@@ -19,12 +20,15 @@ import CodigoManager from '@/components/settings/CodigoManager';
 import AcessosPerfil from '@/components/settings/AcessosPerfil';
 import AlertasConfig from '@/components/settings/AlertasConfig';
 import EmailConfig from '@/components/settings/EmailConfig';
+import AuditoriaConteudo from '@/components/auditoria/AuditoriaConteudo';
 import TermoTooltip from '@/components/shared/TermoTooltip';
 import { toast } from 'sonner';
-import { ShieldCheck, AlertTriangle, Building2, Stethoscope, RefreshCw, Users, Mail } from 'lucide-react';
+import { ShieldCheck, ShieldAlert, AlertTriangle, Building2, Stethoscope, RefreshCw, Users, Mail } from 'lucide-react';
 
 export default function Settings() {
   const queryClient = useQueryClient();
+  const { user } = useOutletContext() || {};
+  const eAdmin = user?.role === 'admin';
   const { config, isLoading } = useConfiguracao();
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment'],
@@ -168,6 +172,11 @@ export default function Settings() {
           <TabsTrigger value="notificacoes" className="gap-1.5">
             <Mail className="w-3.5 h-3.5" /> Notificações
           </TabsTrigger>
+          {eAdmin && (
+            <TabsTrigger value="seguranca" className="gap-1.5">
+              <ShieldAlert className="w-3.5 h-3.5" /> Segurança e auditoria
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="priorizacao">
@@ -330,6 +339,20 @@ export default function Settings() {
         <TabsContent value="notificacoes" className="space-y-4">
           <EmailConfig config={config} />
         </TabsContent>
+
+        {eAdmin && (
+          <TabsContent value="seguranca" className="space-y-4">
+            <div className="space-y-1">
+              <h2 className="text-base font-display font-semibold flex items-center gap-2">
+                <ShieldAlert className="w-4 h-4 text-primary" /> Segurança e auditoria
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Registro de quem abriu, alterou e fechou cada registro — visível apenas para administradores.
+              </p>
+            </div>
+            <AuditoriaConteudo />
+          </TabsContent>
+        )}
       </Tabs>
 
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>

@@ -17,6 +17,7 @@ export const ENTIDADES = [
   { valor: 'Acquisition', label: 'Aquisição' },
   { valor: 'ConfiguracaoInstituicao', label: 'Configuração' },
   { valor: 'User', label: 'Usuário' },
+  { valor: 'LogAuditoria', label: 'Auditoria' },
 ];
 
 export const ORIGENS = ['Usuário', 'IA', 'Sistema', 'Ajuste administrativo'];
@@ -91,6 +92,7 @@ export const ROTULOS_CAMPO = {
   role: 'Tipo de usuário',
   situacao: 'Situação',
   nome_completo: 'Nome completo',
+  exportacao_csv: 'Exportação em CSV',
 };
 
 export function rotuloCampo(campo) {
@@ -120,6 +122,7 @@ export function fraseDaEntrada(entrada) {
       case 'Edição de campo':
         return entrada.campo ? `${rotuloCampo(entrada.campo)}: ${entrada.valor_novo}` : entrada.valor_novo;
       case 'Abertura':
+      case 'Ajuste administrativo':
       case 'Peça utilizada':
       case 'Upload de documento':
       case 'Extração por IA':

@@ -28,7 +28,6 @@ const ICONES = {
   pecas: Package,
   indicadores: BarChart2,
   usuarios: UserCog,
-  auditoria: ScrollText,
   configuracoes: Settings
 };
 
@@ -44,6 +43,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
   };
 
   const userRole = user?.role || ROLES.CLINICO;
+  const eAdmin = userRole === ROLES.ADMIN;
   const nomeUsuario = nomeDaPessoa(user);
   const { config } = useConfiguracao();
 
@@ -134,6 +134,13 @@ export default function Sidebar({ user, onCollapsedChange }) {
                 <UserRound className="h-3.5 w-3.5" /> Meu perfil
               </Link>
             </DropdownMenuItem>
+            {eAdmin && (
+              <DropdownMenuItem asChild className="gap-2 text-xs">
+                <Link to="/auditoria" onClick={() => setMobileOpen(false)}>
+                  <ScrollText className="h-3.5 w-3.5" /> Auditoria
+                </Link>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={handleLogout} className="gap-2 text-xs">
               <LogOut className="h-3.5 w-3.5" /> Sair
             </DropdownMenuItem>

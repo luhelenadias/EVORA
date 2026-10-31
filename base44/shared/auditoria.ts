@@ -36,6 +36,7 @@ export const ENTIDADES = [
   'Acquisition',
   'ConfiguracaoInstituicao',
   'User',
+  'LogAuditoria',
 ];
 
 /** Campos de texto/valor da OS que entram como "Edição de campo". */
