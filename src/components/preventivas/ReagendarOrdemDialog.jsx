@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { format } from 'date-fns';
-import { AlertTriangle, CalendarClock, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Building2, CalendarClock, ExternalLink } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
@@ -9,22 +9,38 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { dataProgramada, horarioProgramado, temHorario } from '@/lib/preventivas';
-import { avisosDeAgenda, isoDaData, podeReagendar } from '@/lib/agenda';
+import { avisosDeAgenda, ehManutencaoExterna, isoDaData, podeReagendar } from '@/lib/agenda';
 
 /**
- * Painel do card do calendário: detalhes da OS e do equipamento, troca do
- * técnico responsável e da data/hora, e atalho para a OS completa.
+ * Painel do card do calendário: detalhes da OS e do equipamento, definição do
+ * responsável (técnico interno, serviço externo ou ninguém) e da data/hora,
+ * além do atalho para a OS completa.
  */
-export default function ReagendarOrdemDialog({ ordem, equipment, tecnicos = [], ordens = [], onSalvar, onAbrirOS, onClose }) {
+export default function ReagendarOrdemDialog({
+  ordem,
+  equipment,
+  tecnicos = [],
+  fornecedores = [],
+  ordens = [],
+  onSalvar,
+  onAbrirOS,
+  onClose,
+}) {
   const dataAtual = dataProgramada(ordem);
   const editavel = podeReagendar(ordem);
+  const externaAtual = ehManutencaoExterna(ordem);
 
-  const [tecnicoId, setTecnicoId] = useState(ordem.technician_id || 'sem');
+  const [responsavel, setResponsavel] = useState(
+    externaAtual ? 'externa' : ordem.technician_id || 'sem'
+  );
+  const [fornecedor, setFornecedor] = useState(ordem.fornecedor_nome || '');
   const [dia, setDia] = useState(dataAtual ? format(dataAtual, 'yyyy-MM-dd') : '');
   const [hora, setHora] = useState(temHorario(ordem) ? horarioProgramado(ordem) : '');
   const [salvando, setSalvando] = useState(false);
 
-  const tecnicoEscolhido = tecnicoId === 'sem' ? null : tecnicoId;
+  const externa = responsavel === 'externa';
+  const fornecedorFinal = fornecedor.trim();
+  const tecnicoEscolhido = externa || responsavel === 'sem' ? null : responsavel;
   const novaData = isoDaData(dia, hora);
   const avisos = editavel && novaData
     ? avisosDeAgenda({ order: ordem, novaData, tecnicoId: tecnicoEscolhido, ordens, tecnicos })
@@ -32,7 +48,10 @@ export default function ReagendarOrdemDialog({ ordem, equipment, tecnicos = [], 
   const alterou =
     editavel &&
     ((novaData || '') !== (ordem.scheduled_date || '') ||
-      (tecnicoEscolhido || '') !== (ordem.technician_id || ''));
+      (tecnicoEscolhido || '') !== (ordem.technician_id || '') ||
+      externa !== externaAtual ||
+      (externa && fornecedorFinal !== (ordem.fornecedor_nome || '')));
+  const faltaFornecedor = externa && !fornecedorFinal;
 
   const salvar = async () => {
     setSalvando(true);
@@ -41,6 +60,8 @@ export default function ReagendarOrdemDialog({ ordem, equipment, tecnicos = [], 
         scheduled_date: novaData || ordem.scheduled_date || '',
         technician_id: tecnicoEscolhido,
         technician_name: tecnicoEscolhido ? tecnicos.find((t) => t.id === tecnicoEscolhido)?.name || '' : '',
+        execution_by: externa ? 'Fornecedor Externo' : 'Equipe Interna',
+        fornecedor_nome: externa ? fornecedorFinal : '',
       });
     } finally {
       setSalvando(false);
@@ -84,11 +105,12 @@ export default function ReagendarOrdemDialog({ ordem, equipment, tecnicos = [], 
           {editavel ? (
             <>
               <div className="space-y-1.5">
-                <Label className="text-xs">Técnico responsável</Label>
-                <Select value={tecnicoId} onValueChange={setTecnicoId}>
+                <Label className="text-xs">Responsável</Label>
+                <Select value={responsavel} onValueChange={setResponsavel}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="sem">Não atribuída</SelectItem>
+                    <SelectItem value="externa">Manutenção externa (fabricante/fornecedor)</SelectItem>
                     {tecnicos.map((tecnico) => (
                       <SelectItem key={tecnico.id} value={tecnico.id}>
                         {tecnico.name}{tecnico.status && tecnico.status !== 'Ativo' ? ` · ${tecnico.status}` : ''}
@@ -97,6 +119,27 @@ export default function ReagendarOrdemDialog({ ordem, equipment, tecnicos = [], 
                   </SelectContent>
                 </Select>
               </div>
+
+              {externa && (
+                <div className="space-y-1.5 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                  <Label htmlFor="fornecedor-externo" className="flex items-center gap-1.5 text-xs">
+                    <Building2 className="w-3.5 h-3.5 text-primary" /> Fabricante / serviço externo
+                  </Label>
+                  <Input
+                    id="fornecedor-externo"
+                    list="fornecedores-contratos"
+                    value={fornecedor}
+                    onChange={(e) => setFornecedor(e.target.value)}
+                    placeholder="Ex.: Philips, GE Healthcare, assistência autorizada..."
+                  />
+                  <datalist id="fornecedores-contratos">
+                    {fornecedores.map((nome) => <option key={nome} value={nome} />)}
+                  </datalist>
+                  <p className="text-[11px] leading-snug text-muted-foreground">
+                    A OS fica com o fornecedor e sem técnico interno designado.
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
@@ -136,7 +179,7 @@ export default function ReagendarOrdemDialog({ ordem, equipment, tecnicos = [], 
           <div className="flex gap-2">
             <Button variant="ghost" onClick={onClose}>Fechar</Button>
             {editavel && (
-              <Button onClick={salvar} disabled={!alterou || salvando}>
+              <Button onClick={salvar} disabled={!alterou || faltaFornecedor || salvando}>
                 {salvando ? 'Salvando...' : 'Salvar alterações'}
               </Button>
             )}

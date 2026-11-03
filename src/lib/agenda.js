@@ -22,6 +22,23 @@ export function prioridadeCritica(order) {
   return order?.priority === 'Crítica';
 }
 
+/** OS encaminhada ao fabricante/serviço externo em vez de um técnico interno. */
+export function ehManutencaoExterna(order) {
+  return order?.execution_by === 'Fornecedor Externo';
+}
+
+/** Quem responde pela OS: técnico interno, fabricante/serviço externo ou ninguém. */
+export function nomeResponsavel(order, tecnico) {
+  if (tecnico?.name) return tecnico.name;
+  if (ehManutencaoExterna(order)) return order?.fornecedor_nome || 'Manutenção externa';
+  return order?.technician_name || 'Não atribuída';
+}
+
+/** Verdadeiro só quando a OS não tem técnico nem serviço externo definido. */
+export function semResponsavel(order) {
+  return !order?.technician_id && !ehManutencaoExterna(order);
+}
+
 /** Data escolhida (dia) no mesmo formato da OS: com horário quando ela já tinha um. */
 export function novaDataDoArraste(order, dia) {
   const atual = dataProgramada(order);

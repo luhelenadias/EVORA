@@ -19,7 +19,7 @@ import FiltrosCalendario from '@/components/maintenance/FiltrosCalendario';
 import ConfirmarReagendamentoDialog from '@/components/preventivas/ConfirmarReagendamentoDialog';
 import ReagendarOrdemDialog from '@/components/preventivas/ReagendarOrdemDialog';
 import { dataProgramada, preventivasAbertas } from '@/lib/preventivas';
-import { avisosDeAgenda, corretivasSemData, dataDoAgendamento, novaDataDoArraste } from '@/lib/agenda';
+import { avisosDeAgenda, corretivasSemData, dataDoAgendamento, ehManutencaoExterna, nomeResponsavel, novaDataDoArraste, semResponsavel } from '@/lib/agenda';
 import { eventoDaMudanca, notificarMudancaDeAgenda } from '@/lib/notificacoes';
 import {
   FILTROS_CALENDARIO_INICIAIS, FILTROS_LISTA_INICIAIS,
@@ -78,6 +78,12 @@ export default function Maintenance() {
     queryKey: ['contracts'],
     queryFn: () => base44.entities.Contract.list(),
   });
+
+  // Fabricantes/serviços externos já cadastrados em contratos servem de sugestão.
+  const fornecedores = useMemo(
+    () => [...new Set(contracts.map((c) => c.supplier_name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'pt-BR')),
+    [contracts]
+  );
 
   // Equipe técnica = usuários com perfil técnico (ver src/lib/tecnicos.js).
   const { tecnicos } = useTecnicos();
@@ -208,7 +214,7 @@ export default function Maintenance() {
       : ordemFiltradas;
     if (recortes.abertas) base = base.filter((o) => o.status !== 'Concluído');
     if (recortes.atrasadas) base = base.filter(ordemAtrasada);
-    if (recortes.semTecnico) base = base.filter((o) => o.status !== 'Concluído' && !o.technician_id);
+    if (recortes.semTecnico) base = base.filter((o) => o.status !== 'Concluído' && semResponsavel(o));
     return base;
   }, [ordemFiltradas, filtrosLista.status, recortes]);
 
@@ -317,18 +323,28 @@ export default function Maintenance() {
     }
   };
 
-  const aplicarMudancaDeAgenda = async ({ order, novaData, tecnicoNovo, sugestao, motivo }) => {
+  const aplicarMudancaDeAgenda = async ({ order, novaData, tecnicoNovo, responsavel, sugestao, motivo }) => {
     const antes = {
       scheduled_date: order.scheduled_date || '',
       technician_id: order.technician_id || '',
+      technician_name: order.technician_name || '',
+      execution_by: order.execution_by || 'Equipe Interna',
+      fornecedor_nome: order.fornecedor_nome || '',
     };
     const depois = {
       scheduled_date: novaData || '',
       technician_id: tecnicoNovo ? tecnicoNovo.id : order.technician_id || '',
       technician_name: tecnicoNovo ? tecnicoNovo.name : order.technician_name || '',
+      execution_by: tecnicoNovo ? 'Equipe Interna' : order.execution_by || 'Equipe Interna',
+      fornecedor_nome: tecnicoNovo ? '' : order.fornecedor_nome || '',
+      ...(responsavel || {}),
     };
     const mudouData = antes.scheduled_date !== depois.scheduled_date;
-    const mudouTecnico = antes.technician_id !== depois.technician_id;
+    // Responsável muda quando troca o técnico, o tipo de execução ou o fornecedor externo.
+    const mudouTecnico =
+      antes.technician_id !== depois.technician_id ||
+      antes.execution_by !== depois.execution_by ||
+      (antes.fornecedor_nome || '') !== (depois.fornecedor_nome || '');
     if (!mudouData && !mudouTecnico) return;
 
     const alteracoes = [];
@@ -343,10 +359,10 @@ export default function Maintenance() {
     }
     if (mudouTecnico) {
       alteracoes.push({
-        acao: antes.technician_id ? 'Reatribuição' : 'Atribuição',
-        campo: 'technician_id',
-        valor_anterior: order.technician_name || '(não atribuída)',
-        valor_novo: depois.technician_name || '(não atribuída)',
+        acao: semResponsavel(antes) ? 'Atribuição' : 'Reatribuição',
+        campo: ehManutencaoExterna(depois) ? 'execution_by' : 'technician_id',
+        valor_anterior: nomeResponsavel(antes),
+        valor_novo: nomeResponsavel(depois),
         tecnico_atribuido_id: depois.technician_id || null,
       });
     }
@@ -357,7 +373,12 @@ export default function Maintenance() {
     await base44.entities.ServiceOrder.update(order.id, {
       scheduled_date: depois.scheduled_date,
       ...(mudouTecnico
-        ? { technician_id: depois.technician_id, technician_name: depois.technician_name }
+        ? {
+            technician_id: depois.technician_id,
+            technician_name: depois.technician_name,
+            execution_by: depois.execution_by || 'Equipe Interna',
+            fornecedor_nome: depois.fornecedor_nome || '',
+          }
         : {}),
     });
 
@@ -441,6 +462,12 @@ export default function Maintenance() {
       order,
       novaData: dados.scheduled_date ?? order.scheduled_date ?? '',
       tecnicoNovo,
+      responsavel: {
+        technician_id: dados.technician_id || '',
+        technician_name: dados.technician_name || '',
+        execution_by: dados.execution_by || 'Equipe Interna',
+        fornecedor_nome: dados.fornecedor_nome || '',
+      },
       motivo: 'Agendamento ajustado no painel da OS',
     });
   };
@@ -793,6 +820,7 @@ export default function Maintenance() {
           ordem={ordemAgenda}
           equipment={equipmentById[ordemAgenda.equipment_id]}
           tecnicos={tecnicosAtribuiveis}
+          fornecedores={fornecedores}
           ordens={orders}
           onSalvar={salvarAgendamento}
           onAbrirOS={(order) => {

@@ -5,6 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { nomeResponsavel } from '@/lib/agenda';
 
 function Linha({ rotulo, valor, destaque = false }) {
   return (
@@ -74,7 +75,7 @@ export default function ConfirmarReagendamentoDialog({ dados, onConfirmar, onCan
             }
           />
           <Linha rotulo="Prioridade" valor={order?.priority || '—'} />
-          <Linha rotulo="Técnico" valor={tecnico?.name || order?.technician_name || 'Não atribuída'} />
+          <Linha rotulo="Responsável" valor={nomeResponsavel(order, tecnico)} />
           <Linha rotulo="Data atual" valor={formatarData(dataAtual)} />
           <div className="flex items-center justify-end gap-2 py-2">
             <ArrowRight className="h-4 w-4 text-muted-foreground" />

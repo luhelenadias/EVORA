@@ -3,6 +3,7 @@ import { CalendarCheck, Wrench } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { corDoTecnico } from '@/lib/preventivas';
+import { nomeResponsavel } from '@/lib/agenda';
 
 /**
  * Card do calendário de manutenções. Tamanho fixo: a duração real não é
@@ -34,7 +35,7 @@ export default function CalendarCard({ item, tecnico, onClick, arrastavel = fals
   const Icone = tipo.Icone;
   const critica = order.priority === 'Crítica';
   // OS sem técnico nunca quebra o card: aparece como "Não atribuída".
-  const nomeTecnico = tecnico?.name || order.technician_name || 'Não atribuída';
+  const nomeTecnico = nomeResponsavel(order, tecnico);
   const hora = horario(order.scheduled_date);
 
   return (

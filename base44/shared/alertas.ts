@@ -354,7 +354,9 @@ export function gerarAlertas({ config, contratos = [], equipamentos = [], ordens
   }
 
   // ── OS sem técnico: um único alerta agrupado, para não virar enxurrada ──
-  const semTecnico = ordens.filter((ordem) => ordem.status === 'Novo' && !ordem.technician_id);
+  const semTecnico = ordens.filter(
+    (ordem) => ordem.status === 'Novo' && !ordem.technician_id && ordem.execution_by !== 'Fornecedor Externo'
+  );
   if (semTecnico.length) {
     const codigos = semTecnico.map((ordem) => ordem.code || ordem.equipment_name || '').filter(Boolean);
     const lista = codigos.slice(0, 6).join(', ');

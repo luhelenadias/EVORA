@@ -5,12 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import StatusBadge from '@/components/shared/StatusBadge';
 import AssignTechnicianSelect from '@/components/preventivas/AssignTechnicianSelect';
 import { dataProgramada, horarioProgramado, temHorario } from '@/lib/preventivas';
+import { semResponsavel } from '@/lib/agenda';
 import { cn } from '@/lib/utils';
 
 /** Linha da visão por técnico: dia, equipamento, status e atribuição quando pendente. */
 export default function PreventiveRow({ order, equipment, tecnicos, onOpen, onAtribuir, atribuindo }) {
   const data = dataProgramada(order);
-  const semTecnico = !order.technician_id;
+  const semTecnico = semResponsavel(order);
 
   return (
     <div

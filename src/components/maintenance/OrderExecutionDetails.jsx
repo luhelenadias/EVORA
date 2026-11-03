@@ -3,6 +3,7 @@ import { Timer } from 'lucide-react';
 import InfoField from '@/components/shared/InfoField';
 import { ResponseTimeValue } from '@/components/maintenance/ResponseTimeInfo';
 import { formatarDataHora, tempoAoVivo } from '@/lib/orderDetail';
+import { ehManutencaoExterna, nomeResponsavel } from '@/lib/agenda';
 
 /** Manutenção em andamento: responsável, execução e cronômetro ao vivo. */
 export default function OrderExecutionDetails({ order }) {
@@ -27,7 +28,10 @@ export default function OrderExecutionDetails({ order }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <InfoField label="Técnico responsável" value={order.technician_name || 'Não atribuída'} />
+        <InfoField
+          label={ehManutencaoExterna(order) ? 'Serviço externo' : 'Técnico responsável'}
+          value={nomeResponsavel(order)}
+        />
         <InfoField label="Execução por" value={order.execution_by} />
         <InfoField label="Início do atendimento" value={formatarDataHora(order.start_date)} />
         {order.response_time_minutes != null && (

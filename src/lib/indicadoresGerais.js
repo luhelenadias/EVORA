@@ -125,7 +125,7 @@ export function indicadoresAgora({ escopo = [], equipamentos = [], alertasUrgent
   return {
     osAbertas: abertas.length,
     osAtrasadas: abertas.filter(ordemAtrasada).length,
-    semTecnico: abertas.filter((o) => !o.technician_id).length,
+    semTecnico: abertas.filter((o) => !o.technician_id && o.execution_by !== 'Fornecedor Externo').length,
     alertasUrgentes,
     equipamentosParados: equipamentos.filter((e) => e.operational_status === 'Parado').length,
     emManutencao: equipamentos.filter((e) => e.operational_status === 'Em Manutenção').length,
@@ -457,9 +457,9 @@ export function indicadoresQualidade({ equipamentos = [], escopo = [], contratos
   return {
     pctPrioridade: pct(calculados, equipamentos.length),
     pendentesPrioridade: equipamentos.length - calculados,
-    osSemTecnico: abertas.filter((o) => !o.technician_id).length,
+    osSemTecnico: abertas.filter((o) => !o.technician_id && o.execution_by !== 'Fornecedor Externo').length,
     osSemTecnicoLista: abertas
-      .filter((o) => !o.technician_id)
+      .filter((o) => !o.technician_id && o.execution_by !== 'Fornecedor Externo')
       .slice(0, 6)
       .map((o) => ({ id: o.id, code: o.code, equipment_name: o.equipment_name, tipo: o.type })),
     contratosSemSla: contratos.filter((c) => !num(c.sla_response_hours) && !num(c.sla_resolution_hours)).length,
