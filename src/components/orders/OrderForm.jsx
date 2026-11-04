@@ -9,11 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { suggestPriorityDeEquipamento } from '@/lib/maintenance';
 import { rotuloScore } from '@/lib/priorizacao';
 import { useTecnicos } from '@/lib/tecnicos';
+import { dadosDaRota, sugerirRota } from '@/lib/rota';
+import RotaCard from '@/components/orders/RotaCard';
 
 export default function OrderForm({ order, equipamentoInicial, onSubmit, onCancel, isLoading, user }) {
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment'],
     queryFn: () => base44.entities.Equipment.list(),
+  });
+
+  const { data: contracts } = useQuery({
+    queryKey: ['contracts'],
+    queryFn: () => base44.entities.Contract.list(),
   });
 
   // Só a equipe técnica ativa pode receber chamados.
@@ -41,9 +48,22 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
   const [sugestao, setSugestao] = useState(null);
   const [erroMotivo, setErroMotivo] = useState(false);
 
+  // Rota de atendimento (OS corretiva): sugestão do sistema + escolha do usuário.
+  const [rotaSugestao, setRotaSugestao] = useState(null);
+  const [rota, setRota] = useState(order?.rota_atendimento || '');
+  const [rotaMotivoTroca, setRotaMotivoTroca] = useState(order?.rota_alterada_motivo || '');
+  const [fornecedorRota, setFornecedorRota] = useState(order?.fornecedor_nome || '');
+  const [erroRota, setErroRota] = useState(false);
+
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
   const handleEquipmentChange = (eqId) => {
+    // Ao trocar de equipamento a rota é recalculada para o novo equipamento.
+    setRota('');
+    setRotaSugestao(null);
+    setRotaMotivoTroca('');
+    setFornecedorRota('');
+    setErroRota(false);
     const eq = equipment.find(e => e.id === eqId);
     if (eq) {
       // Priorização: a sugestão vem da faixa de prioridade do equipamento; se ele estiver
@@ -69,6 +89,17 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
     if (equipment.some(e => e.id === equipamentoInicial)) handleEquipmentChange(equipamentoInicial);
   }, [equipamentoInicial, equipment, form.equipment_id]);
 
+  // Rota sugerida: recalculada quando o equipamento e os contratos estão carregados.
+  useEffect(() => {
+    if (!form.equipment_id || !equipment.length || !contracts) return;
+    const eq = equipment.find(e => e.id === form.equipment_id);
+    if (!eq) return;
+    const sugerida = sugerirRota(eq, contracts);
+    setRotaSugestao(sugerida);
+    setRota((atual) => atual || sugerida.rota);
+    setFornecedorRota((atual) => atual || sugerida.fornecedor || '');
+  }, [form.equipment_id, equipment, contracts]);
+
   const precisaMotivo = !order && sugestao && form.priority !== sugestao.priority;
 
   const handleTechnicianChange = (valor) => {
@@ -84,6 +115,17 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
   const handleSubmit = (e) => {
     e.preventDefault();
     const data = { ...form };
+    // Rota de atendimento: a troca em relação à sugestão exige um motivo curto.
+    if (!isClinical && form.type === 'Corretiva' && rotaSugestao) {
+      const rotaFinal = rota || rotaSugestao.rota;
+      if (rotaFinal !== rotaSugestao.rota && !rotaMotivoTroca.trim()) {
+        setErroRota(true);
+        return;
+      }
+      Object.assign(data, dadosDaRota(rotaFinal, rotaSugestao, fornecedorRota), {
+        rota_alterada_motivo: rotaFinal !== rotaSugestao.rota ? rotaMotivoTroca.trim() : '',
+      });
+    }
     if (!order) {
       data.open_date = new Date().toISOString();
       data.requester_id = user?.id;
@@ -184,6 +226,13 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
                   <SelectContent>
                     <SelectItem value="Novo">Novo</SelectItem>
                     <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                    <SelectItem value="Aguardando Orçamento">Aguardando Orçamento</SelectItem>
+                    <SelectItem value="Aguardando Aprovação">Aguardando Aprovação</SelectItem>
+                    <SelectItem value="Em Transporte (ida)">Em Transporte (ida)</SelectItem>
+                    <SelectItem value="Em Conserto Externo">Em Conserto Externo</SelectItem>
+                    <SelectItem value="Em Transporte (volta)">Em Transporte (volta)</SelectItem>
+                    <SelectItem value="Aguardando Teste de Qualidade">Aguardando Teste de Qualidade</SelectItem>
+                    <SelectItem value="Aguardando Aceite">Aguardando Aceite</SelectItem>
                     <SelectItem value="Aguardando Peça">Aguardando Peça</SelectItem>
                     <SelectItem value="Aguardando Fornecedor">Aguardando Fornecedor</SelectItem>
                     <SelectItem value="Pendente">Pendente</SelectItem>
@@ -193,16 +242,18 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Execução por</Label>
-              <Select value={form.execution_by} onValueChange={v => update('execution_by', v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Equipe Interna">Equipe Interna</SelectItem>
-                  <SelectItem value="Fornecedor Externo">Fornecedor Externo</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {form.type !== 'Corretiva' && (
+              <div className="space-y-1.5">
+                <Label className="text-xs">Execução por</Label>
+                <Select value={form.execution_by} onValueChange={v => update('execution_by', v)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Equipe Interna">Equipe Interna</SelectItem>
+                    <SelectItem value="Fornecedor Externo">Fornecedor Externo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-1.5">
               <Label className="text-xs">Data Agendamento</Label>
@@ -221,6 +272,20 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
           <Input value={form.sector} onChange={e => update('sector', e.target.value)} />
         </div>
       </div>
+
+      {!isClinical && form.type === 'Corretiva' && form.equipment_id && (
+        <RotaCard
+          sugestao={rotaSugestao}
+          rota={rota}
+          motivoAtual={order?.rota_motivo}
+          motivoTroca={rotaMotivoTroca}
+          fornecedor={fornecedorRota}
+          onRotaChange={(valor) => { setRota(valor); setErroRota(false); }}
+          onMotivoTrocaChange={(valor) => { setRotaMotivoTroca(valor); setErroRota(false); }}
+          onFornecedorChange={setFornecedorRota}
+          erro={erroRota}
+        />
+      )}
 
       {precisaMotivo && (
         <div className="space-y-1.5 rounded-lg border border-warning/40 bg-warning/10 p-3">

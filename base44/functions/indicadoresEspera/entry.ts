@@ -2,7 +2,20 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
 
 // Status em que a OS está parada esperando algo (peça, fornecedor, decisão).
 const EM_ESPERA = ['Aguardando Peça', 'Aguardando Fornecedor', 'Pendente'];
-const ABERTAS = ['Novo', 'Em Andamento', 'Aguardando Peça', 'Aguardando Fornecedor', 'Pendente'];
+const ABERTAS = [
+  'Novo',
+  'Em Andamento',
+  'Aguardando Orçamento',
+  'Aguardando Aprovação',
+  'Em Transporte (ida)',
+  'Em Conserto Externo',
+  'Em Transporte (volta)',
+  'Aguardando Teste de Qualidade',
+  'Aguardando Aceite',
+  'Aguardando Peça',
+  'Aguardando Fornecedor',
+  'Pendente',
+];
 const MINUTOS_DIA = 24 * 60;
 
 /**

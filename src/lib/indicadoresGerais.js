@@ -4,7 +4,20 @@ import { statusPorVigencia } from '@/lib/contratos';
 import { calcularMtbf } from '@/lib/indicadores';
 
 // ── Bases ───────────────────────────────────────────────────────────
-export const ABERTAS = ['Novo', 'Em Andamento', 'Aguardando Peça', 'Aguardando Fornecedor', 'Pendente'];
+export const ABERTAS = [
+  'Novo',
+  'Em Andamento',
+  'Aguardando Orçamento',
+  'Aguardando Aprovação',
+  'Em Transporte (ida)',
+  'Em Conserto Externo',
+  'Em Transporte (volta)',
+  'Aguardando Teste de Qualidade',
+  'Aguardando Aceite',
+  'Aguardando Peça',
+  'Aguardando Fornecedor',
+  'Pendente',
+];
 export const EM_ESPERA = ['Aguardando Peça', 'Aguardando Fornecedor', 'Pendente'];
 export const STATUS_PARQUE = ['Ativo', 'Em Manutenção', 'Parado', 'Inativo/Baixado'];
 export const CRITICIDADES = ['Suporte à Vida', 'Terapêutico', 'Diagnóstico', 'Apoio'];

@@ -63,7 +63,15 @@ export const CONFIG_PADRAO = {
 
 const MS_DIA = 24 * 60 * 60 * 1000;
 const HORA = 60 * 60 * 1000;
-export const STATUS_AGUARDANDO = ['Aguardando Peça', 'Aguardando Fornecedor', 'Pendente'];
+export const STATUS_AGUARDANDO = [
+  'Aguardando Orçamento',
+  'Aguardando Aprovação',
+  'Aguardando Teste de Qualidade',
+  'Aguardando Aceite',
+  'Aguardando Peça',
+  'Aguardando Fornecedor',
+  'Pendente',
+];
 
 /** Alerta único que agrupa as OS abertas sem técnico responsável. */
 export const SEM_TECNICO_ID = 'os-sem-tecnico';
@@ -196,7 +204,7 @@ export function gerarAlertas({ config, contratos = [], equipamentos = [], ordens
   // ── Preventivas (OS tipo Preventiva por scheduled_date) ────────
   for (const ordem of ordens) {
     if (ordem.type !== 'Preventiva') continue;
-    if (!['Novo', 'Em Andamento'].includes(ordem.status)) continue;
+    if (ordem.status === 'Concluído') continue;
     if (!ordem.scheduled_date) continue;
     const dias = diasEntre(agora, ordem.scheduled_date);
     if (dias === null) continue;

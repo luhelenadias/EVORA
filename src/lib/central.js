@@ -2,8 +2,17 @@ import { differenceInDays, parseISO } from 'date-fns';
 
 /** Mapeamento status da ServiceOrder → aba da Central de Manutenções. */
 export const GRUPOS_CENTRAL = {
-  pendentes: ['Novo', 'Aguardando Peça', 'Aguardando Fornecedor', 'Pendente'],
-  andamento: ['Em Andamento'],
+  pendentes: [
+    'Novo',
+    'Aguardando Orçamento',
+    'Aguardando Aprovação',
+    'Aguardando Teste de Qualidade',
+    'Aguardando Aceite',
+    'Aguardando Peça',
+    'Aguardando Fornecedor',
+    'Pendente',
+  ],
+  andamento: ['Em Andamento', 'Em Transporte (ida)', 'Em Conserto Externo', 'Em Transporte (volta)'],
   concluidas: ['Concluído'],
 };
 

@@ -15,6 +15,13 @@ export const PERIODOS = [
 export const STATUS_ORDEM = [
   'Novo',
   'Em Andamento',
+  'Aguardando Orçamento',
+  'Aguardando Aprovação',
+  'Em Transporte (ida)',
+  'Em Conserto Externo',
+  'Em Transporte (volta)',
+  'Aguardando Teste de Qualidade',
+  'Aguardando Aceite',
   'Aguardando Peça',
   'Aguardando Fornecedor',
   'Pendente',

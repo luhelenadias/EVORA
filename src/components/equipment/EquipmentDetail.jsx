@@ -45,7 +45,7 @@ function getApproxAge(acquisitionDate) {
 
 function getCondition(orders6m) {
   const corrective = orders6m.filter(o => o.type === 'Corretiva');
-  const hasOpen = orders6m.some(o => ['Novo', 'Em Andamento', 'Aguardando Peça', 'Aguardando Fornecedor', 'Pendente'].includes(o.status));
+  const hasOpen = orders6m.some(o => o.status !== 'Concluído');
   if (hasOpen || corrective.length >= 3) return { label: 'Não funciona / Crítico', color: 'bg-destructive/10 text-destructive border-destructive/30' };
   if (corrective.length >= 1) return { label: 'Funciona precariamente', color: 'bg-warning/20 text-warning-foreground border-warning/40' };
   return { label: 'Funciona satisfatoriamente', color: 'bg-primary/10 text-primary border-primary/25' };

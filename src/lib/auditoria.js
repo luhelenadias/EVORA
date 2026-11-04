@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 /** Ações do log de auditoria (espelham o enum da entidade LogAuditoria). */
 export const ACOES = [
   'Abertura', 'Atribuição', 'Reatribuição', 'Início do atendimento', 'Mudança de status',
-  'Mudança de prioridade', 'Edição de campo', 'Peça utilizada', 'Rascunho de relatório gerado por IA',
+  'Mudança de prioridade', 'Definição de rota', 'Alteração de rota', 'Edição de campo',
+  'Peça utilizada', 'Rascunho de relatório gerado por IA',
   'Relatório confirmado', 'Fechamento', 'Reabertura', 'Cancelamento', 'Upload de documento',
   'Extração por IA', 'Notificação ao técnico', 'Mudança de perfil', 'Ajuste administrativo',
 ];
@@ -29,6 +30,8 @@ const VERBOS = {
   'Início do atendimento': 'iniciou o atendimento',
   'Mudança de status': 'mudou o status',
   'Mudança de prioridade': 'mudou a prioridade',
+  'Definição de rota': 'definiu a rota de atendimento',
+  'Alteração de rota': 'alterou a rota de atendimento',
   'Edição de campo': 'editou',
   'Peça utilizada': 'registrou peça utilizada',
   'Rascunho de relatório gerado por IA': 'gerou rascunho do relatório por IA',
@@ -47,6 +50,11 @@ const VERBOS = {
 export const ROTULOS_CAMPO = {
   status: 'Status',
   priority: 'Prioridade',
+  rota_atendimento: 'Rota de atendimento',
+  rota_sugerida: 'Rota sugerida',
+  rota_motivo: 'Motivo da rota',
+  rota_alterada_motivo: 'Motivo da troca de rota',
+  contrato_id: 'Contrato',
   technician_id: 'Técnico',
   start_date: 'Início',
   completion_date: 'Conclusão',
@@ -115,7 +123,12 @@ export function fraseDaEntrada(entrada) {
     switch (entrada.acao) {
       case 'Mudança de status':
       case 'Mudança de prioridade':
+      case 'Definição de rota':
         return entrada.valor_novo ? `para ${entrada.valor_novo}` : '';
+      case 'Alteração de rota':
+        return entrada.valor_novo
+          ? `de ${entrada.valor_anterior || '—'} para ${entrada.valor_novo}${entrada.motivo ? ` (${entrada.motivo})` : ''}`
+          : '';
       case 'Atribuição':
       case 'Reatribuição':
         return entrada.valor_novo ? `${entrada.valor_novo}` : '';
@@ -203,6 +216,16 @@ export function alteracoesDaOS(antes, depois) {
       valor_anterior: antes.priority,
       valor_novo: depois.priority,
       motivo: depois.priority_override_reason || '',
+    });
+  }
+
+  if ('rota_atendimento' in depois && !igual(depois.rota_atendimento || '', antes.rota_atendimento || '')) {
+    lista.push({
+      acao: antes.rota_atendimento ? 'Alteração de rota' : 'Definição de rota',
+      campo: 'rota_atendimento',
+      valor_anterior: antes.rota_atendimento || '',
+      valor_novo: depois.rota_atendimento || '',
+      motivo: depois.rota_alterada_motivo || depois.rota_motivo || '',
     });
   }
 

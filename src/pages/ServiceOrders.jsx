@@ -74,6 +74,18 @@ export default function ServiceOrders() {
         valor_novo: `${criado.type} · ${criado.problem_description || ''}`.trim(),
         tecnico_atribuido_id: criado.technician_id || null,
       });
+      if (criado.rota_atendimento) {
+        await registrarAuditoria({
+          entidade_tipo: 'ServiceOrder',
+          entidade_id: criado.id,
+          entidade_codigo: criado.code || '',
+          acao: 'Definição de rota',
+          campo: 'rota_atendimento',
+          valor_novo: criado.rota_atendimento,
+          motivo: criado.rota_alterada_motivo || criado.rota_motivo || '',
+          tecnico_atribuido_id: criado.technician_id || null,
+        });
+      }
       return criado;
     },
     onSuccess: () => {

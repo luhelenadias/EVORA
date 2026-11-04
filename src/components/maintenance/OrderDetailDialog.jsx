@@ -13,7 +13,10 @@ import OrderCompletionDetails from '@/components/maintenance/OrderCompletionDeta
 import OrderSlaBanner from '@/components/maintenance/OrderSlaBanner';
 import OrderHistoryList from '@/components/maintenance/OrderHistoryList';
 import TranscricaoAudio from '@/components/maintenance/TranscricaoAudio';
+import RotaCard from '@/components/orders/RotaCard';
 import { resolverSla } from '@/lib/orderDetail';
+import { sugerirRota } from '@/lib/rota';
+import { GRUPOS_CENTRAL } from '@/lib/central';
 
 export default function OrderDetailDialog({ order, equipment, orders = [], onClose }) {
   const { data: contracts = [] } = useQuery({
@@ -22,6 +25,9 @@ export default function OrderDetailDialog({ order, equipment, orders = [], onClo
   });
 
   if (!order) return null;
+
+  const rotaSugestao = equipment ? sugerirRota(equipment, contracts) : null;
+  const contratoRota = contracts.find((c) => c.id === order.contrato_id) || rotaSugestao?.contrato || null;
 
   return (
     <Dialog open onOpenChange={(aberto) => !aberto && onClose()}>
@@ -54,11 +60,23 @@ export default function OrderDetailDialog({ order, equipment, orders = [], onClo
           <TabsContent value="detalhes" className="mt-4 space-y-4">
             <OrderEquipmentSummary order={order} equipment={equipment} />
 
+            {order.type === 'Corretiva' && (order.rota_atendimento || rotaSugestao) && (
+              <RotaCard
+                sugestao={rotaSugestao}
+                rota={order.rota_atendimento}
+                contrato={contratoRota}
+                motivoAtual={order.rota_motivo}
+                motivoTroca={order.rota_alterada_motivo}
+                fornecedor={order.fornecedor_nome}
+                somenteLeitura
+              />
+            )}
+
             {order.type === 'Corretiva' && <OrderSlaBanner sla={resolverSla(order, contracts)} />}
 
             <OrderTypeDetails order={order} equipment={equipment} />
 
-            {order.status === 'Em Andamento' && <OrderExecutionDetails order={order} />}
+            {GRUPOS_CENTRAL.andamento.includes(order.status) && <OrderExecutionDetails order={order} />}
 
             {order.status === 'Concluído' && <OrderCompletionDetails order={order} />}
 

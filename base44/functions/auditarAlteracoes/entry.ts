@@ -12,7 +12,7 @@ function candidatosOS(evento, atual, anterior, campos) {
   const base = { entidade_tipo: 'ServiceOrder', entidade_id: atual?.id, entidade_codigo: codigo, origem: 'Sistema' };
 
   if (evento === 'create') {
-    return [{
+    const criacao = [{
       ...base,
       acao: 'Abertura',
       campo: '',
@@ -20,6 +20,17 @@ function candidatosOS(evento, atual, anterior, campos) {
       motivo: atual?.origin === 'Agendada' ? 'Gerada automaticamente pela periodicidade do equipamento' : '',
       tecnico_atribuido_id: atual?.technician_id || null,
     }];
+    if (atual?.rota_atendimento) {
+      criacao.push({
+        ...base,
+        acao: 'Definição de rota',
+        campo: 'rota_atendimento',
+        valor_novo: atual.rota_atendimento,
+        motivo: atual.rota_alterada_motivo || atual.rota_motivo || '',
+        tecnico_atribuido_id: atual?.technician_id || null,
+      } as any);
+    }
+    return criacao;
   }
 
   const mudou = (f) => campos.includes(f);
@@ -40,6 +51,17 @@ function candidatosOS(evento, atual, anterior, campos) {
         valor_novo: atual?.status,
       });
     }
+  }
+
+  if (mudou('rota_atendimento')) {
+    lista.push({
+      ...base,
+      acao: anterior?.rota_atendimento ? 'Alteração de rota' : 'Definição de rota',
+      campo: 'rota_atendimento',
+      valor_anterior: anterior?.rota_atendimento || '',
+      valor_novo: atual?.rota_atendimento || '',
+      motivo: atual?.rota_alterada_motivo || atual?.rota_motivo || '',
+    });
   }
 
   if (mudou('technician_id')) {

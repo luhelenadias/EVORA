@@ -4,9 +4,6 @@ import { suggestPriorityDeEquipamento } from '@/lib/maintenance';
 // Antecedência com que a preventiva entra na fila da Central de Manutenções.
 export const JANELA_PREVENTIVA_DIAS = 7;
 
-// Situações que indicam preventiva já em aberto (evita duplicidade).
-const STATUS_ABERTOS = ['Novo', 'Em Andamento'];
-
 export function diasAteProximaPreventiva(equipment, hoje = new Date()) {
   if (!equipment?.data_proxima_preventiva) return null;
   return differenceInDays(parseISO(equipment.data_proxima_preventiva), hoje);
@@ -25,7 +22,7 @@ export function temPreventivaAberta(orders, equipmentId) {
     (o) =>
       o.equipment_id === equipmentId &&
       o.type === 'Preventiva' &&
-      STATUS_ABERTOS.includes(o.status)
+      o.status !== 'Concluído'
   );
 }
 

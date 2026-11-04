@@ -28,6 +28,10 @@
       "format": "date-time",
       "type": "string"
     },
+    "contrato_id": {
+      "description": "ID do Contract que fundamenta a rota de atendimento (garantia ou cobertura contratual). Vazio quando a rota \u00e9 'Equipe interna' ou 'Fornecedor sem contrato'.",
+      "type": "string"
+    },
     "duracao_total_minutos": {
       "description": "Calculado a partir de completion_date - start_date ao finalizar. Edit\u00e1vel manualmente em caso de ajuste. Usado no c\u00e1lculo autom\u00e1tico de MTTR (MaintenancePlan.mttr_hours).",
       "type": "number"
@@ -52,7 +56,7 @@
     },
     "execution_by": {
       "default": "Equipe Interna",
-      "description": "Execu\u00e7\u00e3o por. 'Fornecedor Externo' = manuten\u00e7\u00e3o encaminhada ao fabricante/servi\u00e7o externo, sem t\u00e9cnico interno designado (technician_id vazio e nome em fornecedor_nome).",
+      "description": "Execu\u00e7\u00e3o por. 'Fornecedor Externo' = manuten\u00e7\u00e3o encaminhada ao fabricante/servi\u00e7o externo, sem t\u00e9cnico interno designado (technician_id vazio e nome em fornecedor_nome). Definido pela rota de atendimento.",
       "enum": [
         "Equipe Interna",
         "Fornecedor Externo"
@@ -149,6 +153,34 @@
       "description": "Tempo de atendimento/resposta: start_date - open_date, em minutos. Calculado automaticamente ao clicar 'Iniciar Manuten\u00e7\u00e3o'. Diferente de duracao_total_minutos (que mede a execu\u00e7\u00e3o do reparo em si) \u2014 este mede quanto tempo o chamado ficou esperando ser iniciado.",
       "type": "number"
     },
+    "rota_alterada_motivo": {
+      "description": "Justificativa curta informada pelo usu\u00e1rio quando a rota aceita difere da rota sugerida pelo sistema.",
+      "type": "string"
+    },
+    "rota_atendimento": {
+      "description": "Rota de atendimento definida na OS corretiva. Garantia, Contrato e Fornecedor sem contrato implicam execution_by = 'Fornecedor Externo'; Equipe interna mant\u00e9m a execu\u00e7\u00e3o interna.",
+      "enum": [
+        "Garantia",
+        "Contrato",
+        "Equipe interna",
+        "Fornecedor sem contrato"
+      ],
+      "type": "string"
+    },
+    "rota_motivo": {
+      "description": "Motivo em uma linha da rota sugerida pelo sistema (ex.: 'Garantia vigente at\u00e9 12/03/2027' ou 'Coberto pelo contrato CT-2025-001').",
+      "type": "string"
+    },
+    "rota_sugerida": {
+      "description": "Rota que o sistema sugeriu ao abrir a OS corretiva, preservada mesmo quando o usu\u00e1rio troca a rota.",
+      "enum": [
+        "Garantia",
+        "Contrato",
+        "Equipe interna",
+        "Fornecedor sem contrato"
+      ],
+      "type": "string"
+    },
     "scheduled_date": {
       "description": "Data/hora de agendamento",
       "format": "date-time",
@@ -195,12 +227,19 @@
     },
     "status": {
       "default": "Novo",
-      "description": "Status da OS. Mapeamento para a vis\u00e3o simplificada da Central de Manuten\u00e7\u00f5es (Parte C.6): 'pendente' = Novo/Aguardando Pe\u00e7a/Aguardando Fornecedor/Pendente; 'em_andamento' = Em Andamento; 'concluida' = Conclu\u00eddo.",
+      "description": "Status da OS. Mapeamento para a vis\u00e3o simplificada da Central de Manuten\u00e7\u00f5es (Parte C.6): 'pendente' = Novo/Aguardando Pe\u00e7a/Aguardando Fornecedor/Aguardando Or\u00e7amento/Aguardando Aprova\u00e7\u00e3o/Aguardando Teste de Qualidade/Aguardando Aceite/Pendente; 'em_andamento' = Em Andamento/Em Transporte (ida)/Em Conserto Externo/Em Transporte (volta); 'concluida' = Conclu\u00eddo. Todo status diferente de Conclu\u00eddo \u00e9 considerado OS aberta.",
       "enum": [
         "Novo",
         "Em Andamento",
         "Aguardando Pe\u00e7a",
         "Aguardando Fornecedor",
+        "Aguardando Or\u00e7amento",
+        "Aguardando Aprova\u00e7\u00e3o",
+        "Em Transporte (ida)",
+        "Em Conserto Externo",
+        "Em Transporte (volta)",
+        "Aguardando Teste de Qualidade",
+        "Aguardando Aceite",
         "Pendente",
         "Conclu\u00eddo"
       ],
@@ -215,7 +254,7 @@
       "type": "string"
     },
     "technician_id": {
-      "description": "ID do t\u00e9cnico respons\u00e1vel \u2014 deve referenciar um registro real da entidade TechTeam (n\u00e3o usar c\u00f3digos avulsos como 'tech-001'). Vazio quando a execu\u00e7\u00e3o \u00e9 externa.",
+      "description": "ID do t\u00e9cnico respons\u00e1vel \u2014 deve referenciar um registro real da entidade User com perfil t\u00e9cnico (n\u00e3o usar c\u00f3digos avulsos como 'tech-001'). Vazio quando a execu\u00e7\u00e3o \u00e9 externa.",
       "type": "string"
     },
     "technician_name": {

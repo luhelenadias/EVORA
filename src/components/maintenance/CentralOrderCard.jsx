@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { motivoDaOrdem } from '@/lib/central';
+import { GRUPOS_CENTRAL, motivoDaOrdem } from '@/lib/central';
 import { rotuloScore } from '@/lib/priorizacao';
 import TermoTooltip from '@/components/shared/TermoTooltip';
 import ResponseTimeInfo from '@/components/maintenance/ResponseTimeInfo';
@@ -80,7 +80,7 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
           <div className="flex items-center gap-3 text-[11px] text-muted-foreground flex-wrap">
             {order.code && <span className="font-mono">{order.code}</span>}
             {order.origin === 'Agendada' && <span>Gerada automaticamente</span>}
-            {order.status === 'Em Andamento' && order.start_date && (
+            {GRUPOS_CENTRAL.andamento.includes(order.status) && order.start_date && (
               <span>Iniciada em {format(parseISO(order.start_date), 'dd/MM/yy HH:mm')}</span>
             )}
             {order.relatorio_audio_em && <span className="text-primary">Rascunho de IA para revisar</span>}
@@ -96,7 +96,7 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
 
         {!concluida && (
           <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            {order.status === 'Em Andamento' ? (
+            {GRUPOS_CENTRAL.andamento.includes(order.status) ? (
               <div className="flex flex-col sm:flex-row gap-2">
                 {onRecord && (
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onRecord(order)}>

@@ -1,6 +1,6 @@
 import { format, isSameDay, parseISO } from 'date-fns';
 import { dataProgramada, horarioProgramado, temHorario } from '@/lib/preventivas';
-import { dataReferencia } from '@/lib/central';
+import { dataReferencia, GRUPOS_CENTRAL } from '@/lib/central';
 
 /**
  * Agenda da manutenção. Só o que ainda não começou pode ser movido: em
@@ -8,7 +8,7 @@ import { dataReferencia } from '@/lib/central';
  */
 export function podeReagendar(order) {
   if (!order) return false;
-  return order.status !== 'Em Andamento' && order.status !== 'Concluído';
+  return !GRUPOS_CENTRAL.andamento.includes(order.status) && order.status !== 'Concluído';
 }
 
 /** Corretivas abertas que ainda não têm data — vão para a bandeja "Sem data". */
