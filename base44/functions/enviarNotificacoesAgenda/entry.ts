@@ -56,9 +56,14 @@ export default async function (req: Request): Promise<Response> {
         continue;
       }
 
+      // Prioridade e problema relatado entram no corpo do e-mail de designação.
+      const ordem = await base44.asServiceRole.entities.ServiceOrder
+        .get(notificacao.service_order_id)
+        .catch(() => null);
       const { assunto, html, texto } = montarEmail(notificacao, {
         modoTeste,
         destinatarioReal,
+        ordem,
       });
       const convite = conviteCalendario(notificacao);
 
