@@ -16,6 +16,7 @@ export const ALERTAS_ATIVOS_PADRAO = [
   'Chamado parado',
   'OS aguardando triagem',
   'OS devolvida para complemento',
+  'OS pausada',
 ];
 
 /** Nomes exatos dos tipos (espelham o enum da entidade Alerta). */
@@ -34,6 +35,7 @@ export const TIPOS_ALERTA = [
   'Calibração vencida',
   'OS aguardando triagem',
   'OS devolvida para complemento',
+  'OS pausada',
 ];
 
 export const NIVEIS = ['Urgente', 'Atenção', 'Informativo'];
@@ -74,6 +76,7 @@ export const ROTULOS_COLETIVOS = {
   'Calibração vencida': 'calibrações vencidas',
   'OS aguardando triagem': 'OS aguardando triagem',
   'OS devolvida para complemento': 'chamados devolvidos para complemento',
+  'OS pausada': 'OS pausadas há vários dias',
 };
 
 /** Devolução é pessoal: só quem abriu o chamado vê o aviso. */

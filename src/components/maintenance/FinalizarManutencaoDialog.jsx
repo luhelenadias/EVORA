@@ -9,9 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import PartsUsedEditor from '@/components/maintenance/PartsUsedEditor';
 import CamposRelatorioIa from '@/components/maintenance/CamposRelatorioIa';
 import { Badge } from '@/components/ui/badge';
-import { minutosDeExecucao } from '@/lib/atendimento';
 import { formatarMoeda, pecasAcimaDoEstoque, totalPecas } from '@/lib/orderDetail';
-import { AlertTriangle, Sparkles } from 'lucide-react';
+import { duracaoTexto, estaPausada, temposDaOS } from '@/lib/pausas';
+import { AlertTriangle, Pause, Sparkles } from 'lucide-react';
 
 export default function FinalizarManutencaoDialog({ open, order, equipment, onClose, onConfirm, isSaving }) {
   const { data: spareParts = [] } = useQuery({
@@ -20,6 +20,7 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
   });
 
   const [minutos, setMinutos] = useState(0);
+  const [tempos, setTempos] = useState(null);
   const [ajustadoManualmente, setAjustadoManualmente] = useState(false);
   const [report, setReport] = useState('');
   const [parts, setParts] = useState([]);
@@ -27,8 +28,10 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
 
   useEffect(() => {
     if (!open || !order) return;
-    // Nasce pré-preenchido com o valor real: (agora - início), em minutos arredondados.
-    setMinutos(minutosDeExecucao(order.start_date, new Date()) ?? 0);
+    // Nasce pré-preenchido com o TEMPO DE REPARO ATIVO: (agora − início) − pausas.
+    const calculo = temposDaOS(order, new Date());
+    setTempos(calculo);
+    setMinutos(calculo.reparoMinutos);
     setAjustadoManualmente(false);
     setReport(order.technical_report || '');
     setParts(order.parts_used || []);
@@ -43,16 +46,17 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
   const subtotalPecas = totalPecas(pecasValidas);
   const totalOrdem = (Number(order?.total_cost) || 0) + subtotalPecas;
   const excedentes = pecasAcimaDoEstoque(pecasValidas, spareParts);
-  const bloqueado = excedentes.length > 0;
+  const pausada = estaPausada(order);
+  const bloqueado = excedentes.length > 0 || pausada;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (bloqueado) return;
     const completionDate = new Date().toISOString();
-    // Sem ajuste manual, grava sempre (completion_date - start_date) em minutos arredondados.
+    // Sem ajuste manual, grava o tempo ativo: (conclusão − início) − pausas.
     const total = ajustadoManualmente
       ? Math.max(parseInt(minutos, 10) || 0, 0)
-      : minutosDeExecucao(order.start_date, completionDate) ?? 0;
+      : temposDaOS(order, new Date(completionDate)).reparoMinutos;
     onConfirm({
       completion_date: completionDate,
       duracao_total_minutos: total,
@@ -83,19 +87,30 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
             )}
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Tempo decorrido (minutos) *</Label>
-            <Input
-              type="number"
-              min="0"
-              value={minutos}
-              onChange={(e) => { setMinutos(e.target.value); setAjustadoManualmente(true); }}
-              required
-            />
-            <p className="text-[11px] text-muted-foreground">
-              Calculado automaticamente (conclusão − início): {horas}h. Edite apenas se precisar ajustar.
+          {pausada ? (
+            <p className="flex items-start gap-1.5 rounded-md border border-accent/50 bg-accent/10 p-2.5 text-xs text-accent-foreground">
+              <Pause className="mt-px h-3.5 w-3.5 flex-shrink-0" />
+              Esta OS está pausada. Retome a manutenção antes de finalizar.
             </p>
-          </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Tempo de reparo ativo (minutos) *</Label>
+              <Input
+                type="number"
+                min="0"
+                value={minutos}
+                onChange={(e) => { setMinutos(e.target.value); setAjustadoManualmente(true); }}
+                required
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Tempo bruto {tempos?.brutoMinutos ?? 0} min − pausas {tempos?.pausadoMinutos ?? 0} min ={' '}
+                {tempos?.reparoMinutos ?? 0} min ({duracaoTexto(tempos?.reparoMinutos ?? 0)}). Edite apenas se precisar ajustar.
+              </p>
+              <p className="text-[11px] text-muted-foreground">
+                Chamado total (abertura até agora): {duracaoTexto(tempos?.chamadoMinutos ?? 0)} — é o tempo que conta para o SLA.
+              </p>
+            </div>
+          )}
 
           {order?.relatorio_audio_em && (
             <p className="flex items-start gap-1.5 rounded-md border border-primary/25 bg-primary/5 p-2.5 text-xs text-primary">

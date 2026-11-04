@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CalendarPlus, CheckCircle2, Mic, Play, Wrench } from 'lucide-react';
+import { AlertTriangle, CalendarPlus, CheckCircle2, Mic, Pause, Play, Wrench } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,6 +10,7 @@ import { rotuloScore } from '@/lib/priorizacao';
 import TermoTooltip from '@/components/shared/TermoTooltip';
 import ResponseTimeInfo from '@/components/maintenance/ResponseTimeInfo';
 import { aguardandoTriagem } from '@/lib/triagem';
+import { estaPausada, podeMexerNaPausa, resumoDaPausa } from '@/lib/pausas';
 
 const ESTILOS = {
   Preventiva: {
@@ -33,13 +34,15 @@ const ESTILO_PADRAO = {
   chip: 'border-border text-muted-foreground bg-muted',
 };
 
-export default function CentralOrderCard({ order, equipment, onStart, onFinish, onOpen, onRecord, isStarting }) {
+export default function CentralOrderCard({ order, equipment, user, onStart, onFinish, onOpen, onRecord, onPause, onResume, isStarting }) {
   const estilo = ESTILOS[order.type] || ESTILO_PADRAO;
   const Icon = estilo.icon;
   const concluida = order.status === 'Concluído';
   const score = order.prioridade_score_equipamento;
   // Sem destino definido, a OS espera a triagem da gestão: não há o que iniciar.
   const semDestino = aguardandoTriagem(order);
+  const pausada = estaPausada(order);
+  const podePausar = podeMexerNaPausa(user, order);
 
   return (
     <Card
@@ -66,6 +69,11 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
             {semDestino && (
               <Badge variant="outline" className="border-warning/40 bg-warning/10 text-[11px] text-warning-foreground">
                 Aguardando triagem
+              </Badge>
+            )}
+            {pausada && (
+              <Badge variant="outline" className="border-accent/50 bg-accent/10 text-[11px] text-accent-foreground">
+                <Pause className="mr-1 h-3 w-3" /> Pausada: {resumoDaPausa(order)}
               </Badge>
             )}
             {score != null && (
@@ -104,8 +112,19 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
 
         {!concluida && !semDestino && (
           <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-            {GRUPOS_CENTRAL.andamento.includes(order.status) ? (
+            {pausada ? (
+              podePausar && onResume && (
+                <Button size="sm" className="gap-1.5" onClick={() => onResume(order)}>
+                  <Play className="w-3.5 h-3.5" /> Retomar
+                </Button>
+              )
+            ) : GRUPOS_CENTRAL.andamento.includes(order.status) ? (
               <div className="flex flex-col sm:flex-row gap-2">
+                {podePausar && onPause && (
+                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onPause(order)}>
+                    <Pause className="w-3.5 h-3.5" /> Pausar
+                  </Button>
+                )}
                 {onRecord && (
                   <Button variant="outline" size="sm" className="gap-1.5" onClick={() => onRecord(order)}>
                     <Mic className="w-3.5 h-3.5" /> {order.transcricao_audio ? 'Gravar mais' : 'Gravar relato'}

@@ -63,6 +63,11 @@ export default function Indicadores() {
     queryKey: ['spareParts'],
     queryFn: () => base44.entities.SparePart.list(),
   });
+  // Espera de peça: pedido solicitado → chegado.
+  const { data: pedidosPeca = [] } = useQuery({
+    queryKey: ['pedidosPeca'],
+    queryFn: () => base44.entities.PedidoPeca.list('-solicitado_em'),
+  });
   const { data: tiposEquipamento = [] } = useQuery({
     queryKey: ['codigos-tipo-equipamento'],
     queryFn: () => base44.entities.CodigoTipoEquipamento.filter({ ativo: true }),
@@ -96,8 +101,8 @@ export default function Indicadores() {
   );
   const parque = useMemo(() => indicadoresParque(dados.equipamentos), [dados.equipamentos]);
   const atendimento = useMemo(
-    () => indicadoresAtendimento({ ...dados, esperaPorOS: espera?.por_os || {} }),
-    [dados, espera]
+    () => indicadoresAtendimento({ ...dados, esperaPorOS: espera?.por_os || {}, pedidosPeca }),
+    [dados, espera, pedidosPeca]
   );
   const preventivas = useMemo(() => indicadoresPreventivas(dados), [dados]);
   const confiabilidade = useMemo(

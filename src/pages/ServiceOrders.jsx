@@ -25,6 +25,7 @@ import {
 } from '@/lib/maintenance';
 import { alteracoesDaOS, registrarAlteracoesDaOS, registrarAuditoria } from '@/lib/auditoria';
 import { rotuloStatusOS } from '@/lib/triagem';
+import { salvarOS } from '@/lib/salvarOS';
 
 export default function ServiceOrders() {
   const { user } = useOutletContext();
@@ -114,7 +115,8 @@ export default function ServiceOrders() {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, data, antes }) => {
-      const atualizado = await base44.entities.ServiceOrder.update(id, data);
+      const resposta = await salvarOS(id, data);
+      const atualizado = resposta?.order;
       const depois = { ...antes, ...data };
       await registrarAlteracoesDaOS(atualizado || depois, alteracoesDaOS(antes, depois));
       return atualizado;

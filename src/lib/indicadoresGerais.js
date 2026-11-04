@@ -169,7 +169,7 @@ export function indicadoresParque(equipamentos = []) {
 }
 
 // ── 2. Atendimento e reparo ─────────────────────────────────────────
-export function indicadoresAtendimento({ ordens = [], escopo = [], equipamentos = [], esperaPorOS = {} }) {
+export function indicadoresAtendimento({ ordens = [], escopo = [], equipamentos = [], esperaPorOS = {}, pedidosPeca = [] }) {
   const corretivas = ordens.filter((o) => o.type === 'Corretiva');
   // Preventiva agendada fica de fora: o prazo dela é a data programada, não a abertura.
   const comAtendimento = corretivas.filter((o) => o.response_time_minutes != null && o.origin !== 'Agendada');
@@ -240,9 +240,52 @@ export function indicadoresAtendimento({ ordens = [], escopo = [], equipamentos 
     .map((o) => (o.open_date ? Math.max(differenceInDays(new Date(), parseISO(o.open_date)), 0) : null))
     .filter((dias) => dias != null);
 
+  // ── Pausas: tempo parado por motivo, pausadas agora e espera de peça ──
+  const agoraPausa = new Date();
+  const minutosDaPausa = (pausa) => {
+    if (!pausa?.inicio) return 0;
+    const inicio = parseISO(pausa.inicio);
+    const fim = pausa.fim ? parseISO(pausa.fim) : agoraPausa;
+    return Math.max((fim - inicio) / 60000, 0);
+  };
+  const porMotivo = {};
+  escopo.forEach((ordem) => {
+    (ordem.pausas || []).forEach((pausa) => {
+      const motivo = pausa.motivo || 'Outro';
+      const atual = porMotivo[motivo] || { motivo, minutos: 0, os: 0 };
+      atual.minutos += minutosDaPausa(pausa);
+      atual.os += 1;
+      porMotivo[motivo] = atual;
+    });
+  });
+  const paradoPorMotivo = Object.values(porMotivo)
+    .filter((linha) => linha.minutos > 0)
+    .sort((a, b) => b.minutos - a.minutos);
+
+  const pausadasAgora = escopo.filter((o) => o.pausa_ativa || (o.pausas || []).some((p) => p?.inicio && !p.fim));
+  const diasPausadas = pausadasAgora
+    .map((o) => {
+      const aberta = (o.pausas || []).find((p) => p?.inicio && !p.fim);
+      return aberta ? Math.max(differenceInDays(agoraPausa, parseISO(aberta.inicio)), 0) : null;
+    })
+    .filter((dias) => dias != null);
+
+  // Espera de peça: do pedido até a chegada.
+  const pedidosChegados = (pedidosPeca || []).filter((p) => p.solicitado_em && p.chegou_em);
+  const esperaPecaHoras = pedidosChegados.length
+    ? media(pedidosChegados.map((p) => (parseISO(p.chegou_em) - parseISO(p.solicitado_em)) / 3600000))
+    : null;
+
   return {
     tempoMedioAtendimento: mediaAtendimentoMin == null ? null : mediaAtendimentoMin / 60,
     osComAtendimento: comAtendimento.length,
+    paradoPorMotivo,
+    pausadasAgora: {
+      quantidade: pausadasAgora.length,
+      maisAntigaDias: diasPausadas.length ? Math.max(...diasPausadas) : null,
+    },
+    esperaPecaHoras,
+    pedidosComChegada: pedidosChegados.length,
     tempoMedioTriagem: minutosAteTriagem.length ? media(minutosAteTriagem) / 60 : null,
     osComTriagem: comTriagem.length,
     tempoMedioTriagemAteInicio: minutosTriagemAteInicio.length ? media(minutosTriagemAteInicio) / 60 : null,

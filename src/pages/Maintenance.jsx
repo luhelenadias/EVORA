@@ -35,6 +35,9 @@ import { filaTriagem, podeReabrirTriagem, podeTriar } from '@/lib/triagem';
 import { registrarAuditoria } from '@/lib/auditoria';
 import { formatarMoeda } from '@/lib/orderDetail';
 import { useTecnicos } from '@/lib/tecnicos';
+import { salvarOS } from '@/lib/salvarOS';
+import { retomarManutencao } from '@/lib/pausas';
+import PausarDialog from '@/components/maintenance/PausarDialog';
 
 const RECORTES_VAZIOS = { abertas: false, atrasadas: false, semTecnico: false };
 
@@ -59,6 +62,8 @@ export default function Maintenance() {
   const [trechosPorOrdem, setTrechosPorOrdem] = useState({});
   const [agenda, setAgenda] = useState(null);
   const [reagendando, setReagendando] = useState(null);
+  // OS que vai ser pausada (motivo + observação no diálogo).
+  const [pausando, setPausando] = useState(null);
   // OS aberta no painel de triagem (aba visível só para admin e gestão).
   const [triando, setTriando] = useState(null);
   const [gerandoSugestoes, setGerandoSugestoes] = useState(false);
@@ -307,7 +312,7 @@ export default function Maintenance() {
       const resposta = slaDeAtendimento(order, contracts);
       // Preventiva agendada não tem espera de atendimento: o prazo dela é a data programada.
       const medeEspera = order.type !== 'Preventiva' || order.origin !== 'Agendada';
-      await base44.entities.ServiceOrder.update(order.id, {
+      await salvarOS(order.id, {
         status: 'Em Andamento',
         start_date: inicio.toISOString(),
         ...(medeEspera ? { response_time_minutes: minutosDeAtendimento(order.open_date, inicio) } : {}),
@@ -325,8 +330,22 @@ export default function Maintenance() {
         valor_novo: inicio.toISOString(),
         tecnico_atribuido_id: order.technician_id || null,
       });
+    } catch (erro) {
+      toast.error(erro?.message || 'Não foi possível iniciar a manutenção');
     } finally {
       setIniciandoId(null);
+    }
+  };
+
+  // ── Pausa e retomada da manutenção ─────────────────────────────
+  const retomar = async (order) => {
+    try {
+      await retomarManutencao(base44, order);
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
+      toast.success('Manutenção retomada');
+      await recalcularAlertas();
+    } catch (erro) {
+      toast.error(erro?.message || 'Não foi possível retomar a manutenção');
     }
   };
 
@@ -390,7 +409,7 @@ export default function Maintenance() {
     // A tela registra antes da alteração: a automação do servidor deduplica pelo que já foi gravado.
     await registrarAlteracoes(order, alteracoes);
 
-    await base44.entities.ServiceOrder.update(order.id, {
+    await salvarOS(order.id, {
       scheduled_date: depois.scheduled_date,
       ...(mudouTecnico
         ? {
@@ -512,7 +531,7 @@ export default function Maintenance() {
     const existentes = order.parts_used || [];
     const novas = sugeridas.filter((s) => !existentes.some((e) => e.spare_part_id === s.spare_part_id));
 
-    await base44.entities.ServiceOrder.update(order.id, {
+    await salvarOS(order.id, {
       causa_falha: order.causa_falha || rascunho.causa_falha || '',
       technical_report: order.technical_report || rascunho.acao_realizada || '',
       testes_finais: order.testes_finais || rascunho.testes_finais || '',
@@ -561,7 +580,7 @@ export default function Maintenance() {
     if (!order) return;
     setSalvando(true);
     try {
-      await base44.entities.ServiceOrder.update(order.id, { ...dados, status: 'Concluído' });
+      await salvarOS(order.id, { ...dados, status: 'Concluído' });
 
       await registrarAuditoria({
         entidade_tipo: 'ServiceOrder',
@@ -779,9 +798,12 @@ export default function Maintenance() {
             equipmentById={equipmentById}
             ordem={ordemLista}
             iniciandoId={iniciandoId}
+            user={user}
             onStart={iniciar}
             onFinish={setFinalizando}
             onRecord={setGravando}
+            onPause={setPausando}
+            onResume={retomar}
             onOpen={setDetalhe}
             title="Nenhuma manutenção com esses filtros"
             description="Ajuste o status, o período ou os demais filtros para encontrar a manutenção."
@@ -848,6 +870,14 @@ export default function Maintenance() {
           tecnicos={tecnicosAtribuiveis}
           onClose={() => setTriando(null)}
           onConcluida={recalcularAlertas}
+        />
+      )}
+
+      {pausando && (
+        <PausarDialog
+          order={pausando}
+          onClose={() => setPausando(null)}
+          onConcluido={recalcularAlertas}
         />
       )}
 

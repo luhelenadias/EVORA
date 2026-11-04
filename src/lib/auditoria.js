@@ -4,7 +4,8 @@ import { base44 } from '@/api/base44Client';
 export const ACOES = [
   'Abertura', 'Atribuição', 'Reatribuição', 'Início do atendimento', 'Mudança de status',
   'Mudança de prioridade', 'Definição de rota', 'Alteração de rota',
-  'Triagem', 'Devolução ao solicitante', 'Edição de campo',
+  'Triagem', 'Devolução ao solicitante', 'Pausa', 'Retomada',
+  'Pedido de peça', 'Atualização de pedido de peça', 'Edição de campo',
   'Peça utilizada', 'Rascunho de relatório gerado por IA',
   'Relatório confirmado', 'Fechamento', 'Reabertura', 'Cancelamento', 'Upload de documento',
   'Extração por IA', 'Notificação ao técnico', 'Mudança de perfil', 'Ajuste administrativo',
@@ -35,6 +36,10 @@ const VERBOS = {
   'Alteração de rota': 'alterou a rota de atendimento',
   Triagem: 'concluiu a triagem',
   'Devolução ao solicitante': 'devolveu o chamado ao solicitante',
+  Pausa: 'pausou a manutenção',
+  Retomada: 'retomou a manutenção',
+  'Pedido de peça': 'pediu peça',
+  'Atualização de pedido de peça': 'atualizou o pedido de peça',
   'Edição de campo': 'editou',
   'Peça utilizada': 'registrou peça utilizada',
   'Rascunho de relatório gerado por IA': 'gerou rascunho do relatório por IA',
@@ -60,6 +65,9 @@ export const ROTULOS_CAMPO = {
   triagem_em: 'Triagem',
   triagem_por_nome: 'Triado por',
   triagem_devolucao_motivo: 'Motivo da devolução',
+  pausa_ativa: 'Pausa',
+  pausas: 'Pausas',
+  pedido_peca: 'Pedido de peça',
   urgencia_percebida: 'Urgência percebida',
   contrato_id: 'Contrato',
   technician_id: 'Técnico',
@@ -143,6 +151,18 @@ export function fraseDaEntrada(entrada) {
         return entrada.valor_novo ? `para ${entrada.valor_novo}` : '';
       case 'Devolução ao solicitante':
         return entrada.valor_novo ? `: ${entrada.valor_novo}` : '';
+      case 'Pausa':
+        return entrada.valor_novo
+          ? `por ${entrada.valor_novo}${entrada.motivo ? ` (${entrada.motivo})` : ''}`
+          : entrada.motivo || '';
+      case 'Retomada':
+        return `— ${entrada.valor_novo || 'Em Andamento'}${entrada.motivo ? ` (${entrada.motivo})` : ''}`;
+      case 'Pedido de peça':
+        return entrada.valor_novo || '';
+      case 'Atualização de pedido de peça':
+        return entrada.valor_anterior
+          ? `de ${entrada.valor_anterior} para ${entrada.valor_novo}`
+          : `para ${entrada.valor_novo}`;
       case 'Edição de campo':
         return entrada.campo ? `${rotuloCampo(entrada.campo)}: ${entrada.valor_novo}` : entrada.valor_novo;
       case 'Abertura':

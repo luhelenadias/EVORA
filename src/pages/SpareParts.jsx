@@ -12,6 +12,8 @@ import StatusBadge from '@/components/shared/StatusBadge';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import PedidosPecaPainel from '@/components/spareparts/PedidosPecaPainel';
 import { cn } from '@/lib/utils';
 
 export default function SpareParts() {
@@ -24,6 +26,25 @@ export default function SpareParts() {
     queryKey: ['spareParts'],
     queryFn: () => base44.entities.SparePart.list(),
   });
+
+  const { data: user } = useQuery({
+    queryKey: ['me'],
+    queryFn: () => base44.auth.me().catch(() => null),
+  });
+  // Pedidos de peça: aba visível apenas para administração e gestão.
+  const podeVerPedidos = ['admin', 'gestor'].includes(user?.role);
+  const { data: pedidos = [] } = useQuery({
+    queryKey: ['pedidosPeca'],
+    queryFn: () => base44.entities.PedidoPeca.list('-solicitado_em'),
+    enabled: podeVerPedidos,
+  });
+  const { data: ordens = [] } = useQuery({
+    queryKey: ['serviceOrders'],
+    queryFn: () => base44.entities.ServiceOrder.list('-created_date'),
+    enabled: podeVerPedidos,
+  });
+  const pecasById = Object.fromEntries(parts.map((peca) => [peca.id, peca]));
+  const ordersById = Object.fromEntries(ordens.map((ordem) => [ordem.id, ordem]));
 
   const createMutation = useMutation({
     mutationFn: (data) => base44.entities.SparePart.create(data),
@@ -85,6 +106,13 @@ export default function SpareParts() {
         )}
       </PageHeader>
 
+      <Tabs defaultValue="estoque">
+        <TabsList>
+          <TabsTrigger value="estoque">Estoque</TabsTrigger>
+          {podeVerPedidos && <TabsTrigger value="pedidos">Pedidos de peça</TabsTrigger>}
+        </TabsList>
+
+        <TabsContent value="estoque" className="mt-4 space-y-6">
       <Card>
         <CardContent className="p-4">
           <div className="relative">
@@ -134,6 +162,19 @@ export default function SpareParts() {
           </div>
         </Card>
       )}
+        </TabsContent>
+
+        {podeVerPedidos && (
+          <TabsContent value="pedidos" className="mt-4">
+            <PedidosPecaPainel
+              pedidos={pedidos}
+              pecasById={pecasById}
+              ordersById={ordersById}
+              user={user}
+            />
+          </TabsContent>
+        )}
+      </Tabs>
 
       <Dialog open={showForm} onOpenChange={() => { setShowForm(false); setEditingItem(null); }}>
         <DialogContent>

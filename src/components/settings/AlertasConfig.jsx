@@ -39,6 +39,11 @@ const CAMPOS_NUMERO = [
     label: 'Aguardando triagem (dias)',
     ajuda: 'Dias de fila de triagem antes de avisar admin e gestão. Padrão 1 dia.',
   },
+  {
+    key: 'alerta_pausa_dias',
+    label: 'OS pausada (dias)',
+    ajuda: 'Dias de pausa antes de avisar admin, gestão e o técnico da OS. Padrão 3 dias.',
+  },
 ];
 
 /** Regras dos alertas automáticos (campos alerta_*) e liga/desliga por tipo. */
@@ -59,6 +64,7 @@ export default function AlertasConfig() {
       alerta_sla_risco_pct: config.alerta_sla_risco_pct ?? 80,
       alerta_chamado_parado_dias: config.alerta_chamado_parado_dias ?? 5,
       alerta_triagem_dias: config.alerta_triagem_dias ?? 1,
+      alerta_pausa_dias: config.alerta_pausa_dias ?? 3,
     });
     setAtivos(
       Array.isArray(config.alertas_ativos) ? config.alertas_ativos : ALERTAS_ATIVOS_PADRAO
@@ -89,6 +95,7 @@ export default function AlertasConfig() {
         alerta_sla_risco_pct: Number(valores.alerta_sla_risco_pct),
         alerta_chamado_parado_dias: Number(valores.alerta_chamado_parado_dias),
         alerta_triagem_dias: Number(valores.alerta_triagem_dias ?? 1),
+        alerta_pausa_dias: Number(valores.alerta_pausa_dias ?? 3),
         alertas_ativos: ativos,
       });
       queryClient.invalidateQueries({ queryKey: ['configuracaoInstituicao'] });

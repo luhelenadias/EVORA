@@ -42,6 +42,11 @@
       },
       "type": "array"
     },
+    "alerta_pausa_dias": {
+      "default": 3,
+      "description": "Dias que uma OS pode ficar pausada antes de gerar o alerta 'OS pausada' para administra\u00e7\u00e3o, gest\u00e3o e o t\u00e9cnico da OS. Padr\u00e3o 3 dias.",
+      "type": "number"
+    },
     "alerta_preventiva_antecedencia_dias": {
       "default": 7,
       "description": "Dias antes da data agendada em que a preventiva gera o alerta 'Preventiva pr\u00f3xima'",
@@ -75,7 +80,8 @@
         "OS sem t\u00e9cnico",
         "Chamado parado",
         "OS aguardando triagem",
-        "OS devolvida para complemento"
+        "OS devolvida para complemento",
+        "OS pausada"
       ],
       "description": "Tipos de alerta ligados na institui\u00e7\u00e3o. Garantia e calibra\u00e7\u00e3o come\u00e7am desligados at\u00e9 os campos serem preenchidos.",
       "items": {

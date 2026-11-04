@@ -93,6 +93,63 @@ export default function SecaoAtendimento({ atendimento, corretivas, podeVerEsper
         />
       </div>
 
+      {/* Pausas: onde a manutenção parou e quanto se espera por peça. */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-2">
+        <NumeroIndicador
+          rotulo="OS pausadas agora"
+          valor={atendimento.pausadasAgora?.quantidade ?? 0}
+          detalhe={
+            atendimento.pausadasAgora?.maisAntigaDias != null
+              ? `A mais antiga está pausada há ${atendimento.pausadasAgora.maisAntigaDias} dia(s)`
+              : 'Nenhuma manutenção pausada'
+          }
+          tom={atendimento.pausadasAgora?.quantidade ? 'atencao' : 'neutro'}
+          para={linkManutencoes({ abertas: 1 })}
+        />
+        <NumeroIndicador
+          rotulo="Espera média de peça"
+          valor={formatarHoras(atendimento.esperaPecaHoras)}
+          detalhe={`Pedido até a chegada · ${atendimento.pedidosComChegada || 0} pedido(s)`}
+          para="/pecas"
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          Tempo parado por motivo de pausa
+        </p>
+        {(atendimento.paradoPorMotivo || []).length === 0 ? (
+          <p className="rounded-lg border border-dashed px-3 py-3 text-center text-[11px] text-muted-foreground">
+            Nenhuma pausa registrada no período.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {atendimento.paradoPorMotivo.map((linha) => {
+              const maior = Math.max(...atendimento.paradoPorMotivo.map((l) => l.minutos), 1);
+              return (
+                <div key={linha.motivo} className="space-y-1">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <span className="font-medium">{linha.motivo}</span>
+                    <span className="text-muted-foreground">
+                      {formatarDias(linha.minutos / 1440)} · {linha.os} pausa(s)
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-muted">
+                    <div
+                      className="h-2 rounded-full bg-primary"
+                      style={{ width: `${Math.round((linha.minutos / maior) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p className="text-[10px] text-muted-foreground">
+          Soma das pausas das OS do período. O tempo pausado não entra no MTTR, mas conta no SLA.
+        </p>
+      </div>
+
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="space-y-1.5">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">

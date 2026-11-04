@@ -9,9 +9,12 @@ export default function CentralList({
   equipmentById,
   ordem,
   iniciandoId,
+  user,
   onStart,
   onFinish,
   onRecord,
+  onPause,
+  onResume,
   onOpen,
   title,
   description,
@@ -32,9 +35,12 @@ export default function CentralList({
           key={order.id}
           order={order}
           equipment={equipmentById[order.equipment_id]}
+          user={user}
           onStart={onStart}
           onFinish={onFinish}
           onRecord={onRecord}
+          onPause={onPause}
+          onResume={onResume}
           onOpen={onOpen}
           isStarting={iniciandoId === order.id}
         />

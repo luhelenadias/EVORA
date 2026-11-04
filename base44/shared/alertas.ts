@@ -19,6 +19,7 @@ export const TIPOS_ALERTA = [
   'Calibração vencida',
   'OS aguardando triagem',
   'OS devolvida para complemento',
+  'OS pausada',
 ];
 
 /** Tipos ligados por padrão (garantia e calibração começam desligados). */
@@ -35,6 +36,7 @@ export const ALERTAS_ATIVOS_PADRAO = [
   'Chamado parado',
   'OS aguardando triagem',
   'OS devolvida para complemento',
+  'OS pausada',
 ];
 
 /** Roteamento por perfil: quem vê cada tipo de alerta. */
@@ -54,6 +56,7 @@ export const DESTINATARIOS = {
   'OS aguardando triagem': ['admin', 'gestor'],
   // Devolução é avisada a quem abriu: o alerta guarda o ID dessa pessoa em tecnico_id.
   'OS devolvida para complemento': ['admin', 'gestor', 'tecnico', 'clinico'],
+  'OS pausada': ['admin', 'gestor', 'tecnico'],
 };
 
 /** Mesma regra da tela: contrato entra em "Vencendo" a 60 dias do fim. */
@@ -66,6 +69,7 @@ export const CONFIG_PADRAO = {
   alerta_sla_risco_pct: 80,
   alerta_chamado_parado_dias: 5,
   alerta_triagem_dias: 1,
+  alerta_pausa_dias: 3,
   alertas_ativos: ALERTAS_ATIVOS_PADRAO,
 };
 
@@ -416,6 +420,29 @@ export function gerarAlertas({ config, contratos = [], equipamentos = [], ordens
       mensagem: `Aberta em ${dataBr(ordem.open_date)} sem destino definido.`,
       prazo_referencia: paraIso(ordem.open_date),
       dias_referencia: diasEsperando,
+    });
+  }
+
+  // ── Pausa longa: a OS está parada além do prazo configurado ────
+  for (const ordem of ordens) {
+    if (!ordem.pausa_ativa || ordem.status === 'Concluído') continue;
+    const aberta: any = (ordem.pausas || []).find((pausa: any) => pausa && pausa.inicio && !pausa.fim);
+    if (!aberta) continue;
+    const diasPausada = diasEntre(aberta.inicio, agora);
+    if (diasPausada === null || diasPausada <= Number(cfg.alerta_pausa_dias ?? 3)) continue;
+    const nome = ordem.equipment_name || equipamentoPorId.get(ordem.equipment_id)?.name || 'Equipamento';
+    add({
+      tipo: 'OS pausada',
+      nivel: diasPausada > Number(cfg.alerta_pausa_dias ?? 3) * 2 ? 'Urgente' : 'Atenção',
+      entidade_tipo: 'ServiceOrder',
+      entidade_id: ordem.id,
+      entidade_codigo: ordem.code,
+      equipment_id: ordem.equipment_id,
+      tecnico_id: ordem.technician_id,
+      titulo: `OS pausada há ${diasPausada} dias — ${nome}`,
+      mensagem: `Pausa por "${aberta.motivo}" desde ${dataHoraBr(aberta.inicio)}.`,
+      prazo_referencia: paraIso(aberta.inicio),
+      dias_referencia: diasPausada,
     });
   }
 
