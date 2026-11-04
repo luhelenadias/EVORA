@@ -83,7 +83,8 @@ export function rotuloStatusOS(order) {
 
 /** Status gravado ao concluir a triagem. */
 export function statusAposTriagem(rota) {
-  return rota === 'Equipe interna' ? 'Pendente' : 'Aguardando Orçamento';
+  // Escopo enxuto: rota externa registra o fornecedor e aguarda o retorno dele.
+  return rota === 'Equipe interna' ? 'Pendente' : 'Aguardando Fornecedor';
 }
 
 /** Contratos vigentes que cobrem o equipamento (vínculo direto ou lista de cobertos). */
