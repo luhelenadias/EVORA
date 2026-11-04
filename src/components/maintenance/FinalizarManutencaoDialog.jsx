@@ -153,7 +153,7 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
               )}
             </div>
             <PartsUsedEditor items={parts} spareParts={spareParts} onChange={setParts} />
-            {bloqueado ? (
+            {excedentes.length > 0 ? (
               <p className="flex items-start gap-1.5 text-[11px] font-medium text-destructive">
                 <AlertTriangle className="w-3.5 h-3.5 mt-px flex-shrink-0" />
                 <span>
