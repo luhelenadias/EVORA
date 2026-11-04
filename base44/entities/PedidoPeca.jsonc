@@ -1,0 +1,171 @@
+{
+  "name": "PedidoPeca",
+  "type": "object",
+  "properties": {
+    "service_order_id": {
+      "type": "string",
+      "description": "OS que originou o pedido (obrigat\u00f3rio)."
+    },
+    "os_codigo": {
+      "type": "string",
+      "description": "C\u00f3digo da OS (cache, ex.: OS-2026-031)."
+    },
+    "equipment_id": {
+      "type": "string",
+      "description": "Equipamento da OS."
+    },
+    "equipment_name": {
+      "type": "string",
+      "description": "Nome do equipamento (cache)."
+    },
+    "spare_part_id": {
+      "type": "string",
+      "description": "Pe\u00e7a do cat\u00e1logo SparePart. Vazio quando a pe\u00e7a \u00e9 fora do cat\u00e1logo (descri\u00e7\u00e3o livre)."
+    },
+    "descricao_livre": {
+      "type": "string",
+      "description": "Descri\u00e7\u00e3o da pe\u00e7a quando n\u00e3o vem do cat\u00e1logo. Obrigat\u00f3ria quando spare_part_id est\u00e1 vazio \u2014 pe\u00e7a fora do cat\u00e1logo \u00e9 permitida e \u00e9 o caso comum."
+    },
+    "quantidade": {
+      "type": "number",
+      "default": 1,
+      "description": "Quantidade pedida."
+    },
+    "urgencia": {
+      "type": "string",
+      "enum": [
+        "Baixa",
+        "M\u00e9dia",
+        "Alta",
+        "Cr\u00edtica"
+      ],
+      "default": "M\u00e9dia",
+      "description": "Urg\u00eancia do pedido, definida por quem pede."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Solicitada",
+        "Em compra",
+        "Chegou",
+        "Retirada",
+        "Cancelada"
+      ],
+      "default": "Solicitada",
+      "description": "Andamento do pedido. Em compra/Chegou/Cancelada s\u00e3o movidos por admin e gestor; Retirada \u00e9 marcada pelo t\u00e9cnico respons\u00e1vel da OS."
+    },
+    "em_estoque_no_pedido": {
+      "type": "boolean",
+      "default": false,
+      "description": "Verdadeiro quando, no momento do pedido, a pe\u00e7a do cat\u00e1logo tinha estoque suficiente. Nesse caso o almoxarifado separa a pe\u00e7a e n\u00e3o h\u00e1 sugest\u00e3o de pausa."
+    },
+    "solicitante_id": {
+      "type": "string",
+      "description": "Usu\u00e1rio que pediu a pe\u00e7a (referencia User)."
+    },
+    "solicitante_nome": {
+      "type": "string",
+      "description": "Nome de quem pediu (cache)."
+    },
+    "solicitado_em": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Data/hora do pedido, marcada pelo servidor."
+    },
+    "em_compra_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "previsao_chegada": {
+      "type": "string",
+      "format": "date",
+      "description": "Previs\u00e3o de chegada informada ao mover para Em compra (opcional)."
+    },
+    "chegou_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "retirada_em": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "observacao": {
+      "type": "string",
+      "description": "Observa\u00e7\u00e3o livre de quem pediu ou de quem movimentou o pedido."
+    },
+    "pausa_id": {
+      "type": "string",
+      "description": "ID da pausa criada por este pedido, quando a manuten\u00e7\u00e3o foi pausada aguardando a pe\u00e7a."
+    },
+    "tecnico_responsavel_id": {
+      "type": "string",
+      "description": "T\u00e9cnico respons\u00e1vel pela OS no momento do pedido. Usado para que o t\u00e9cnico veja apenas os pedidos das suas OS."
+    }
+  },
+  "required": [
+    "service_order_id",
+    "quantidade",
+    "urgencia",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        },
+        {
+          "data.tecnico_responsavel_id": "{{user.id}}"
+        }
+      ]
+    },
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "tecnico"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        },
+        {
+          "data.tecnico_responsavel_id": "{{user.id}}"
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}
