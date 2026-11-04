@@ -58,8 +58,17 @@ export function nomeDoTecnico(id, tecnicos = []) {
 export function useTecnicos({ ativos = false, enabled = true } = {}) {
   const { data = [], isLoading } = useQuery({
     queryKey: ['usuarios-tecnicos'],
-    // Quem não é administrador não lê a lista completa: a tela segue sem equipe.
-    queryFn: () => base44.entities.User.list().catch(() => []),
+    // A leitura direta de User só vale para o administrador; a gestão (que faz a triagem)
+    // recebia lista vazia. A função de servidor devolve a equipe técnica para todos.
+    queryFn: async () => {
+      try {
+        const resposta = await base44.functions.invoke('listarEquipeTecnica', {});
+        if (Array.isArray(resposta?.data?.tecnicos)) return resposta.data.tecnicos;
+      } catch {
+        // cai para a leitura direta abaixo
+      }
+      return base44.entities.User.list().catch(() => []);
+    },
     enabled,
   });
 
