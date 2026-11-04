@@ -169,10 +169,14 @@ export default function Maintenance() {
   // Técnico é o próprio usuário: as OS atribuídas a ele guardam o ID da conta.
   const meuTecnicoId = role === 'tecnico' ? user?.id || null : null;
 
-  // Quem é da equipe técnica abre o calendário já em "Minha agenda".
+  // Quem é da equipe técnica abre o calendário em "Minha agenda" e a lista só com os
+  // próprios chamados (o filtro de técnico pode ser retirado para ver o restante).
   useEffect(() => {
     if (!meuTecnicoId) return;
     setFiltrosCalendario((atual) =>
+      (atual.tecnico || []).length ? atual : { ...atual, tecnico: [meuTecnicoId] }
+    );
+    setFiltrosLista((atual) =>
       (atual.tecnico || []).length ? atual : { ...atual, tecnico: [meuTecnicoId] }
     );
   }, [meuTecnicoId]);
