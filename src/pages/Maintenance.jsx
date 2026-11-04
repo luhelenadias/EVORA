@@ -30,6 +30,7 @@ import { calcularMtbf, calcularMttr, calcularTempoMedioAtendimento, frequenciaPo
 import { minutosDeAtendimento, slaDeAtendimento } from '@/lib/atendimento';
 import { GRUPOS_CENTRAL, ORDENACOES, ordemAtrasada } from '@/lib/central';
 import { registrarAuditoria } from '@/lib/auditoria';
+import { formatarMoeda } from '@/lib/orderDetail';
 import { useTecnicos } from '@/lib/tecnicos';
 
 const RECORTES_VAZIOS = { abertas: false, atrasadas: false, semTecnico: false };
@@ -106,7 +107,16 @@ export default function Maintenance() {
     );
     if (!novas.length) return;
     novas.forEach((p) => geradasRef.current.add(p.equipment_id));
-    base44.entities.ServiceOrder.bulkCreate(novas).then(async (criadas) => {
+    // Código sequencial por ano, reservado no servidor em um único lote.
+    (async () => {
+      const resposta = await base44.functions
+        .invoke('gerarCodigoOS', { quantidade: novas.length })
+        .then((r) => r.data)
+        .catch(() => ({ codigos: [] }));
+      const codigos = resposta?.codigos || [];
+      const criadas = await base44.entities.ServiceOrder.bulkCreate(
+        novas.map((nova, i) => (codigos[i] ? { ...nova, code: codigos[i] } : nova))
+      );
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
       toast.success(`${novas.length} manutenção(ões) preventiva(s) agendada(s)`);
       for (const criada of criadas || []) {
@@ -121,7 +131,7 @@ export default function Maintenance() {
           tecnico_atribuido_id: criada.technician_id || null,
         });
       }
-    });
+    })();
   }, [equipment, orders, carregandoEquip, carregandoOrdens, queryClient]);
 
   const equipmentById = useMemo(() => {
@@ -522,6 +532,20 @@ export default function Maintenance() {
     });
   };
 
+  // O que foi preenchido na finalização aparece no próprio "Fechamento",
+  // em vez de virar várias linhas soltas de "Edição de campo".
+  const detalhesDoFechamento = (dados) => {
+    const pecas = (dados.parts_used || []).length;
+    return [
+      `Duração ${Math.round(dados.duracao_total_minutos || 0)} min`,
+      dados.total_cost != null ? `custo ${formatarMoeda(dados.total_cost)}` : '',
+      pecas ? `${pecas} peça${pecas > 1 ? 's' : ''}` : '',
+      dados.causa_falha ? 'causa da falha registrada' : '',
+      dados.testes_finais ? 'testes finais registrados' : '',
+      dados.pendencias ? 'pendências registradas' : '',
+    ].filter(Boolean).join(' · ');
+  };
+
   const concluir = async (dados) => {
     const order = finalizando;
     if (!order) return;
@@ -536,7 +560,7 @@ export default function Maintenance() {
         acao: 'Fechamento',
         campo: 'completion_date',
         valor_novo: dados.completion_date,
-        motivo: `Duração ${Math.round(dados.duracao_total_minutos || 0)} min`,
+        motivo: detalhesDoFechamento(dados),
         tecnico_atribuido_id: order.technician_id || null,
       });
       await registrarAuditoria({

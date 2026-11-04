@@ -59,6 +59,21 @@ export const CAMPOS_OS = {
   equipment_id: 'Equipamento',
 };
 
+/**
+ * Campos que, alterados no ato de finalizar a OS, já fazem parte do "Fechamento".
+ * O servidor não abre linhas separadas de "Edição de campo" para eles.
+ */
+export const CAMPOS_FECHAMENTO = [
+  'causa_falha',
+  'testes_finais',
+  'pendencias',
+  'duracao_total_minutos',
+  'total_cost',
+  'parts_used',
+  'technical_report',
+  'completion_date',
+];
+
 /** Campos do contrato que entram como "Edição de campo". */
 export const CAMPOS_CONTRATO = {
   supplier_name: 'Fornecedor',
@@ -117,6 +132,27 @@ export function montarEntrada(dados: any, usuario: any) {
     usuario_perfil: pessoa && PERFIS.includes(usuario?.role) ? usuario.role : null,
     data_hora: new Date().toISOString(),
   };
+}
+
+/** Mesmo valor (inclusive ambos vazios) não é alteração: não gera linha no log. */
+export function mesmoValor(a: any, b: any) {
+  return texto(a) === texto(b);
+}
+
+/** Detalhe curto do fechamento: o que foi preenchido, sem linhas extras no log. */
+export function resumoFechamento(os: any) {
+  const pecas = (os?.parts_used || []).length;
+  const custo = os?.total_cost != null
+    ? Number(os.total_cost).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+    : '';
+  return [
+    os?.duracao_total_minutos != null ? `Duração ${Math.round(Number(os.duracao_total_minutos))} min` : '',
+    custo ? `custo ${custo}` : '',
+    pecas ? `${pecas} peça${pecas > 1 ? 's' : ''}` : '',
+    os?.causa_falha ? 'causa da falha registrada' : '',
+    os?.testes_finais ? 'testes finais registrados' : '',
+    os?.pendencias ? 'pendências registradas' : '',
+  ].filter(Boolean).join(' · ');
 }
 
 /** Chave de deduplicação entre o log da tela e o log automático. */

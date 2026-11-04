@@ -1,5 +1,13 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.54';
-import { CAMPOS_CONTRATO, CAMPOS_OS, chaveDe, texto } from '../../shared/auditoria.ts';
+import {
+  CAMPOS_CONTRATO,
+  CAMPOS_FECHAMENTO,
+  CAMPOS_OS,
+  chaveDe,
+  mesmoValor,
+  resumoFechamento,
+  texto,
+} from '../../shared/auditoria.ts';
 
 const JANELA_DEDUPE_MS = 3 * 60 * 1000;
 // A tela grava a ação humana logo depois de salvar a alteração: espera essa
@@ -35,6 +43,10 @@ function candidatosOS(evento, atual, anterior, campos) {
 
   const mudou = (f) => campos.includes(f);
   const lista = [];
+
+  // Finalização em andamento: o que foi preenchido agora é parte do "Fechamento",
+  // e não vira uma linha de "Edição de campo" por campo.
+  const fechando = mudou('completion_date') || (mudou('status') && atual?.status === 'Concluído');
 
   if (mudou('status')) {
     const reabertura = anterior?.status === 'Concluído' && atual?.status !== 'Concluído';
@@ -93,11 +105,13 @@ function candidatosOS(evento, atual, anterior, campos) {
       campo: 'completion_date',
       valor_anterior: anterior?.completion_date,
       valor_novo: atual?.completion_date,
+      motivo: resumoFechamento(atual),
       tecnico_atribuido_id: atual?.technician_id || null,
     });
   }
 
-  if (mudou('parts_used')) {
+  // Peças usadas no fechamento já são registradas pela tela e citadas no "Fechamento".
+  if (mudou('parts_used') && !fechando) {
     lista.push({
       ...base,
       acao: 'Peça utilizada',
@@ -121,6 +135,9 @@ function candidatosOS(evento, atual, anterior, campos) {
 
   for (const campo of campos) {
     if (!CAMPOS_OS[campo]) continue;
+    if (fechando && CAMPOS_FECHAMENTO.includes(campo)) continue;
+    // Valor igual ao anterior (inclusive ambos vazios) não é alteração.
+    if (mesmoValor(anterior?.[campo], atual?.[campo])) continue;
     lista.push({
       ...base,
       acao: 'Edição de campo',
@@ -192,6 +209,8 @@ function candidatosContrato(evento, atual, anterior, campos) {
   for (const campo of campos) {
     if (!CAMPOS_CONTRATO[campo]) continue;
     if (['status', 'campos_revisar'].includes(campo)) continue;
+    // Valor igual ao anterior (inclusive ambos vazios) não é alteração.
+    if (mesmoValor(anterior?.[campo], atual?.[campo])) continue;
     lista.push({
       ...base,
       acao: 'Edição de campo',

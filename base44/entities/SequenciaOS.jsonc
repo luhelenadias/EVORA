@@ -1,0 +1,40 @@
+{
+  "name": "SequenciaOS",
+  "type": "object",
+  "properties": {
+    "ano": {
+      "type": "number",
+      "description": "Ano da numera\u00e7\u00e3o sequencial (ex.: 2026), usado no c\u00f3digo OS-AAAA-NNN."
+    },
+    "ultimo_numero": {
+      "type": "number",
+      "description": "\u00daltimo n\u00famero reservado no ano. Controlado apenas pelo servidor (fun\u00e7\u00e3o gerarCodigoOS); n\u00e3o editar na tela."
+    }
+  },
+  "required": [
+    "ano",
+    "ultimo_numero"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -28,11 +28,10 @@ export function temPreventivaAberta(orders, equipmentId) {
 
 /** Ordens preventivas que devem ser criadas agora, sem duplicar as já abertas. */
 export function calcularPreventivasAGerar(equipment = [], orders = [], hoje = new Date()) {
-  const stamp = Date.now();
   return (equipment || [])
     .filter((eq) => preventivaNaJanela(eq, hoje) != null && !temPreventivaAberta(orders, eq.id))
-    .map((eq, i) => ({
-      code: `OS-${(stamp + i).toString(36).toUpperCase()}`,
+    .map((eq) => ({
+      // O código sequencial (OS-AAAA-NNN) é reservado no servidor antes de gravar.
       type: 'Preventiva',
       origin: 'Agendada',
       status: 'Novo',

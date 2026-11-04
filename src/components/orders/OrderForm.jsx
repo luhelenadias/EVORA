@@ -11,6 +11,7 @@ import { rotuloScore } from '@/lib/priorizacao';
 import { useTecnicos } from '@/lib/tecnicos';
 import { dadosDaRota, sugerirRota } from '@/lib/rota';
 import RotaCard from '@/components/orders/RotaCard';
+import { toast } from 'sonner';
 
 export default function OrderForm({ order, equipamentoInicial, onSubmit, onCancel, isLoading, user }) {
   const { data: equipment = [] } = useQuery({
@@ -54,6 +55,20 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
   const [rotaMotivoTroca, setRotaMotivoTroca] = useState(order?.rota_alterada_motivo || '');
   const [fornecedorRota, setFornecedorRota] = useState(order?.fornecedor_nome || '');
   const [erroRota, setErroRota] = useState(false);
+  const [buscandoCodigo, setBuscandoCodigo] = useState(false);
+
+  // Código sequencial por ano (OS-AAAA-NNN), reservado no servidor.
+  const codigoSequencial = async () => {
+    setBuscandoCodigo(true);
+    try {
+      const resposta = await base44.functions.invoke('gerarCodigoOS', { quantidade: 1 });
+      const codigo = resposta?.data?.codigos?.[0];
+      if (!codigo) throw new Error('sem código');
+      return codigo;
+    } finally {
+      setBuscandoCodigo(false);
+    }
+  };
 
   const update = (field, value) => setForm(prev => ({ ...prev, [field]: value }));
 
@@ -112,8 +127,9 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (buscandoCodigo) return;
     const data = { ...form };
     // Rota de atendimento: a troca em relação à sugestão exige um motivo curto.
     if (!isClinical && form.type === 'Corretiva' && rotaSugestao) {
@@ -130,7 +146,12 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
       data.open_date = new Date().toISOString();
       data.requester_id = user?.id;
       data.requester_name = user?.full_name;
-      data.code = `OS-${Date.now().toString(36).toUpperCase()}`;
+      try {
+        data.code = await codigoSequencial();
+      } catch {
+        toast.error('Não foi possível gerar o número do chamado agora. Tente novamente.');
+        return;
+      }
       if (sugestao?.equipment) {
         // Copia a criticidade e o índice do equipamento e exige justificativa na troca manual.
         data.equipment_criticality = sugestao.equipment.criticality;
@@ -325,8 +346,8 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
 
       <div className="flex justify-end gap-3 pt-4 border-t">
         <Button type="button" variant="outline" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? 'Salvando...' : order ? 'Atualizar' : 'Abrir Chamado'}
+        <Button type="submit" disabled={isLoading || buscandoCodigo}>
+          {isLoading ? 'Salvando...' : buscandoCodigo ? 'Gerando número...' : order ? 'Atualizar' : 'Abrir Chamado'}
         </Button>
       </div>
     </form>
