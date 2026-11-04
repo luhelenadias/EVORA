@@ -41,6 +41,17 @@ export default function AppLayout() {
       .catch(() => {});
   }, [queryClient]);
 
+  // Conta convidada cujo perfil ainda não foi aplicado (a plataforma cria como "user"):
+  // o servidor recusa tudo para esse papel, então a tela não finge que é Clínica.
+  const perfilPendente = !!user && !Object.values(ROLES).includes(user.role);
+
+  // Enquanto o perfil não chega, tenta aplicar o convite de novo, a cada poucos segundos.
+  useEffect(() => {
+    if (!perfilPendente) return undefined;
+    const timer = setInterval(() => { recarregarUsuario(); }, 5000);
+    return () => clearInterval(timer);
+  }, [perfilPendente, recarregarUsuario]);
+
   const role = user?.role || ROLES.CLINICO;
   const abas = abasDoUsuario(config, user);
   // Enquanto usuário/configuração carregam, não decide acesso (evita bloquear por engano).
@@ -61,7 +72,22 @@ export default function AppLayout() {
           <AlertasBell />
         </header>
         <div className="p-4 sm:p-6 lg:p-8">
-          {liberada ? (
+          {perfilPendente ? (
+            <div className="mx-auto mt-16 max-w-md rounded-lg border border-border bg-card p-6 text-center">
+              <h2 className="font-display text-lg font-semibold">Configurando o seu acesso</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Seu perfil ainda não foi aplicado à sua conta. Isso costuma levar poucos segundos depois do primeiro
+                acesso. Se persistir, peça à administração para conferir o convite enviado para {user?.email}.
+              </p>
+              <button
+                type="button"
+                onClick={() => recarregarUsuario()}
+                className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          ) : liberada ? (
             <Outlet context={{ user, recarregarUsuario }} />
           ) : location.pathname === '/' && abas[0] ? (
             <Navigate to={abas[0].path} replace />
