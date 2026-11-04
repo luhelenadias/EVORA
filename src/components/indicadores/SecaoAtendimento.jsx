@@ -66,6 +66,33 @@ export default function SecaoAtendimento({ atendimento, corretivas, podeVerEsper
         />
       </div>
 
+      {/* Triagem: a espera foi separada em antes e depois da decisão de destino. */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <NumeroIndicador
+          rotulo="Espera até a triagem"
+          valor={formatarHoras(atendimento.tempoMedioTriagem)}
+          detalhe={`Abertura até a triagem · ${atendimento.osComTriagem} corretiva(s)`}
+          para={linkManutencoes({ tipo: 'Corretiva' })}
+        />
+        <NumeroIndicador
+          rotulo="Triagem até o início"
+          valor={formatarHoras(atendimento.tempoMedioTriagemAteInicio)}
+          detalhe={`Depois da triagem · ${atendimento.osComTriagemAteInicio} corretiva(s)`}
+          para={linkManutencoes({ tipo: 'Corretiva' })}
+        />
+        <NumeroIndicador
+          rotulo="Fila de triagem hoje"
+          valor={atendimento.filaTriagem?.quantidade ?? 0}
+          detalhe={
+            atendimento.filaTriagem?.maisAntigaDias != null
+              ? `A mais antiga aguarda há ${atendimento.filaTriagem.maisAntigaDias} dia(s)`
+              : 'Nenhum chamado aguardando triagem'
+          }
+          tom={atendimento.filaTriagem?.quantidade ? 'atencao' : 'neutro'}
+          para={linkManutencoes({ view: 'triagem' })}
+        />
+      </div>
+
       <div className="grid gap-3 lg:grid-cols-2">
         <div className="space-y-1.5">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">

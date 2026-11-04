@@ -5,11 +5,13 @@ import { useSearchParams } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CalendarDays, List, X } from 'lucide-react';
+import { CalendarDays, ClipboardCheck, List, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import PageHeader from '@/components/shared/PageHeader';
 import CentralList from '@/components/maintenance/CentralList';
+import FilaTriagem from '@/components/maintenance/FilaTriagem';
+import TriagemDialog from '@/components/maintenance/triagem/TriagemDialog';
 import OrderDetailDialog from '@/components/maintenance/OrderDetailDialog';
 import FinalizarManutencaoDialog from '@/components/maintenance/FinalizarManutencaoDialog';
 import GravadorAudioDialog from '@/components/maintenance/GravadorAudioDialog';
@@ -29,6 +31,7 @@ import { calcularPreventivasAGerar, calcularProximaPreventiva } from '@/lib/prev
 import { calcularMtbf, calcularMttr, calcularTempoMedioAtendimento, frequenciaPorDias } from '@/lib/indicadores';
 import { minutosDeAtendimento, slaDeAtendimento } from '@/lib/atendimento';
 import { GRUPOS_CENTRAL, ORDENACOES, ordemAtrasada } from '@/lib/central';
+import { filaTriagem, podeReabrirTriagem, podeTriar } from '@/lib/triagem';
 import { registrarAuditoria } from '@/lib/auditoria';
 import { formatarMoeda } from '@/lib/orderDetail';
 import { useTecnicos } from '@/lib/tecnicos';
@@ -56,6 +59,8 @@ export default function Maintenance() {
   const [trechosPorOrdem, setTrechosPorOrdem] = useState({});
   const [agenda, setAgenda] = useState(null);
   const [reagendando, setReagendando] = useState(null);
+  // OS aberta no painel de triagem (aba visível só para admin e gestão).
+  const [triando, setTriando] = useState(null);
   const [gerandoSugestoes, setGerandoSugestoes] = useState(false);
   const geradasRef = useRef(new Set());
   const sugestoesPedidasRef = useRef(false);
@@ -177,13 +182,14 @@ export default function Maintenance() {
   useEffect(() => {
     if (viewParam === 'calendario') setAba('calendario');
     else if (viewParam === 'lista') setAba('lista');
+    else if (viewParam === 'triagem') setAba('triagem');
   }, [viewParam]);
 
-  const abaAtiva = viewParam === 'calendario' ? 'calendario' : viewParam === 'lista' ? 'lista' : aba;
+  const abaAtiva = ['calendario', 'lista', 'triagem'].includes(viewParam) ? viewParam : aba;
 
   const trocarAba = (valor) => {
     setAba(valor);
-    setSearchParams(valor === 'calendario' ? { view: 'calendario' } : {});
+    setSearchParams(valor === 'lista' ? {} : { view: valor });
   };
 
   // Links dos indicadores: /manutencoes?abertas=1&atrasadas=1&tipo=Corretiva&tecnico=<id>&equipamento=<id>
@@ -233,6 +239,10 @@ export default function Maintenance() {
     andamento: orders.filter((o) => GRUPOS_CENTRAL.andamento.includes(o.status)).length,
     concluidas: orders.filter((o) => GRUPOS_CENTRAL.concluidas.includes(o.status)).length,
   }), [orders]);
+
+  // Fila de triagem: só OS corretivas ainda sem destino e sem técnico.
+  const filaDeTriagem = useMemo(() => filaTriagem(orders), [orders]);
+  const triadasSemInicio = useMemo(() => orders.filter(podeReabrirTriagem), [orders]);
 
   // ── Calendário ─────────────────────────────────────────────────
   const ordemCalendario = useMemo(
@@ -700,6 +710,16 @@ export default function Maintenance() {
           <TabsTrigger value="calendario" className="gap-1.5">
             <CalendarDays className="h-3.5 w-3.5" /> Calendário
           </TabsTrigger>
+          {podeTriar(role) && (
+            <TabsTrigger value="triagem" className="gap-1.5">
+              <ClipboardCheck className="h-3.5 w-3.5" /> Triagem
+              {filaDeTriagem.length > 0 && (
+                <span className="ml-1 rounded-full bg-accent px-1.5 text-[10px] font-semibold text-accent-foreground">
+                  {filaDeTriagem.length}
+                </span>
+              )}
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="lista" className="mt-4 space-y-3">
@@ -807,7 +827,29 @@ export default function Maintenance() {
           />
         </TabsContent>
 
+        {podeTriar(role) && (
+          <TabsContent value="triagem" className="mt-4">
+            <FilaTriagem
+              orders={orders}
+              equipmentById={equipmentById}
+              triadas={triadasSemInicio}
+              onAbrir={setTriando}
+            />
+          </TabsContent>
+        )}
       </Tabs>
+
+      {triando && (
+        <TriagemDialog
+          order={orders.find((o) => o.id === triando.id) || triando}
+          equipment={equipmentById[triando.equipment_id]}
+          contracts={contracts}
+          orders={orders}
+          tecnicos={tecnicosAtribuiveis}
+          onClose={() => setTriando(null)}
+          onConcluida={recalcularAlertas}
+        />
+      )}
 
       <FinalizarManutencaoDialog
         open={!!finalizando}

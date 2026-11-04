@@ -9,6 +9,7 @@ import { GRUPOS_CENTRAL, motivoDaOrdem } from '@/lib/central';
 import { rotuloScore } from '@/lib/priorizacao';
 import TermoTooltip from '@/components/shared/TermoTooltip';
 import ResponseTimeInfo from '@/components/maintenance/ResponseTimeInfo';
+import { aguardandoTriagem } from '@/lib/triagem';
 
 const ESTILOS = {
   Preventiva: {
@@ -37,6 +38,8 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
   const Icon = estilo.icon;
   const concluida = order.status === 'Concluído';
   const score = order.prioridade_score_equipamento;
+  // Sem destino definido, a OS espera a triagem da gestão: não há o que iniciar.
+  const semDestino = aguardandoTriagem(order);
 
   return (
     <Card
@@ -60,6 +63,11 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
               </Badge>
             )}
             <Badge variant="outline" className={estilo.chip}>{order.type}</Badge>
+            {semDestino && (
+              <Badge variant="outline" className="border-warning/40 bg-warning/10 text-[11px] text-warning-foreground">
+                Aguardando triagem
+              </Badge>
+            )}
             {score != null && (
               <TermoTooltip
                 termo={equipment?.prioridade_modelo || 'EM'}
@@ -94,7 +102,7 @@ export default function CentralOrderCard({ order, equipment, onStart, onFinish, 
           </div>
         </div>
 
-        {!concluida && (
+        {!concluida && !semDestino && (
           <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
             {GRUPOS_CENTRAL.andamento.includes(order.status) ? (
               <div className="flex flex-col sm:flex-row gap-2">

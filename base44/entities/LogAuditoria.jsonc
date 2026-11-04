@@ -12,6 +12,8 @@
         "Mudan\u00e7a de prioridade",
         "Defini\u00e7\u00e3o de rota",
         "Altera\u00e7\u00e3o de rota",
+        "Triagem",
+        "Devolu\u00e7\u00e3o ao solicitante",
         "Edi\u00e7\u00e3o de campo",
         "Pe\u00e7a utilizada",
         "Rascunho de relat\u00f3rio gerado por IA",
@@ -65,7 +67,7 @@
       "type": "string"
     },
     "motivo": {
-      "description": "Justificativa, quando exigida (ex.: motivo de sobrescrita de prioridade ou de troca da rota de atendimento)",
+      "description": "Justificativa, quando exigida (ex.: motivo de sobrescrita de prioridade, de troca da rota de atendimento ou de reabertura da triagem)",
       "type": "string"
     },
     "origem": {

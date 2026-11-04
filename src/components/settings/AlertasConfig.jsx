@@ -34,6 +34,11 @@ const CAMPOS_NUMERO = [
     label: 'Chamado parado (dias)',
     ajuda: 'Dias em Aguardando Peça/Fornecedor/Pendente antes do aviso.',
   },
+  {
+    key: 'alerta_triagem_dias',
+    label: 'Aguardando triagem (dias)',
+    ajuda: 'Dias de fila de triagem antes de avisar admin e gestão. Padrão 1 dia.',
+  },
 ];
 
 /** Regras dos alertas automáticos (campos alerta_*) e liga/desliga por tipo. */
@@ -53,6 +58,7 @@ export default function AlertasConfig() {
       alerta_preventiva_muito_atrasada_dias: config.alerta_preventiva_muito_atrasada_dias ?? 30,
       alerta_sla_risco_pct: config.alerta_sla_risco_pct ?? 80,
       alerta_chamado_parado_dias: config.alerta_chamado_parado_dias ?? 5,
+      alerta_triagem_dias: config.alerta_triagem_dias ?? 1,
     });
     setAtivos(
       Array.isArray(config.alertas_ativos) ? config.alertas_ativos : ALERTAS_ATIVOS_PADRAO
@@ -82,6 +88,7 @@ export default function AlertasConfig() {
         alerta_preventiva_muito_atrasada_dias: Number(valores.alerta_preventiva_muito_atrasada_dias),
         alerta_sla_risco_pct: Number(valores.alerta_sla_risco_pct),
         alerta_chamado_parado_dias: Number(valores.alerta_chamado_parado_dias),
+        alerta_triagem_dias: Number(valores.alerta_triagem_dias ?? 1),
         alertas_ativos: ativos,
       });
       queryClient.invalidateQueries({ queryKey: ['configuracaoInstituicao'] });

@@ -25,8 +25,8 @@ export function useAlertas() {
   const tecnico = role === 'tecnico' ? user : null;
 
   const visiveis = useMemo(
-    () => alertas.filter((a) => alertaVisivel(a, role, tecnico?.id)),
-    [alertas, role, tecnico]
+    () => alertas.filter((a) => alertaVisivel(a, role, user?.id)),
+    [alertas, role, user]
   );
 
   const ativos = useMemo(() => visiveis.filter(alertaAtivo), [visiveis]);

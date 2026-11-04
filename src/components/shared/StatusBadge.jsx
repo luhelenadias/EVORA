@@ -56,13 +56,17 @@ const criticalityStyles = {
   'Apoio': neutro,
 };
 
-export default function StatusBadge({ value, type = 'status' }) {
+/**
+ * `rotulo` troca só o texto exibido, sem mudar o valor gravado — usado para
+ * "Novo" aparecer como "Aguardando triagem" nas OS corretivas (ver lib/triagem).
+ */
+export default function StatusBadge({ value, type = 'status', rotulo }) {
   const styles = type === 'priority' ? priorityStyles : type === 'criticality' ? criticalityStyles : statusStyles;
   const style = styles[value] || neutro;
 
   return (
     <Badge variant="outline" className={cn("text-[11px] font-medium border", style)}>
-      {value}
+      {rotulo || value}
     </Badge>
   );
 }

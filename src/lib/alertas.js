@@ -14,6 +14,8 @@ export const ALERTAS_ATIVOS_PADRAO = [
   'Estoque baixo',
   'OS sem técnico',
   'Chamado parado',
+  'OS aguardando triagem',
+  'OS devolvida para complemento',
 ];
 
 /** Nomes exatos dos tipos (espelham o enum da entidade Alerta). */
@@ -30,6 +32,8 @@ export const TIPOS_ALERTA = [
   'Chamado parado',
   'Garantia vencendo',
   'Calibração vencida',
+  'OS aguardando triagem',
+  'OS devolvida para complemento',
 ];
 
 export const NIVEIS = ['Urgente', 'Atenção', 'Informativo'];
@@ -68,14 +72,23 @@ export const ROTULOS_COLETIVOS = {
   'Chamado parado': 'chamados parados',
   'Garantia vencendo': 'garantias vencendo',
   'Calibração vencida': 'calibrações vencidas',
+  'OS aguardando triagem': 'OS aguardando triagem',
+  'OS devolvida para complemento': 'chamados devolvidos para complemento',
 };
 
-/** O alerta é destinado ao perfil? Técnico só vê o que é das suas OS. */
-export function alertaVisivel(alerta, role, tecnicoId) {
+/** Devolução é pessoal: só quem abriu o chamado vê o aviso. */
+export const ALERTA_PESSOAL = 'OS devolvida para complemento';
+
+/**
+ * O alerta é destinado ao perfil? Técnico só vê o que é das suas OS e a
+ * devolução só aparece para quem abriu o chamado.
+ */
+export function alertaVisivel(alerta, role, usuarioId) {
   if (!alerta || !role) return false;
   const perfis = alerta.destinatario_perfis || [];
   if (!perfis.includes(role)) return false;
-  if (role === 'tecnico') return !!tecnicoId && alerta.tecnico_id === tecnicoId;
+  if (alerta.tipo === ALERTA_PESSOAL) return !!usuarioId && alerta.tecnico_id === usuarioId;
+  if (role === 'tecnico') return !!usuarioId && alerta.tecnico_id === usuarioId;
   return true;
 }
 
@@ -91,6 +104,7 @@ export function destinoDoAlerta(alerta) {
   if (!alerta) return '/manutencoes';
   if (alerta.entidade_tipo === 'Contract') return `/contratos?contrato=${alerta.entidade_id}`;
   if (alerta.tipo === 'OS sem técnico') return '/manutencoes?view=lista';
+  if (alerta.tipo === 'OS aguardando triagem') return '/manutencoes?view=triagem';
   if (alerta.entidade_tipo === 'ServiceOrder') return `/manutencoes?os=${alerta.entidade_id}`;
   if (alerta.entidade_tipo === 'SparePart') return '/pecas';
   if (alerta.entidade_tipo === 'Equipment') return `/equipamentos/${alerta.entidade_id}`;

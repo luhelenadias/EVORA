@@ -91,7 +91,7 @@
       "type": "string"
     },
     "tecnico_id": {
-      "description": "Usu\u00e1rio da equipe t\u00e9cnica respons\u00e1vel, quando o alerta \u00e9 pessoal (ex.: preventiva atribu\u00edda a ele)",
+      "description": "Usu\u00e1rio da equipe t\u00e9cnica respons\u00e1vel, quando o alerta \u00e9 pessoal (ex.: preventiva atribu\u00edda a ele). Nos alertas 'OS devolvida para complemento' guarda o ID de quem abriu o chamado.",
       "type": "string"
     },
     "tipo": {
@@ -108,7 +108,9 @@
         "OS sem t\u00e9cnico",
         "Chamado parado",
         "Garantia vencendo",
-        "Calibra\u00e7\u00e3o vencida"
+        "Calibra\u00e7\u00e3o vencida",
+        "OS aguardando triagem",
+        "OS devolvida para complemento"
       ],
       "type": "string"
     },

@@ -17,6 +17,8 @@ export const TIPOS_ALERTA = [
   'Chamado parado',
   'Garantia vencendo',
   'Calibração vencida',
+  'OS aguardando triagem',
+  'OS devolvida para complemento',
 ];
 
 /** Tipos ligados por padrão (garantia e calibração começam desligados). */
@@ -31,6 +33,8 @@ export const ALERTAS_ATIVOS_PADRAO = [
   'Estoque baixo',
   'OS sem técnico',
   'Chamado parado',
+  'OS aguardando triagem',
+  'OS devolvida para complemento',
 ];
 
 /** Roteamento por perfil: quem vê cada tipo de alerta. */
@@ -47,6 +51,9 @@ export const DESTINATARIOS = {
   'Chamado parado': ['admin', 'gestor', 'tecnico'],
   'Garantia vencendo': ['admin', 'gestor'],
   'Calibração vencida': ['admin', 'gestor'],
+  'OS aguardando triagem': ['admin', 'gestor'],
+  // Devolução é avisada a quem abriu: o alerta guarda o ID dessa pessoa em tecnico_id.
+  'OS devolvida para complemento': ['admin', 'gestor', 'tecnico', 'clinico'],
 };
 
 /** Mesma regra da tela: contrato entra em "Vencendo" a 60 dias do fim. */
@@ -58,8 +65,20 @@ export const CONFIG_PADRAO = {
   alerta_preventiva_muito_atrasada_dias: 30,
   alerta_sla_risco_pct: 80,
   alerta_chamado_parado_dias: 5,
+  alerta_triagem_dias: 1,
   alertas_ativos: ALERTAS_ATIVOS_PADRAO,
 };
+
+/**
+ * OS corretiva aguardando triagem: nasceu "Novo", sem destino e sem técnico.
+ * Preventivas geradas automaticamente não passam pela triagem.
+ */
+export function aguardandoTriagem(ordem: any) {
+  if (!ordem || ordem.type !== 'Corretiva') return false;
+  if (ordem.status !== 'Novo') return false;
+  if (ordem.technician_id || ordem.rota_atendimento) return false;
+  return ordem.execution_by !== 'Fornecedor Externo';
+}
 
 const MS_DIA = 24 * 60 * 60 * 1000;
 const HORA = 60 * 60 * 1000;
@@ -361,9 +380,54 @@ export function gerarAlertas({ config, contratos = [], equipamentos = [], ordens
     }
   }
 
+  // ── Triagem: fila parada e chamados devolvidos a quem abriu ─────
+  for (const ordem of ordens) {
+    if (!aguardandoTriagem(ordem)) continue;
+    const nome = ordem.equipment_name || equipamentoPorId.get(ordem.equipment_id)?.name || 'Equipamento';
+    const base = {
+      entidade_tipo: 'ServiceOrder',
+      entidade_id: ordem.id,
+      entidade_codigo: ordem.code,
+      equipment_id: ordem.equipment_id,
+    };
+
+    if (ordem.triagem_devolucao_motivo) {
+      add({
+        ...base,
+        // Guarda quem abriu: o sino mostra este alerta só para essa pessoa.
+        tecnico_id: ordem.requester_id || null,
+        tipo: 'OS devolvida para complemento',
+        nivel: 'Atenção',
+        titulo: `Chamado devolvido para complemento — ${nome}`,
+        mensagem: `Faltou: ${ordem.triagem_devolucao_motivo}`,
+        prazo_referencia: paraIso(ordem.triagem_em || ordem.open_date),
+        dias_referencia: 0,
+      });
+      continue;
+    }
+
+    const diasEsperando = diasEntre(ordem.open_date, agora);
+    if (diasEsperando === null || diasEsperando <= Number(cfg.alerta_triagem_dias ?? 1)) continue;
+    add({
+      ...base,
+      tipo: 'OS aguardando triagem',
+      nivel: diasEsperando > Number(cfg.alerta_triagem_dias ?? 1) * 2 ? 'Urgente' : 'Atenção',
+      titulo: `Aguardando triagem há ${diasEsperando} dias — ${nome}`,
+      mensagem: `Aberta em ${dataBr(ordem.open_date)} sem destino definido.`,
+      prazo_referencia: paraIso(ordem.open_date),
+      dias_referencia: diasEsperando,
+    });
+  }
+
   // ── OS sem técnico: um único alerta agrupado, para não virar enxurrada ──
+  // Quem ainda está na fila de triagem tem alerta próprio, não entra aqui.
   const semTecnico = ordens.filter(
-    (ordem) => ordem.status === 'Novo' && !ordem.technician_id && ordem.execution_by !== 'Fornecedor Externo'
+    (ordem) =>
+      ordem.status === 'Novo' &&
+      !ordem.technician_id &&
+      ordem.execution_by !== 'Fornecedor Externo' &&
+      !aguardandoTriagem(ordem) &&
+      !ordem.triagem_devolucao_motivo
   );
   if (semTecnico.length) {
     const codigos = semTecnico.map((ordem) => ordem.code || ordem.equipment_name || '').filter(Boolean);

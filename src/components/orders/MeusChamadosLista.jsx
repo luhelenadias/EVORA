@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import EmptyState from '@/components/shared/EmptyState';
 import StatusBadge from '@/components/shared/StatusBadge';
 import { findContractForEquipment, computeSlaStatus, SLA_STYLES } from '@/lib/maintenance';
+import { rotuloStatusOS } from '@/lib/triagem';
 
 /** Chamados abertos pelo próprio usuário logado. */
 export default function MeusChamadosLista({ orders, contracts, podeEditar, onEditar, onAbrir }) {
@@ -61,7 +62,7 @@ export default function MeusChamadosLista({ orders, contracts, podeEditar, onEdi
                 <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{o.sector || '—'}</TableCell>
                 <TableCell><StatusBadge value={o.priority} type="priority" /></TableCell>
                 <TableCell className="hidden xl:table-cell">{renderSla(o)}</TableCell>
-                <TableCell><StatusBadge value={o.status} /></TableCell>
+                <TableCell><StatusBadge value={o.status} rotulo={rotuloStatusOS(o)} /></TableCell>
                 <TableCell className="text-xs text-muted-foreground hidden md:table-cell">
                   {o.open_date ? format(parseISO(o.open_date), 'dd/MM/yy HH:mm') : '—'}
                 </TableCell>

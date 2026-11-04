@@ -11,6 +11,8 @@ export const ACOES = [
   'Mudança de prioridade',
   'Definição de rota',
   'Alteração de rota',
+  'Triagem',
+  'Devolução ao solicitante',
   'Edição de campo',
   'Peça utilizada',
   'Rascunho de relatório gerado por IA',

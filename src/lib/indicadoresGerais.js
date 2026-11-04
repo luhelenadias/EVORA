@@ -2,6 +2,7 @@ import { differenceInDays, parseISO, startOfMonth } from 'date-fns';
 import { ordemAtrasada } from '@/lib/central';
 import { statusPorVigencia } from '@/lib/contratos';
 import { calcularMtbf } from '@/lib/indicadores';
+import { aguardandoTriagem } from '@/lib/triagem';
 
 // ── Bases ───────────────────────────────────────────────────────────
 export const ABERTAS = [
@@ -222,9 +223,34 @@ export function indicadoresAtendimento({ ordens = [], escopo = [], equipamentos 
     }).length,
   }));
 
+  // Tempos da triagem: separam a espera até a triagem e da triagem até o início.
+  // OS antigas sem triagem_em ficam fora dos dois cálculos.
+  const comTriagem = corretivas.filter((o) => o.triagem_em && o.open_date);
+  const minutosAteTriagem = comTriagem
+    .map((o) => (new Date(o.triagem_em).getTime() - new Date(o.open_date).getTime()) / 60000)
+    .filter((valor) => Number.isFinite(valor) && valor >= 0);
+  const comInicioPosTriagem = corretivas.filter((o) => o.triagem_em && o.start_date);
+  const minutosTriagemAteInicio = comInicioPosTriagem
+    .map((o) => (new Date(o.start_date).getTime() - new Date(o.triagem_em).getTime()) / 60000)
+    .filter((valor) => Number.isFinite(valor) && valor >= 0);
+
+  // Fila de triagem hoje: corretivas ainda sem destino e sem técnico.
+  const naFilaTriagem = escopo.filter((o) => aguardandoTriagem(o));
+  const diasDaFila = naFilaTriagem
+    .map((o) => (o.open_date ? Math.max(differenceInDays(new Date(), parseISO(o.open_date)), 0) : null))
+    .filter((dias) => dias != null);
+
   return {
     tempoMedioAtendimento: mediaAtendimentoMin == null ? null : mediaAtendimentoMin / 60,
     osComAtendimento: comAtendimento.length,
+    tempoMedioTriagem: minutosAteTriagem.length ? media(minutosAteTriagem) / 60 : null,
+    osComTriagem: comTriagem.length,
+    tempoMedioTriagemAteInicio: minutosTriagemAteInicio.length ? media(minutosTriagemAteInicio) / 60 : null,
+    osComTriagemAteInicio: comInicioPosTriagem.length,
+    filaTriagem: {
+      quantidade: naFilaTriagem.length,
+      maisAntigaDias: diasDaFila.length ? Math.max(...diasDaFila) : null,
+    },
     mttr: mediaReparoMin == null ? null : mediaReparoMin / 60,
     osComReparo: concluidas.length,
     mttrPorEquipamento,

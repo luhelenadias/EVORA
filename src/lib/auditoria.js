@@ -3,7 +3,8 @@ import { base44 } from '@/api/base44Client';
 /** Ações do log de auditoria (espelham o enum da entidade LogAuditoria). */
 export const ACOES = [
   'Abertura', 'Atribuição', 'Reatribuição', 'Início do atendimento', 'Mudança de status',
-  'Mudança de prioridade', 'Definição de rota', 'Alteração de rota', 'Edição de campo',
+  'Mudança de prioridade', 'Definição de rota', 'Alteração de rota',
+  'Triagem', 'Devolução ao solicitante', 'Edição de campo',
   'Peça utilizada', 'Rascunho de relatório gerado por IA',
   'Relatório confirmado', 'Fechamento', 'Reabertura', 'Cancelamento', 'Upload de documento',
   'Extração por IA', 'Notificação ao técnico', 'Mudança de perfil', 'Ajuste administrativo',
@@ -32,6 +33,8 @@ const VERBOS = {
   'Mudança de prioridade': 'mudou a prioridade',
   'Definição de rota': 'definiu a rota de atendimento',
   'Alteração de rota': 'alterou a rota de atendimento',
+  Triagem: 'concluiu a triagem',
+  'Devolução ao solicitante': 'devolveu o chamado ao solicitante',
   'Edição de campo': 'editou',
   'Peça utilizada': 'registrou peça utilizada',
   'Rascunho de relatório gerado por IA': 'gerou rascunho do relatório por IA',
@@ -54,6 +57,10 @@ export const ROTULOS_CAMPO = {
   rota_sugerida: 'Rota sugerida',
   rota_motivo: 'Motivo da rota',
   rota_alterada_motivo: 'Motivo da troca de rota',
+  triagem_em: 'Triagem',
+  triagem_por_nome: 'Triado por',
+  triagem_devolucao_motivo: 'Motivo da devolução',
+  urgencia_percebida: 'Urgência percebida',
   contrato_id: 'Contrato',
   technician_id: 'Técnico',
   start_date: 'Início',
@@ -132,6 +139,10 @@ export function fraseDaEntrada(entrada) {
       case 'Atribuição':
       case 'Reatribuição':
         return entrada.valor_novo ? `${entrada.valor_novo}` : '';
+      case 'Triagem':
+        return entrada.valor_novo ? `para ${entrada.valor_novo}` : '';
+      case 'Devolução ao solicitante':
+        return entrada.valor_novo ? `: ${entrada.valor_novo}` : '';
       case 'Edição de campo':
         return entrada.campo ? `${rotuloCampo(entrada.campo)}: ${entrada.valor_novo}` : entrada.valor_novo;
       case 'Abertura':

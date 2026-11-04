@@ -57,6 +57,11 @@
       "description": "Percentual do prazo de SLA consumido a partir do qual gera 'SLA em risco'",
       "type": "number"
     },
+    "alerta_triagem_dias": {
+      "default": 1,
+      "description": "Dias que uma OS corretiva pode ficar aguardando triagem antes de gerar o alerta 'OS aguardando triagem' para admin e gestor. Padr\u00e3o 1 dia.",
+      "type": "number"
+    },
     "alertas_ativos": {
       "default": [
         "Contrato vencendo",
@@ -68,7 +73,9 @@
         "SLA estourado",
         "Estoque baixo",
         "OS sem t\u00e9cnico",
-        "Chamado parado"
+        "Chamado parado",
+        "OS aguardando triagem",
+        "OS devolvida para complemento"
       ],
       "description": "Tipos de alerta ligados na institui\u00e7\u00e3o. Garantia e calibra\u00e7\u00e3o come\u00e7am desligados at\u00e9 os campos serem preenchidos.",
       "items": {
@@ -127,7 +134,7 @@
     },
     "rechamada_dias": {
       "default": 30,
-      "description": "Janela em dias para considerar rechamada: uma nova corretiva no mesmo equipamento aberta at\u00e9 X dias depois de uma corretiva conclu\u00edda. Padr\u00e3o 30. Usado em Indicadores \u2192 Confiabilidade.",
+      "description": "Janela em dias para considerar rechamada: uma nova corretiva no mesmo equipamento aberta at\u00e9 X dias depois de uma corretiva conclu\u00edda. Padr\u00e3o 30. Usado em Indicadores \u2192 Confiabilidade e no painel de triagem.",
       "type": "number"
     }
   },

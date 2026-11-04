@@ -14,9 +14,12 @@ import OrderSlaBanner from '@/components/maintenance/OrderSlaBanner';
 import OrderHistoryList from '@/components/maintenance/OrderHistoryList';
 import TranscricaoAudio from '@/components/maintenance/TranscricaoAudio';
 import RotaCard from '@/components/orders/RotaCard';
+import AnexosField from '@/components/orders/AnexosField';
 import { resolverSla } from '@/lib/orderDetail';
 import { sugerirRota } from '@/lib/rota';
 import { GRUPOS_CENTRAL } from '@/lib/central';
+import { rotuloStatusOS } from '@/lib/triagem';
+import { format, parseISO } from 'date-fns';
 
 export default function OrderDetailDialog({ order, equipment, orders = [], onClose }) {
   const { data: contracts = [] } = useQuery({
@@ -47,7 +50,7 @@ export default function OrderDetailDialog({ order, equipment, orders = [], onClo
           <DialogDescription className="flex flex-wrap items-center gap-2">
             {order.code && <span className="font-mono">{order.code}</span>}
             <span>{order.type}</span>
-            <StatusBadge value={order.status} />
+            <StatusBadge value={order.status} rotulo={rotuloStatusOS(order)} />
           </DialogDescription>
         </DialogHeader>
 
@@ -59,6 +62,30 @@ export default function OrderDetailDialog({ order, equipment, orders = [], onClo
 
           <TabsContent value="detalhes" className="mt-4 space-y-4">
             <OrderEquipmentSummary order={order} equipment={equipment} />
+
+            {order.type === 'Corretiva' && (
+              <div className="space-y-0.5 rounded-lg border bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+                {order.triagem_em ? (
+                  <p>
+                    Triagem de {order.triagem_por_nome || '—'} em{' '}
+                    {format(parseISO(order.triagem_em), 'dd/MM/yyyy HH:mm')} · destino{' '}
+                    {order.rota_atendimento || '—'}
+                    {order.technician_name ? ` · técnico ${order.technician_name}` : ''}
+                    {order.fornecedor_nome ? ` · fornecedor ${order.fornecedor_nome}` : ''}
+                  </p>
+                ) : (
+                  <p>Aguardando triagem: o destino é definido pela gestão em Manutenções.</p>
+                )}
+                {order.urgencia_percebida && <p>Urgência informada na abertura: {order.urgencia_percebida}.</p>}
+                {order.triagem_devolucao_motivo && (
+                  <p className="font-medium text-destructive">
+                    Devolvida para complemento: {order.triagem_devolucao_motivo}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <AnexosField valores={order.attachments} somenteLeitura />
 
             {order.type === 'Corretiva' && (order.rota_atendimento || rotaSugestao) && (
               <RotaCard

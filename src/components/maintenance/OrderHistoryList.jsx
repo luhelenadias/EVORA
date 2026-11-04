@@ -1,6 +1,7 @@
 import React from 'react';
 import { History } from 'lucide-react';
 import StatusBadge from '@/components/shared/StatusBadge';
+import { rotuloStatusOS } from '@/lib/triagem';
 import { dataReferencia } from '@/lib/central';
 import { formatarData, historicoDoEquipamento } from '@/lib/orderDetail';
 
@@ -28,7 +29,7 @@ export default function OrderHistoryList({ orders, order }) {
               </div>
               <div className="flex flex-shrink-0 items-center gap-3">
                 <span className="text-xs text-muted-foreground">{formatarData(dataReferencia(o))}</span>
-                <StatusBadge value={o.status} />
+                <StatusBadge value={o.status} rotulo={rotuloStatusOS(o)} />
               </div>
             </div>
           ))}

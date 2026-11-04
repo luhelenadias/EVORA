@@ -24,6 +24,7 @@ import {
   queueScore, findContractForEquipment, computeSlaStatus, SLA_STYLES,
 } from '@/lib/maintenance';
 import { alteracoesDaOS, registrarAlteracoesDaOS, registrarAuditoria } from '@/lib/auditoria';
+import { rotuloStatusOS } from '@/lib/triagem';
 
 export default function ServiceOrders() {
   const { user } = useOutletContext();
@@ -329,7 +330,7 @@ export default function ServiceOrders() {
                         </TableCell>
                         <TableCell><StatusBadge value={order.priority} type="priority" /></TableCell>
                         <TableCell>{renderSlaBadge(order)}</TableCell>
-                        <TableCell><StatusBadge value={order.status} /></TableCell>
+                        <TableCell><StatusBadge value={order.status} rotulo={rotuloStatusOS(order)} /></TableCell>
                         <TableCell>
                           {canEdit(order) && (
                             <Button
@@ -407,7 +408,7 @@ export default function ServiceOrders() {
                         <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{o.sector || '—'}</TableCell>
                         <TableCell><StatusBadge value={o.priority} type="priority" /></TableCell>
                         <TableCell className="hidden xl:table-cell">{renderSlaBadge(o)}</TableCell>
-                        <TableCell><StatusBadge value={o.status} /></TableCell>
+                        <TableCell><StatusBadge value={o.status} rotulo={rotuloStatusOS(o)} /></TableCell>
                         <TableCell className="text-xs text-muted-foreground hidden md:table-cell">
                           {o.open_date ? format(parseISO(o.open_date), 'dd/MM/yy HH:mm') : '—'}
                         </TableCell>
