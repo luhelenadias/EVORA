@@ -26,7 +26,8 @@ const STATUS_TRIAGEM_RETRIAGEM = [
 ];
 
 function statusAposTriagem(rota: string) {
-  return rota === 'Equipe interna' ? 'Pendente' : 'Aguardando Orçamento';
+  // Escopo enxuto: rota externa registra o fornecedor e aguarda o retorno dele.
+  return rota === 'Equipe interna' ? 'Pendente' : 'Aguardando Fornecedor';
 }
 
 export default async function (req: Request): Promise<Response> {
