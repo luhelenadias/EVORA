@@ -29,19 +29,27 @@ export function dataReferencia(order) {
 
 export function ordenarOrdens(orders = [], ordem = 'prioridade', equipmentById = {}) {
   const lista = [...(orders || [])];
+  // As concluídas ficam sempre no fim da lista; dentro de cada grupo vale a ordenação escolhida.
+  const abertasPrimeiro = (a, b) =>
+    (a.status === 'Concluído' ? 1 : 0) - (b.status === 'Concluído' ? 1 : 0);
   if (ordem === 'data') {
     return lista.sort(
-      (a, b) => new Date(dataReferencia(a) || 0) - new Date(dataReferencia(b) || 0)
+      (a, b) =>
+        abertasPrimeiro(a, b) ||
+        new Date(dataReferencia(a) || 0) - new Date(dataReferencia(b) || 0)
     );
   }
   if (ordem === 'equipamento') {
-    return lista.sort((a, b) =>
-      (a.equipment_name || '').localeCompare(b.equipment_name || '', 'pt-BR')
+    return lista.sort(
+      (a, b) =>
+        abertasPrimeiro(a, b) ||
+        (a.equipment_name || '').localeCompare(b.equipment_name || '', 'pt-BR')
     );
   }
   // Colocação atual do equipamento no ranking de prioridade (sem posição por último),
   // e entre iguais o chamado aberto há mais tempo.
   return lista.sort((a, b) => {
+    if (abertasPrimeiro(a, b) !== 0) return abertasPrimeiro(a, b);
     const posA = equipmentById?.[a.equipment_id]?.prioridade_posicao ?? Infinity;
     const posB = equipmentById?.[b.equipment_id]?.prioridade_posicao ?? Infinity;
     if (posA !== posB) return posA - posB;
