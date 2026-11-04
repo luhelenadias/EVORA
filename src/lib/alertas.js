@@ -36,6 +36,7 @@ export const TIPOS_ALERTA = [
   'OS aguardando triagem',
   'OS devolvida para complemento',
   'OS pausada',
+  'Peça chegou',
 ];
 
 export const NIVEIS = ['Urgente', 'Atenção', 'Informativo'];
@@ -77,6 +78,7 @@ export const ROTULOS_COLETIVOS = {
   'OS aguardando triagem': 'OS aguardando triagem',
   'OS devolvida para complemento': 'chamados devolvidos para complemento',
   'OS pausada': 'OS pausadas há vários dias',
+  'Peça chegou': 'peças que chegaram',
 };
 
 /** Devolução é pessoal: só quem abriu o chamado vê o aviso. */
