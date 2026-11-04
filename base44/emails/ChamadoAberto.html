@@ -1,0 +1,85 @@
+<mjml>
+  <mj-head>
+    <mj-title>Chamado {{codigo}} aberto com sucesso</mj-title>
+    <mj-preview>Registramos seu chamado e a engenharia clínica já pode acompanhá-lo.</mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Montserrat, Helvetica, Arial, sans-serif" />
+      <mj-section background-color="#ffffff" padding="0 36px" />
+      <mj-column padding="0" />
+      <mj-text color="#202527" font-size="15px" line-height="1.6" padding="0" />
+      <mj-button background-color="#0f4d4b" color="#ffffff" border-radius="8px" font-size="15px" font-weight="700" inner-padding="14px 28px" padding="0" align="left" />
+      <mj-class name="h" font-family="Montserrat, Helvetica, Arial, sans-serif" font-weight="700" />
+      <mj-class name="label" font-size="11px" letter-spacing="2px" text-transform="uppercase" font-weight="700" color="#0f4d4b" />
+      <mj-class name="muted" color="#636e74" />
+    </mj-attributes>
+  </mj-head>
+  <mj-body background-color="#f6f4ef" width="600px">
+    <mj-wrapper padding="28px 12px" background-color="#f6f4ef">
+      <mj-section background-color="#0f4d4b" padding="24px 36px" border-radius="8px 8px 0 0">
+        <mj-column>
+          <mj-image src="https://media.base44.com/images/public/6a38513d2a393bf827b5c6b8/8caad4a87_logo.png" alt="EVORA" width="40px" align="center" padding="0 0 12px" />
+          <mj-text align="center" font-size="12px" letter-spacing="4px" font-weight="700" text-transform="uppercase" color="#ffffff">EVORA</mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section padding="40px 36px 8px">
+        <mj-column>
+          <mj-text mj-class="h" font-size="30px" line-height="1.2" padding="0 0 10px">Chamado aberto com sucesso, {{nome}}.</mj-text>
+          <mj-text mj-class="muted" font-size="15px">Sua solicitação foi registrada e já está disponível para a engenharia clínica. Guarde o número do chamado para acompanhar o atendimento.</mj-text>
+        </mj-column>
+      </mj-section>
+      <mj-section padding="24px 36px 0">
+        <mj-group background-color="#ecf1f1">
+          <mj-column padding="16px 20px 12px"><mj-text mj-class="label">Número do chamado</mj-text></mj-column>
+          <mj-column padding="16px 20px 12px"><mj-text align="right" font-family="'Courier New', Courier, monospace" font-size="15px" font-weight="700">{{codigo}}</mj-text></mj-column>
+        </mj-group>
+      </mj-section>
+      <mj-section padding="0 36px">
+        <mj-group background-color="#ecf1f1">
+          <mj-column padding="10px 20px"><mj-text mj-class="label">Equipamento</mj-text></mj-column>
+          <mj-column padding="10px 20px"><mj-text align="right" font-size="15px">{{equipamento}}</mj-text></mj-column>
+        </mj-group>
+      </mj-section>
+      <mj-section padding="0 36px">
+        <mj-group background-color="#ecf1f1">
+          <mj-column padding="10px 20px"><mj-text mj-class="label">Setor</mj-text></mj-column>
+          <mj-column padding="10px 20px"><mj-text align="right" font-size="15px">{{setor}}</mj-text></mj-column>
+        </mj-group>
+      </mj-section>
+      <mj-section padding="0 36px">
+        <mj-group background-color="#ecf1f1">
+          <mj-column padding="10px 20px"><mj-text mj-class="label">Tipo</mj-text></mj-column>
+          <mj-column padding="10px 20px"><mj-text align="right" font-size="15px">{{tipo}}</mj-text></mj-column>
+        </mj-group>
+      </mj-section>
+      <mj-section padding="0 36px">
+        <mj-group background-color="#ecf1f1">
+          <mj-column padding="10px 20px"><mj-text mj-class="label">Prioridade</mj-text></mj-column>
+          <mj-column padding="10px 20px"><mj-text align="right" font-size="15px">{{prioridade}}</mj-text></mj-column>
+        </mj-group>
+      </mj-section>
+      <mj-section padding="0 36px">
+        <mj-group background-color="#ecf1f1">
+          <mj-column padding="10px 20px"><mj-text mj-class="label">Rota de atendimento</mj-text></mj-column>
+          <mj-column padding="10px 20px"><mj-text align="right" font-size="15px">{{rota}}</mj-text></mj-column>
+        </mj-group>
+      </mj-section>
+      <mj-section padding="0 36px 28px">
+        <mj-group background-color="#ecf1f1">
+          <mj-column border-top="1px solid #c1d1d0" padding="14px 20px 18px"><mj-text mj-class="label">Abertura</mj-text></mj-column>
+          <mj-column border-top="1px solid #c1d1d0" padding="14px 20px 18px"><mj-text align="right" font-family="'Courier New', Courier, monospace" font-size="14px">{{aberto_em}}</mj-text></mj-column>
+        </mj-group>
+      </mj-section>
+      <mj-section padding="0 36px 40px">
+        <mj-column>
+          <mj-button href="{{link}}" align="left">Acompanhar o chamado</mj-button>
+        </mj-column>
+      </mj-section>
+      <mj-section background-color="#0f4d4b" padding="26px 36px 30px" border-radius="0 0 8px 8px">
+        <mj-column>
+          <mj-text mj-class="h" align="center" font-size="17px" color="#ffffff" padding="0 0 8px">EVORA</mj-text>
+          <mj-text align="center" font-size="12px" line-height="1.7" color="#ffffff" padding="0 0 6px">Este é um aviso automático do seu chamado de engenharia clínica. Não é necessário responder a este e-mail.</mj-text>
+        </mj-column>
+      </mj-section>
+    </mj-wrapper>
+  </mj-body>
+</mjml>

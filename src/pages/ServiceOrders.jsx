@@ -14,6 +14,7 @@ import StatusBadge from '@/components/shared/StatusBadge';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
 import OrderForm from '@/components/orders/OrderForm';
+import ChamadoAbertoDialog from '@/components/orders/ChamadoAbertoDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -32,6 +33,8 @@ export default function ServiceOrders() {
   const equipamentoInicial = searchParams.get('equipamento') || '';
   const [showForm, setShowForm] = useState(Boolean(equipamentoInicial));
   const [editingItem, setEditingItem] = useState(null);
+  // Chamado recém-aberto: abre o aviso de sucesso com número e envio de e-mail.
+  const [chamadoAberto, setChamadoAberto] = useState(null);
   const queryClient = useQueryClient();
 
   // Atalho com a tela já aberta (link entre abas): abre o formulário já preenchido.
@@ -86,12 +89,17 @@ export default function ServiceOrders() {
           tecnico_atribuido_id: criado.technician_id || null,
         });
       }
-      return criado;
+      // Avisa quem abriu o chamado por e-mail (e guarda o resultado para o aviso na tela).
+      const email = await base44.functions
+        .invoke('notificarAberturaOS', { order_id: criado.id })
+        .then((r) => r.data)
+        .catch(() => ({ enviado: false, motivo: 'falha ao acionar o envio' }));
+      return { chamado: criado, email };
     },
-    onSuccess: () => {
+    onSuccess: ({ chamado, email }) => {
       queryClient.invalidateQueries({ queryKey: ['serviceOrders'] });
       fecharFormulario();
-      toast.success('Chamado criado com sucesso!');
+      setChamadoAberto({ chamado, email });
     },
   });
 
@@ -383,6 +391,12 @@ export default function ServiceOrders() {
           />
         </DialogContent>
       </Dialog>
+
+      <ChamadoAbertoDialog
+        chamado={chamadoAberto?.chamado}
+        email={chamadoAberto?.email}
+        onClose={() => setChamadoAberto(null)}
+      />
     </div>
   );
 }
