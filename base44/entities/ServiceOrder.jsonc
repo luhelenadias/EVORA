@@ -433,12 +433,6 @@
           "user_condition": {
             "role": "gestor"
           }
-        },
-        {
-          "data.technician_id": "{{user.id}}"
-        },
-        {
-          "data.requester_id": "{{user.id}}"
         }
       ]
     },
