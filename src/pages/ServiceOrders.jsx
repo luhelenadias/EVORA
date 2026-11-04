@@ -9,12 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ClipboardList, Search, Pencil, Sparkles, ListOrdered, Clock } from 'lucide-react';
+import { ClipboardList, Search, Pencil, Sparkles, ListOrdered, Clock, UserRound } from 'lucide-react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
 import OrderForm from '@/components/orders/OrderForm';
 import ChamadoAbertoDialog from '@/components/orders/ChamadoAbertoDialog';
+import MeusChamadosLista from '@/components/orders/MeusChamadosLista';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -127,11 +128,9 @@ export default function ServiceOrders() {
     return m;
   }, [equipment]);
 
-  const filtered = useMemo(() => {
+  // Filtros de tela (busca, status e tipo).
+  const porFiltros = useMemo(() => {
     return orders.filter((o) => {
-      if (isClinical && o.requester_id !== user?.id) return false;
-      if (isTechnician && o.technician_id !== user?.id) return false;
-
       const matchSearch = !search ||
         o.code?.toLowerCase().includes(search.toLowerCase()) ||
         o.equipment_name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -140,7 +139,22 @@ export default function ServiceOrders() {
       const matchType = typeFilter === 'all' || o.type === typeFilter;
       return matchSearch && matchStatus && matchType;
     });
-  }, [orders, search, statusFilter, typeFilter, user, isClinical, isTechnician]);
+  }, [orders, search, statusFilter, typeFilter]);
+
+  // Lista de trabalho conforme o perfil do usuário.
+  const filtered = useMemo(() => {
+    return porFiltros.filter((o) => {
+      if (isClinical && o.requester_id !== user?.id) return false;
+      if (isTechnician && o.technician_id !== user?.id) return false;
+      return true;
+    });
+  }, [porFiltros, user, isClinical, isTechnician]);
+
+  // Chamados abertos pelo próprio usuário logado.
+  const meusChamados = useMemo(
+    () => (user?.id ? porFiltros.filter((o) => o.requester_id === user.id) : []),
+    [porFiltros, user],
+  );
 
   // Fila de atendimento: chamados abertos ordenados por score de prioridade
   const queue = useMemo(() => {
@@ -257,6 +271,14 @@ export default function ServiceOrders() {
               <span className="ml-1 h-5 px-1.5 text-[10px] rounded-full bg-primary text-primary-foreground flex items-center">{queue.length}</span>
             )}
           </TabsTrigger>
+          {!isClinical && (
+            <TabsTrigger value="meus" className="gap-1.5">
+              <UserRound className="w-3.5 h-3.5" /> Meus Chamados
+              {meusChamados.length > 0 && (
+                <span className="ml-1 h-5 px-1.5 text-[10px] rounded-full bg-accent text-accent-foreground flex items-center">{meusChamados.length}</span>
+              )}
+            </TabsTrigger>
+          )}
           <TabsTrigger value="all">Todos os Chamados</TabsTrigger>
         </TabsList>
 
@@ -316,6 +338,18 @@ export default function ServiceOrders() {
             </Card>
           )}
         </TabsContent>
+
+        {/* Meus Chamados — abertos pelo usuário logado */}
+        {!isClinical && (
+          <TabsContent value="meus" className="mt-4">
+            <MeusChamadosLista
+              orders={meusChamados}
+              contracts={contracts}
+              podeEditar={canEdit}
+              onEditar={(o) => { setEditingItem(o); setShowForm(true); }}
+            />
+          </TabsContent>
+        )}
 
         {/* Todos os Chamados */}
         <TabsContent value="all" className="mt-4">
