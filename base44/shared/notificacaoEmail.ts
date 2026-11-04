@@ -66,6 +66,10 @@ export function juntarEvento(atual: string, novo: string) {
   return novo;
 }
 
+function escaparHtml(texto: any) {
+  return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function linha(rotulo: string, valor: string) {
   return `<tr>
     <td style="padding:8px 0;border-bottom:1px solid #e5e7eb;font:600 12px 'Montserrat',Arial,sans-serif;color:#636e74;text-transform:uppercase;letter-spacing:.04em;vertical-align:top;">${rotulo}</td>
@@ -81,13 +85,23 @@ export function linkDaOrdem(serviceOrderId: string) {
  * Monta assunto, HTML e texto do e-mail. `modoTeste` + `destinatarioReal`
  * entram no assunto e no corpo para ninguém confundir quem receberia.
  */
-export function montarEmail(notificacao: any, opcoes: { modoTeste: boolean; destinatarioReal: string }) {
+export function montarEmail(
+  notificacao: any,
+  opcoes: { modoTeste: boolean; destinatarioReal: string; ordem?: any }
+) {
   const quandoNova = formatarQuando(notificacao.data_nova);
   const quandoAnterior = formatarQuando(notificacao.data_anterior);
-  const titulo = tituloDoEvento(notificacao.evento);
+  // Primeira designação (sem técnico anterior): o aviso diz que há um chamado novo para a pessoa.
+  const primeiraDesignacao =
+    notificacao.papel !== 'Anterior responsável' &&
+    !notificacao.tecnico_anterior_nome &&
+    ['Troca de técnico', 'Agendamento e troca de técnico'].includes(notificacao.evento);
+  const titulo = primeiraDesignacao ? 'Novo chamado designado a você' : tituloDoEvento(notificacao.evento);
   const link = linkDaOrdem(notificacao.service_order_id);
 
-  const assuntoBase = `[${notificacao.service_order_code || 'OS'}] ${titulo} · ${quandoNova}`;
+  const assuntoBase = `[${notificacao.service_order_code || 'OS'}] ${titulo}${
+    primeiraDesignacao && !notificacao.data_nova ? '' : ` · ${quandoNova}`
+  }`;
   const assunto = opcoes.modoTeste
     ? `[MODO TESTE · destinatário real: ${opcoes.destinatarioReal}] ${assuntoBase}`
     : assuntoBase;
@@ -101,7 +115,9 @@ export function montarEmail(notificacao: any, opcoes: { modoTeste: boolean; dest
     <tr><td style="background:#0f4d4b;padding:20px 28px;font:700 16px 'Montserrat',Arial,sans-serif;color:#f7f6f2;">EVORA · Engenharia Clínica</td></tr>
     <tr><td style="padding:28px;">
       <p style="margin:0 0 6px;font:700 20px 'Montserrat',Arial,sans-serif;color:#0f4d4b;">${titulo}</p>
-      <p style="margin:0 0 18px;font:400 14px 'Montserrat',Arial,sans-serif;color:#636e74;">Olá, ${notificacao.tecnico_nome || 'técnico'}. Esta é a situação atual desta ordem de serviço.</p>
+      <p style="margin:0 0 18px;font:400 14px 'Montserrat',Arial,sans-serif;color:#636e74;">Olá, ${notificacao.tecnico_nome || 'técnico'}. ${
+        primeiraDesignacao ? 'A gestão designou este chamado a você.' : 'Esta é a situação atual desta ordem de serviço.'
+      }</p>
       ${
         opcoes.modoTeste
           ? `<p style="margin:0 0 18px;padding:10px 12px;background:#fff5e6;border:1px solid #f0d9b5;border-radius:8px;font:400 12px 'Montserrat',Arial,sans-serif;color:#7a5a1f;">MODO TESTE ativo: este e-mail seria enviado para <strong>${opcoes.destinatarioReal}</strong>.</p>`
@@ -111,8 +127,14 @@ export function montarEmail(notificacao: any, opcoes: { modoTeste: boolean; dest
         ${linha('Ordem de serviço', `${notificacao.service_order_code || '—'} · ${notificacao.tipo_ordem || '—'}`)}
         ${linha('Equipamento', notificacao.equipment_name || '—')}
         ${linha('Setor', notificacao.sector || '—')}
-        ${linha('Data anterior', quandoAnterior)}
-        ${linha('Nova data', quandoNova)}
+        ${opcoes.ordem?.priority ? linha('Prioridade', escaparHtml(opcoes.ordem.priority)) : ''}
+        ${
+          opcoes.ordem?.problem_description
+            ? linha('Problema relatado', escaparHtml(String(opcoes.ordem.problem_description).slice(0, 300)))
+            : ''
+        }
+        ${primeiraDesignacao ? '' : linha('Data anterior', quandoAnterior)}
+        ${linha(primeiraDesignacao ? 'Data agendada' : 'Nova data', quandoNova)}
         ${notificacao.tecnico_nome ? linha('Técnico responsável', notificacao.tecnico_nome) : ''}
         ${trocaTecnico}
         ${linha('Alterado por', notificacao.alterado_por || '—')}
@@ -132,8 +154,12 @@ export function montarEmail(notificacao: any, opcoes: { modoTeste: boolean; dest
     `Ordem de serviço: ${notificacao.service_order_code || '—'} (${notificacao.tipo_ordem || '—'})`,
     `Equipamento: ${notificacao.equipment_name || '—'}`,
     `Setor: ${notificacao.sector || '—'}`,
-    `Data anterior: ${quandoAnterior}`,
-    `Nova data: ${quandoNova}`,
+    opcoes.ordem?.priority ? `Prioridade: ${opcoes.ordem.priority}` : '',
+    opcoes.ordem?.problem_description
+      ? `Problema relatado: ${String(opcoes.ordem.problem_description).slice(0, 300)}`
+      : '',
+    primeiraDesignacao ? '' : `Data anterior: ${quandoAnterior}`,
+    `${primeiraDesignacao ? 'Data agendada' : 'Nova data'}: ${quandoNova}`,
     notificacao.tecnico_anterior_nome ? `Antes com: ${notificacao.tecnico_anterior_nome}` : '',
     `Alterado por: ${notificacao.alterado_por || '—'}`,
     '',
