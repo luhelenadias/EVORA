@@ -101,6 +101,10 @@ export default function ServiceOrders() {
       fecharFormulario();
       setChamadoAberto({ chamado, email });
     },
+    onError: (erro) => {
+      const detalhe = erro?.response?.data?.error || erro?.response?.data?.message || erro?.message;
+      toast.error(detalhe ? `Não foi possível abrir o chamado: ${detalhe}` : 'Não foi possível abrir o chamado.');
+    },
   });
 
   const updateMutation = useMutation({

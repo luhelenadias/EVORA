@@ -145,8 +145,11 @@ export default function OrderForm({ order, equipamentoInicial, onSubmit, onCance
         }
       }
     }
+    // Campos de data e número vazios são omitidos: a API rejeita '' nesses tipos.
     if (data.scheduled_date) data.scheduled_date = new Date(data.scheduled_date).toISOString();
+    else delete data.scheduled_date;
     if (data.total_cost) data.total_cost = parseFloat(data.total_cost);
+    else delete data.total_cost;
     onSubmit(data);
   };
 
