@@ -9,7 +9,7 @@ import StatusBadge from '@/components/shared/StatusBadge';
 import { findContractForEquipment, computeSlaStatus, SLA_STYLES } from '@/lib/maintenance';
 
 /** Chamados abertos pelo próprio usuário logado. */
-export default function MeusChamadosLista({ orders, contracts, podeEditar, onEditar }) {
+export default function MeusChamadosLista({ orders, contracts, podeEditar, onEditar, onAbrir }) {
   if (!orders.length) {
     return (
       <EmptyState
@@ -49,7 +49,11 @@ export default function MeusChamadosLista({ orders, contracts, podeEditar, onEdi
           </TableHeader>
           <TableBody>
             {orders.map((o) => (
-              <TableRow key={o.id} className="hover:bg-muted/30">
+              <TableRow
+                key={o.id}
+                className="cursor-pointer hover:bg-muted/30"
+                onClick={() => onAbrir(o)}
+              >
                 <TableCell className="font-mono text-xs font-medium">
                   {o.code || `OS-${o.id?.substring(0, 6)}`}
                 </TableCell>
@@ -63,7 +67,12 @@ export default function MeusChamadosLista({ orders, contracts, podeEditar, onEdi
                 </TableCell>
                 <TableCell>
                   {podeEditar(o) && (
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onEditar(o)}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={(e) => { e.stopPropagation(); onEditar(o); }}
+                    >
                       <Pencil className="w-4 h-4" />
                     </Button>
                   )}

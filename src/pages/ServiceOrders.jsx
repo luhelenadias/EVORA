@@ -16,6 +16,7 @@ import EmptyState from '@/components/shared/EmptyState';
 import OrderForm from '@/components/orders/OrderForm';
 import ChamadoAbertoDialog from '@/components/orders/ChamadoAbertoDialog';
 import MeusChamadosLista from '@/components/orders/MeusChamadosLista';
+import OrderDetailDialog from '@/components/maintenance/OrderDetailDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -36,6 +37,8 @@ export default function ServiceOrders() {
   const [editingItem, setEditingItem] = useState(null);
   // Chamado recém-aberto: abre o aviso de sucesso com número e envio de e-mail.
   const [chamadoAberto, setChamadoAberto] = useState(null);
+  // Chamado aberto em modo leitura (clique na linha).
+  const [visualizando, setVisualizando] = useState(null);
   const queryClient = useQueryClient();
 
   // Atalho com a tela já aberta (link entre abas): abre o formulário já preenchido.
@@ -308,7 +311,11 @@ export default function ServiceOrders() {
                   </TableHeader>
                   <TableBody>
                     {queue.map(({ order, equipment: eq }, idx) => (
-                      <TableRow key={order.id} className={idx === 0 ? 'bg-primary/5' : ''}>
+                      <TableRow
+                        key={order.id}
+                        className={`cursor-pointer ${idx === 0 ? 'bg-primary/5' : ''}`}
+                        onClick={() => setVisualizando(order)}
+                      >
                         <TableCell className="text-xs font-bold text-primary">{idx + 1}</TableCell>
                         <TableCell className="font-mono text-xs font-medium">
                           <div className="flex items-center gap-1.5">
@@ -325,7 +332,12 @@ export default function ServiceOrders() {
                         <TableCell><StatusBadge value={order.status} /></TableCell>
                         <TableCell>
                           {canEdit(order) && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingItem(order); setShowForm(true); }}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => { e.stopPropagation(); setEditingItem(order); setShowForm(true); }}
+                            >
                               <Pencil className="w-4 h-4" />
                             </Button>
                           )}
@@ -347,6 +359,7 @@ export default function ServiceOrders() {
               contracts={contracts}
               podeEditar={canEdit}
               onEditar={(o) => { setEditingItem(o); setShowForm(true); }}
+              onAbrir={setVisualizando}
             />
           </TabsContent>
         )}
@@ -378,7 +391,11 @@ export default function ServiceOrders() {
                   </TableHeader>
                   <TableBody>
                     {filtered.map((o) => (
-                      <TableRow key={o.id} className="hover:bg-muted/30">
+                      <TableRow
+                        key={o.id}
+                        className="cursor-pointer hover:bg-muted/30"
+                        onClick={() => setVisualizando(o)}
+                      >
                         <TableCell className="font-mono text-xs font-medium">
                           <div className="flex items-center gap-1.5">
                             {o.code || `OS-${o.id?.substring(0, 6)}`}
@@ -396,7 +413,12 @@ export default function ServiceOrders() {
                         </TableCell>
                         <TableCell>
                           {canEdit(o) && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingItem(o); setShowForm(true); }}>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={(e) => { e.stopPropagation(); setEditingItem(o); setShowForm(true); }}
+                            >
                               <Pencil className="w-4 h-4" />
                             </Button>
                           )}
@@ -429,6 +451,13 @@ export default function ServiceOrders() {
           />
         </DialogContent>
       </Dialog>
+
+      <OrderDetailDialog
+        order={visualizando}
+        equipment={visualizando ? eqMap[visualizando.equipment_id] : null}
+        orders={orders}
+        onClose={() => setVisualizando(null)}
+      />
 
       <ChamadoAbertoDialog
         chamado={chamadoAberto?.chamado}
