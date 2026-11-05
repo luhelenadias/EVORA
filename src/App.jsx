@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Toaster } from "@/components/ui/toaster"
 import { ThemeProvider } from 'next-themes'
 import { QueryClientProvider } from '@tanstack/react-query'
@@ -8,36 +9,39 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import AppLayout from '@/components/layout/AppLayout';
 
+// Páginas carregadas sob demanda: o pacote inicial fica menor (importante na WebView do app).
 // Auth pages
-import Login from '@/pages/Login';
-import Register from '@/pages/Register';
-import ForgotPassword from '@/pages/ForgotPassword';
-import ResetPassword from '@/pages/ResetPassword';
+const Login = lazy(() => import('@/pages/Login'));
+const Register = lazy(() => import('@/pages/Register'));
+const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
 
 // App pages
-import AppLayout from '@/components/layout/AppLayout';
-import Indicadores from '@/pages/Indicadores';
-import Equipment from '@/pages/Equipment';
-import ServiceOrders from '@/pages/ServiceOrders';
-import Maintenance from '@/pages/Maintenance';
-import Contracts from '@/pages/Contracts';
-import SpareParts from '@/pages/SpareParts';
-import Users from '@/pages/Users';
+const Indicadores = lazy(() => import('@/pages/Indicadores'));
+const Equipment = lazy(() => import('@/pages/Equipment'));
+const ServiceOrders = lazy(() => import('@/pages/ServiceOrders'));
+const Maintenance = lazy(() => import('@/pages/Maintenance'));
+const Contracts = lazy(() => import('@/pages/Contracts'));
+const SpareParts = lazy(() => import('@/pages/SpareParts'));
+const Users = lazy(() => import('@/pages/Users'));
+const Settings = lazy(() => import('@/pages/Settings'));
+const Auditoria = lazy(() => import('@/pages/Auditoria'));
+const MeuPerfil = lazy(() => import('@/pages/MeuPerfil'));
 
-import Settings from '@/pages/Settings';
-import Auditoria from '@/pages/Auditoria';
-import MeuPerfil from '@/pages/MeuPerfil';
+/** Tela cheia usada enquanto uma página ainda está sendo carregada. */
+const CarregandoTela = () => (
+  <div className="fixed inset-0 flex items-center justify-center">
+    <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin"></div>
+  </div>
+);
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
 
   if (isLoadingPublicSettings || isLoadingAuth) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-muted border-t-primary rounded-full animate-spin"></div>
-      </div>
-    );
+    return <CarregandoTela />;
   }
 
   if (authError) {
@@ -50,37 +54,39 @@ const AuthenticatedApp = () => {
   }
 
   return (
-    <Routes>
-      {/* Public auth routes */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+    <Suspense fallback={<CarregandoTela />}>
+      <Routes>
+        {/* Public auth routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
 
-      {/* Protected app routes */}
-      <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
-        {/* Equipe Técnica foi fundida em Usuários */}
-        <Route path="/equipe" element={<Navigate to="/usuarios" replace />} />
-        <Route path="/indicadores" element={<Navigate to="/" replace />} />
-        <Route element={<AppLayout />}>
-          <Route path="/" element={<Indicadores />} />
-          <Route path="/equipamentos" element={<Equipment />} />
-          <Route path="/equipamentos/:id" element={<Equipment />} />
-          <Route path="/chamados" element={<ServiceOrders />} />
-          <Route path="/chamados/novo" element={<Navigate to="/chamados" replace />} />
-          <Route path="/manutencoes" element={<Maintenance />} />
-          <Route path="/contratos" element={<Contracts />} />
+        {/* Protected app routes */}
+        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+          {/* Equipe Técnica foi fundida em Usuários */}
+          <Route path="/equipe" element={<Navigate to="/usuarios" replace />} />
+          <Route path="/indicadores" element={<Navigate to="/" replace />} />
+          <Route element={<AppLayout />}>
+            <Route path="/" element={<Indicadores />} />
+            <Route path="/equipamentos" element={<Equipment />} />
+            <Route path="/equipamentos/:id" element={<Equipment />} />
+            <Route path="/chamados" element={<ServiceOrders />} />
+            <Route path="/chamados/novo" element={<Navigate to="/chamados" replace />} />
+            <Route path="/manutencoes" element={<Maintenance />} />
+            <Route path="/contratos" element={<Contracts />} />
 
-          <Route path="/pecas" element={<SpareParts />} />
-          <Route path="/usuarios" element={<Users />} />
-          <Route path="/meu-perfil" element={<MeuPerfil />} />
-          <Route path="/auditoria" element={<Auditoria />} />
-          <Route path="/configuracoes" element={<Settings />} />
+            <Route path="/pecas" element={<SpareParts />} />
+            <Route path="/usuarios" element={<Users />} />
+            <Route path="/meu-perfil" element={<MeuPerfil />} />
+            <Route path="/auditoria" element={<Auditoria />} />
+            <Route path="/configuracoes" element={<Settings />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route path="*" element={<PageNotFound />} />
-    </Routes>
+        <Route path="*" element={<PageNotFound />} />
+      </Routes>
+    </Suspense>
   );
 };
 
