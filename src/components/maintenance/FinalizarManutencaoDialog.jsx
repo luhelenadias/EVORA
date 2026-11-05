@@ -88,7 +88,7 @@ export default function FinalizarManutencaoDialog({ open, order, equipment, onCl
           </div>
 
           {pausada ? (
-            <p className="flex items-start gap-1.5 rounded-md border border-accent/50 bg-accent/10 p-2.5 text-xs text-accent-foreground">
+            <p className="flex items-start gap-1.5 rounded-md border border-accent/50 bg-accent/10 p-2.5 text-xs text-accent-foreground dark:text-accent">
               <Pause className="mt-px h-3.5 w-3.5 flex-shrink-0" />
               Esta OS está pausada. Retome a manutenção antes de finalizar.
             </p>

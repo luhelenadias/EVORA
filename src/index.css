@@ -85,7 +85,8 @@
     --sidebar-border: 178 35% 18%;
     --sidebar-ring: 178 50% 45%;
     --warning: 32 65% 55%;
-    --warning-foreground: 32 70% 14%;
+    /* No escuro os realces âmbar precisam de texto claro: o tom escuro some sobre o cartão. */
+    --warning-foreground: 32 88% 78%;
     --success: 178 45% 45%;
     --success-foreground: 200 12% 8%;
   }

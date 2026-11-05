@@ -53,7 +53,7 @@ export default function PedidosPecaOS({ order, pedidos = [], pecasById = {}, use
                 <p className="mt-1 text-[11px] text-muted-foreground">{pedido.observacao}</p>
               )}
               {pedido.status === 'Chegou' && pedido.pausa_id && (
-                <p className="mt-1 rounded-md border border-accent/50 bg-accent/10 px-2 py-1 text-[11px] font-medium text-accent-foreground">
+                <p className="mt-1 rounded-md border border-accent/50 bg-accent/10 px-2 py-1 text-[11px] font-medium text-accent-foreground dark:text-accent">
                   Peça chegou: retome a manutenção.
                 </p>
               )}

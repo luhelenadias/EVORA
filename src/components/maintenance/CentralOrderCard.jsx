@@ -72,7 +72,7 @@ export default function CentralOrderCard({ order, equipment, user, onStart, onFi
               </Badge>
             )}
             {pausada && (
-              <Badge variant="outline" className="border-accent/50 bg-accent/10 text-[11px] text-accent-foreground">
+              <Badge variant="outline" className="border-accent/50 bg-accent/10 text-[11px] text-accent-foreground dark:text-accent">
                 <Pause className="mr-1 h-3 w-3" /> Pausada: {resumoDaPausa(order)}
               </Badge>
             )}
