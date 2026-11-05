@@ -1,8 +1,9 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
 import { Home, ClipboardList, Monitor, UserRound } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { abasDoUsuario } from '@/lib/roles';
+import { destinoDaAba, raizDaAba, registrarLocal, reiniciarAba } from '@/lib/tabStack';
 
 /** Destinos da barra inferior (o Perfil é sempre liberado). */
 const DESTINOS = [
@@ -16,9 +17,14 @@ const PERFIL = { key: 'perfil', label: 'Perfil', path: '/meu-perfil', icon: User
 /**
  * Barra de navegação inferior do aplicativo (Android/iOS).
  * Aparece apenas abaixo de 768px; no desktop a barra lateral continua sendo o menu.
+ *
+ * Cada aba mantém a própria pilha de navegação (src/lib/tabStack.js): ao voltar para uma aba,
+ * ela reabre onde estava; tocar na aba já ativa volta para a raiz dela.
  */
 export default function MobileTabBar({ user, config }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const tipoNavegacao = useNavigationType();
   const chaves = abasDoUsuario(config, user).map((aba) => aba.key);
 
   const itens = [
@@ -26,7 +32,25 @@ export default function MobileTabBar({ user, config }) {
     PERFIL,
   ];
 
-  const ativo = (path) => (path === '/' ? location.pathname === '/' : location.pathname.startsWith(path));
+  // Registra cada local visitado na pilha da aba a que ele pertence.
+  useEffect(() => {
+    registrarLocal(location.pathname, location.search, tipoNavegacao);
+  }, [location.pathname, location.search, tipoNavegacao]);
+
+  const abaAtual = raizDaAba(location.pathname);
+  const ativo = (path) => abaAtual === path;
+
+  const abrirAba = (evento, item) => {
+    // Deixa o navegador agir em cliques com tecla modificadora (abrir em nova aba).
+    if (evento.metaKey || evento.ctrlKey || evento.shiftKey || evento.button !== 0) return;
+    evento.preventDefault();
+    if (ativo(item.path)) {
+      reiniciarAba(item.path);
+      navigate(item.path);
+    } else {
+      navigate(destinoDaAba(item.path));
+    }
+  };
 
   return (
     <nav
@@ -41,6 +65,8 @@ export default function MobileTabBar({ user, config }) {
             <Link
               key={item.key}
               to={item.path}
+              onClick={(evento) => abrirAba(evento, item)}
+              aria-current={atual ? 'page' : undefined}
               className={cn(
                 'flex flex-1 select-none touch-manipulation flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
                 atual ? 'text-primary' : 'text-muted-foreground'
