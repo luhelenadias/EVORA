@@ -17,6 +17,7 @@ const Login = lazy(() => import('@/pages/Login'));
 const Register = lazy(() => import('@/pages/Register'));
 const ForgotPassword = lazy(() => import('@/pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('@/pages/ResetPassword'));
+const OAuthConsent = lazy(() => import('@/pages/OAuthConsent'));
 
 // App pages
 const Indicadores = lazy(() => import('@/pages/Indicadores'));
@@ -61,6 +62,8 @@ const AuthenticatedApp = () => {
         <Route path="/register" element={<Register />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        {/* Consentimento de acesso via MCP: precisa ficar fora de qualquer guarda de autenticação */}
+        <Route path="/oauth/consent" element={<OAuthConsent />} />
 
         {/* Protected app routes */}
         <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
