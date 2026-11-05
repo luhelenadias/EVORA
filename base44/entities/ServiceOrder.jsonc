@@ -373,6 +373,74 @@
     "equipment_id",
     "problem_description"
   ],
-  "rls": {},
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "tecnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "clinico"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "tecnico"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "clinico"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "gestor"
+          }
+        }
+      ]
+    }
+  },
   "type": "object"
 }
