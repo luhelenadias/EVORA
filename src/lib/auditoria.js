@@ -9,6 +9,7 @@ export const ACOES = [
   'Peça utilizada', 'Rascunho de relatório gerado por IA',
   'Relatório confirmado', 'Fechamento', 'Reabertura', 'Cancelamento', 'Upload de documento',
   'Extração por IA', 'Notificação ao técnico', 'Mudança de perfil', 'Ajuste administrativo',
+  'Exclusão de conta',
 ];
 
 export const ENTIDADES = [
@@ -52,6 +53,7 @@ const VERBOS = {
   'Notificação ao técnico': 'notificou o técnico',
   'Mudança de perfil': 'alterou o perfil',
   'Ajuste administrativo': 'fez ajuste administrativo',
+  'Exclusão de conta': 'excluiu a própria conta',
 };
 
 /** Rótulos legíveis dos campos citados no log. */

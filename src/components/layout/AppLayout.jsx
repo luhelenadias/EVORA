@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { useConfiguracao } from '@/hooks/useConfiguracao';
 import { ROLES, abaPermitidaDoUsuario, abasDoUsuario } from '@/lib/roles';
 import Sidebar from './Sidebar';
+import MobileTabBar from './MobileTabBar';
 import SemAcesso from './SemAcesso';
 import AlertasBell from '@/components/alertas/AlertasBell';
 
@@ -68,10 +69,10 @@ export default function AppLayout() {
       <main
         className={cn('min-h-screen transition-all duration-300', sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60')}
       >
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-end border-b border-border bg-background/90 px-4 backdrop-blur sm:px-6 lg:px-8">
+        <header className="pt-safe sticky top-0 z-30 flex min-h-14 items-center justify-end border-b border-border bg-background/90 px-4 backdrop-blur sm:px-6 lg:px-8">
           <AlertasBell />
         </header>
-        <div className="p-4 sm:p-6 lg:p-8">
+        <div className="p-4 pb-24 sm:p-6 sm:pb-24 md:pb-6 lg:p-8">
           {perfilPendente ? (
             <div className="mx-auto mt-16 max-w-md rounded-lg border border-border bg-card p-6 text-center">
               <h2 className="font-display text-lg font-semibold">Configurando o seu acesso</h2>
@@ -100,6 +101,7 @@ export default function AppLayout() {
           )}
         </div>
       </main>
+      <MobileTabBar user={user} config={config} />
     </div>
   );
 }

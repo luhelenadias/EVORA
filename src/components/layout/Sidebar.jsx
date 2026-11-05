@@ -161,7 +161,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
       {/* Mobile trigger */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-3 left-3 z-50 p-2 rounded-lg bg-card border border-border shadow-sm">
+        className="lg:hidden top-safe fixed left-3 z-50 p-2 rounded-lg bg-card border border-border shadow-sm">
         
         <Menu className="w-5 h-5" />
       </button>
@@ -170,7 +170,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
       {mobileOpen &&
       <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-black/50" onClick={() => setMobileOpen(false)} />
-          <div className="relative w-64 bg-sidebar text-sidebar-foreground shadow-xl">
+          <div className="pt-safe relative w-64 bg-sidebar text-sidebar-foreground shadow-xl">
             <button
             onClick={() => setMobileOpen(false)}
             className="absolute top-3 right-3 text-sidebar-foreground/70">

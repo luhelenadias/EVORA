@@ -25,6 +25,7 @@ export const ACOES = [
   'Notificação ao técnico',
   'Mudança de perfil',
   'Ajuste administrativo',
+  'Exclusão de conta',
 ];
 
 export const ORIGENS = ['Usuário', 'IA', 'Sistema', 'Ajuste administrativo'];

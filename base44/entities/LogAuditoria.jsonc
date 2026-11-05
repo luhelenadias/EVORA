@@ -1,7 +1,9 @@
 {
   "name": "LogAuditoria",
+  "type": "object",
   "properties": {
     "acao": {
+      "type": "string",
       "description": "A\u00e7\u00e3o registrada",
       "enum": [
         "Abertura",
@@ -29,33 +31,34 @@
         "Extra\u00e7\u00e3o por IA",
         "Notifica\u00e7\u00e3o ao t\u00e9cnico",
         "Mudan\u00e7a de perfil",
-        "Ajuste administrativo"
-      ],
-      "type": "string"
+        "Ajuste administrativo",
+        "Exclus\u00e3o de conta"
+      ]
     },
     "anterior_a_auditoria": {
+      "type": "boolean",
       "default": false,
-      "description": "Marca registros que existiam antes do log; nunca inventar hist\u00f3rico retroativo.",
-      "type": "boolean"
+      "description": "Marca registros que existiam antes do log; nunca inventar hist\u00f3rico retroativo."
     },
     "campo": {
-      "description": "Campo alterado, quando a\u00e7\u00e3o for edi\u00e7\u00e3o/mudan\u00e7a",
-      "type": "string"
+      "type": "string",
+      "description": "Campo alterado, quando a\u00e7\u00e3o for edi\u00e7\u00e3o/mudan\u00e7a"
     },
     "data_hora": {
-      "description": "Momento da a\u00e7\u00e3o, marcado pelo SERVIDOR (n\u00e3o pelo navegador)",
+      "type": "string",
       "format": "date-time",
-      "type": "string"
+      "description": "Momento da a\u00e7\u00e3o, marcado pelo SERVIDOR (n\u00e3o pelo navegador)"
     },
     "entidade_codigo": {
-      "description": "C\u00f3digo leg\u00edvel (c\u00f3digo da OS, n\u00ba do contrato, c\u00f3digo do equipamento, e-mail do usu\u00e1rio)",
-      "type": "string"
+      "type": "string",
+      "description": "C\u00f3digo leg\u00edvel (c\u00f3digo da OS, n\u00ba do contrato, c\u00f3digo do equipamento, e-mail do usu\u00e1rio)"
     },
     "entidade_id": {
-      "description": "ID do registro afetado",
-      "type": "string"
+      "type": "string",
+      "description": "ID do registro afetado"
     },
     "entidade_tipo": {
+      "type": "string",
       "description": "Entidade afetada. 'LogAuditoria' identifica a\u00e7\u00f5es sobre o pr\u00f3prio log (exporta\u00e7\u00e3o em CSV).",
       "enum": [
         "ServiceOrder",
@@ -67,14 +70,14 @@
         "ConfiguracaoInstituicao",
         "User",
         "LogAuditoria"
-      ],
-      "type": "string"
+      ]
     },
     "motivo": {
-      "description": "Justificativa, quando exigida (ex.: motivo de sobrescrita de prioridade, de troca da rota de atendimento, de pausa ou de reabertura da triagem)",
-      "type": "string"
+      "type": "string",
+      "description": "Justificativa, quando exigida (ex.: motivo de sobrescrita de prioridade, de troca da rota de atendimento, de pausa ou de reabertura da triagem)"
     },
     "origem": {
+      "type": "string",
       "default": "Usu\u00e1rio",
       "description": "Usu\u00e1rio = pessoa; IA = rascunho/extra\u00e7\u00e3o autom\u00e1tica; Sistema = automa\u00e7\u00e3o (gerador de preventivas, resolu\u00e7\u00e3o de alertas); Ajuste administrativo = altera\u00e7\u00e3o direta no banco",
       "enum": [
@@ -82,42 +85,41 @@
         "IA",
         "Sistema",
         "Ajuste administrativo"
-      ],
-      "type": "string"
+      ]
     },
     "tecnico_atribuido_id": {
-      "description": "Usu\u00e1rio da equipe t\u00e9cnica atribu\u00eddo \u00e0 OS no momento (pode diferir de quem executou a a\u00e7\u00e3o)",
-      "type": "string"
+      "type": "string",
+      "description": "Usu\u00e1rio da equipe t\u00e9cnica atribu\u00eddo \u00e0 OS no momento (pode diferir de quem executou a a\u00e7\u00e3o)"
     },
     "usuario_email": {
-      "description": "E-mail do usu\u00e1rio (cache)",
-      "type": "string"
+      "type": "string",
+      "description": "E-mail do usu\u00e1rio (cache)"
     },
     "usuario_id": {
-      "description": "ID do usu\u00e1rio que executou a a\u00e7\u00e3o (null quando origem = Sistema)",
-      "type": "string"
+      "type": "string",
+      "description": "ID do usu\u00e1rio que executou a a\u00e7\u00e3o (null quando origem = Sistema)"
     },
     "usuario_nome": {
-      "description": "Nome do usu\u00e1rio (cache)",
-      "type": "string"
+      "type": "string",
+      "description": "Nome do usu\u00e1rio (cache)"
     },
     "usuario_perfil": {
+      "type": "string",
       "description": "Perfil do usu\u00e1rio no momento da a\u00e7\u00e3o",
       "enum": [
         "admin",
         "tecnico",
         "clinico",
         "gestor"
-      ],
-      "type": "string"
+      ]
     },
     "valor_anterior": {
-      "description": "Valor antes da altera\u00e7\u00e3o (texto)",
-      "type": "string"
+      "type": "string",
+      "description": "Valor antes da altera\u00e7\u00e3o (texto)"
     },
     "valor_novo": {
-      "description": "Valor depois da altera\u00e7\u00e3o (texto)",
-      "type": "string"
+      "type": "string",
+      "description": "Valor depois da altera\u00e7\u00e3o (texto)"
     }
   },
   "required": [
@@ -143,6 +145,5 @@
         "role": "nobody"
       }
     }
-  },
-  "type": "object"
+  }
 }

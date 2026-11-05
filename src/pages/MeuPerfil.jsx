@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import PageHeader from '@/components/shared/PageHeader';
+import ExcluirContaCard from '@/components/profile/ExcluirContaCard';
 import { ROLE_LABELS } from '@/lib/roles';
 import {
   ESPECIALIDADES, NIVEIS_TECNICOS, PERFIL_TECNICO, nomeDaPessoa, situacaoDoUsuario,
@@ -152,6 +153,8 @@ export default function MeuPerfil() {
           </p>
         </CardContent>
       </Card>
+
+      <ExcluirContaCard />
     </div>
   );
 }
