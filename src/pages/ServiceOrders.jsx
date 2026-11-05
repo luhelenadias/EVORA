@@ -26,6 +26,8 @@ import {
 import { alteracoesDaOS, registrarAlteracoesDaOS, registrarAuditoria } from '@/lib/auditoria';
 import { rotuloStatusOS } from '@/lib/triagem';
 import { salvarOS } from '@/lib/salvarOS';
+import useUrlModal from '@/hooks/useUrlModal';
+import PullToRefresh from '@/components/shared/PullToRefresh';
 
 export default function ServiceOrders() {
   const { user } = useOutletContext();
@@ -39,8 +41,9 @@ export default function ServiceOrders() {
   const [editingItem, setEditingItem] = useState(null);
   // Chamado recém-aberto: abre o aviso de sucesso com número e envio de e-mail.
   const [chamadoAberto, setChamadoAberto] = useState(null);
-  // Chamado aberto em modo leitura (clique na linha).
-  const [visualizando, setVisualizando] = useState(null);
+  // Chamado aberto em modo leitura: o id fica na URL (?os=id) para que o gesto
+  // "voltar" do Android/iOS feche o diálogo em vez de sair do aplicativo.
+  const [osAbertaId, abrirOS, fecharOS] = useUrlModal('os');
   const queryClient = useQueryClient();
 
   // Atalho com a tela já aberta (link entre abas): abre o formulário já preenchido.
@@ -61,6 +64,19 @@ export default function ServiceOrders() {
     queryKey: ['serviceOrders'],
     queryFn: () => base44.entities.ServiceOrder.list('-created_date'),
   });
+
+  const visualizando = useMemo(
+    () => (osAbertaId ? orders.find((o) => o.id === osAbertaId) || null : null),
+    [orders, osAbertaId],
+  );
+
+  // Puxar para atualizar (toque): recarrega as listas da tela.
+  const atualizarListas = () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['serviceOrders'] }),
+      queryClient.invalidateQueries({ queryKey: ['equipment'] }),
+      queryClient.invalidateQueries({ queryKey: ['contracts'] }),
+    ]);
 
   const { data: equipment = [] } = useQuery({
     queryKey: ['equipment'],
@@ -225,6 +241,7 @@ export default function ServiceOrders() {
   };
 
   return (
+    <PullToRefresh onRefresh={atualizarListas}>
     <div className="space-y-6">
       <PageHeader
         title={title}
@@ -317,7 +334,7 @@ export default function ServiceOrders() {
                       <TableRow
                         key={order.id}
                         className={`cursor-pointer ${idx === 0 ? 'bg-primary/5' : ''}`}
-                        onClick={() => setVisualizando(order)}
+                        onClick={() => abrirOS(order.id)}
                       >
                         <TableCell className="text-xs font-bold text-primary">{idx + 1}</TableCell>
                         <TableCell className="font-mono text-xs font-medium">
@@ -338,7 +355,7 @@ export default function ServiceOrders() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-11 w-11 sm:h-8 sm:w-8"
                               onClick={(e) => { e.stopPropagation(); setEditingItem(order); setShowForm(true); }}
                             >
                               <Pencil className="w-4 h-4" />
@@ -362,7 +379,7 @@ export default function ServiceOrders() {
               contracts={contracts}
               podeEditar={canEdit}
               onEditar={(o) => { setEditingItem(o); setShowForm(true); }}
-              onAbrir={setVisualizando}
+              onAbrir={(o) => abrirOS(o.id)}
             />
           </TabsContent>
         )}
@@ -397,7 +414,7 @@ export default function ServiceOrders() {
                       <TableRow
                         key={o.id}
                         className="cursor-pointer hover:bg-muted/30"
-                        onClick={() => setVisualizando(o)}
+                        onClick={() => abrirOS(o.id)}
                       >
                         <TableCell className="font-mono text-xs font-medium">
                           <div className="flex items-center gap-1.5">
@@ -419,7 +436,7 @@ export default function ServiceOrders() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-11 w-11 sm:h-8 sm:w-8"
                               onClick={(e) => { e.stopPropagation(); setEditingItem(o); setShowForm(true); }}
                             >
                               <Pencil className="w-4 h-4" />
@@ -459,7 +476,7 @@ export default function ServiceOrders() {
         order={visualizando}
         equipment={visualizando ? eqMap[visualizando.equipment_id] : null}
         orders={orders}
-        onClose={() => setVisualizando(null)}
+        onClose={fecharOS}
       />
 
       <ChamadoAbertoDialog
@@ -468,5 +485,6 @@ export default function ServiceOrders() {
         onClose={() => setChamadoAberto(null)}
       />
     </div>
+    </PullToRefresh>
   );
 }

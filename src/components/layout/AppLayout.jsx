@@ -89,7 +89,9 @@ export default function AppLayout() {
               </button>
             </div>
           ) : liberada ? (
-            <Outlet context={{ user, recarregarUsuario }} />
+            <div key={location.pathname} className="animate-page-in">
+              <Outlet context={{ user, recarregarUsuario }} />
+            </div>
           ) : location.pathname === '/' && abas[0] ? (
             <Navigate to={abas[0].path} replace />
           ) : (

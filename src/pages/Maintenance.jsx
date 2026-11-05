@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useSearchParams } from 'react-router-dom';
+import useUrlModal from '@/hooks/useUrlModal';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -64,8 +65,9 @@ export default function Maintenance() {
   const [reagendando, setReagendando] = useState(null);
   // OS que vai ser pausada (motivo + observação no diálogo).
   const [pausando, setPausando] = useState(null);
-  // OS aberta no painel de triagem (aba visível só para admin e gestão).
-  const [triando, setTriando] = useState(null);
+  // OS aberta no painel de triagem (aba visível só para admin e gestão). O id fica
+  // na URL (?triagem=id) para o gesto "voltar" fechar o painel sem sair do app.
+  const [triagemId, abrirTriagem, fecharTriagem] = useUrlModal('triagem');
   const [gerandoSugestoes, setGerandoSugestoes] = useState(false);
   const geradasRef = useRef(new Set());
   const sugestoesPedidasRef = useRef(false);
@@ -149,6 +151,11 @@ export default function Maintenance() {
     equipment.forEach((e) => { mapa[e.id] = e; });
     return mapa;
   }, [equipment]);
+
+  const ordemEmTriagem = useMemo(
+    () => (triagemId ? orders.find((o) => o.id === triagemId) || null : null),
+    [orders, triagemId]
+  );
 
   const technicianById = useMemo(() => {
     const mapa = {};
@@ -859,20 +866,20 @@ export default function Maintenance() {
               orders={orders}
               equipmentById={equipmentById}
               triadas={triadasSemInicio}
-              onAbrir={setTriando}
+              onAbrir={(o) => abrirTriagem(o.id)}
             />
           </TabsContent>
         )}
       </Tabs>
 
-      {triando && (
+      {ordemEmTriagem && (
         <TriagemDialog
-          order={orders.find((o) => o.id === triando.id) || triando}
-          equipment={equipmentById[triando.equipment_id]}
+          order={ordemEmTriagem}
+          equipment={equipmentById[ordemEmTriagem.equipment_id]}
           contracts={contracts}
           orders={orders}
           tecnicos={tecnicosAtribuiveis}
-          onClose={() => setTriando(null)}
+          onClose={fecharTriagem}
           onConcluida={recalcularAlertas}
         />
       )}

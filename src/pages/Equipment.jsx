@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { useOutletContext, useSearchParams, useParams, useNavigate } from 'react-router-dom';
@@ -25,6 +25,8 @@ import PrioridadeBadge from '@/components/equipment/PrioridadeBadge';
 import TermoTooltip from '@/components/shared/TermoTooltip';
 import { recalcularPrioridades } from '@/lib/priorizacao';
 import { Skeleton } from '@/components/ui/skeleton';
+import useUrlModal from '@/hooks/useUrlModal';
+import PullToRefresh from '@/components/shared/PullToRefresh';
 
 export default function Equipment() {
   const { user } = useOutletContext();
@@ -35,7 +37,9 @@ export default function Equipment() {
   const [criticalityFilter, setCriticalityFilter] = useState('all');
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [viewingItem, setViewingItem] = useState(null);
+  // Ficha aberta: o id fica na URL (?equipamento=id ou /equipamentos/:id) para que
+  // o gesto "voltar" feche a ficha em vez de sair do aplicativo.
+  const [equipamentoAbertoId, abrirEquipamento, fecharParametro] = useUrlModal('equipamento');
   const [qrItem, setQrItem] = useState(null);
   const [showScanner, setShowScanner] = useState(false);
   const { id: routeEquipmentId } = useParams();
@@ -50,15 +54,18 @@ export default function Equipment() {
     queryFn: () => base44.entities.Equipment.list(),
   });
 
-  // QR da etiqueta abre a ficha direto: /equipamentos/<id>
-  useEffect(() => {
-    if (!routeEquipmentId || !equipment.length) return;
-    const alvo = equipment.find((e) => e.id === routeEquipmentId);
-    if (alvo) setViewingItem(alvo);
-  }, [routeEquipmentId, equipment]);
+  // QR da etiqueta abre a ficha direto (/equipamentos/<id>); a lista usa ?equipamento=<id>.
+  const idAberto = equipamentoAbertoId || routeEquipmentId || null;
+  const viewingItem = useMemo(
+    () => (idAberto ? equipment.find((e) => e.id === idAberto) || null : null),
+    [equipment, idAberto]
+  );
+
+  // Puxar para atualizar (toque): recarrega o parque de equipamentos.
+  const atualizarParque = () => queryClient.invalidateQueries({ queryKey: ['equipment'] });
 
   const fecharDetalhe = () => {
-    setViewingItem(null);
+    fecharParametro();
     if (routeEquipmentId) navigate('/equipamentos', { replace: true });
   };
 
@@ -70,7 +77,6 @@ export default function Equipment() {
       return;
     }
     setShowScanner(false);
-    setViewingItem(alvo);
     navigate(`/equipamentos/${alvo.id}`);
   };
 
@@ -140,6 +146,7 @@ export default function Equipment() {
   }
 
   return (
+    <PullToRefresh onRefresh={atualizarParque}>
     <div className="space-y-6">
       <PageHeader
         title="Equipamentos"
@@ -147,7 +154,7 @@ export default function Equipment() {
         onAdd={isReadOnly ? undefined : () => { setEditingItem(null); setShowForm(true); }}
         addLabel="Novo Equipamento"
       >
-        <Button variant="outline" className="gap-1.5" onClick={() => setShowScanner(true)}>
+        <Button variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => setShowScanner(true)}>
           <ScanLine className="w-4 h-4" /> Ler QR Code
         </Button>
       </PageHeader>
@@ -224,7 +231,7 @@ export default function Equipment() {
                   <TableRow
                     key={eq.id}
                     className={cn('cursor-pointer hover:bg-muted/30', eq.prioridade_alta && 'bg-destructive/5 border-l-4 border-l-destructive')}
-                    onClick={() => setViewingItem(eq)}
+                    onClick={() => abrirEquipamento(eq.id)}
                   >
                     <TableCell>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -256,7 +263,7 @@ export default function Equipment() {
                     </TableCell>
                     <TableCell><StatusBadge value={eq.operational_status} /></TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={e => { e.stopPropagation(); setViewingItem(eq); }}>
+                      <Button variant="ghost" size="icon" className="h-11 w-11 sm:h-8 sm:w-8" onClick={e => { e.stopPropagation(); abrirEquipamento(eq.id); }}>
                         <Eye className="w-4 h-4" />
                       </Button>
                     </TableCell>
@@ -295,7 +302,7 @@ export default function Equipment() {
               user={user}
               allEquipment={equipment}
               onShowQr={() => setQrItem(viewingItem)}
-              onEdit={isReadOnly ? undefined : () => { setViewingItem(null); setEditingItem(viewingItem); setShowForm(true); }}
+              onEdit={isReadOnly ? undefined : () => { const alvo = viewingItem; fecharDetalhe(); setEditingItem(alvo); setShowForm(true); }}
             />
           )}
         </DialogContent>
@@ -304,5 +311,6 @@ export default function Equipment() {
       <QrCodeDialog equipment={qrItem} open={!!qrItem} onOpenChange={(v) => !v && setQrItem(null)} />
       <QrScannerDialog open={showScanner} onOpenChange={setShowScanner} onDetect={tratarQrLido} />
     </div>
+    </PullToRefresh>
   );
 }

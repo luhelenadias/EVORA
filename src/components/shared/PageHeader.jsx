@@ -12,7 +12,7 @@ export default function PageHeader({ title, subtitle, onAdd, addLabel, children 
       <div className="flex items-center gap-2">
         {children}
         {onAdd && (
-          <Button onClick={onAdd} className="gap-2">
+          <Button onClick={onAdd} className="h-11 gap-2 sm:h-9">
             <Plus className="w-4 h-4" />
             {addLabel || 'Novo'}
           </Button>
