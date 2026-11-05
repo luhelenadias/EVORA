@@ -10,6 +10,7 @@ import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import AppLayout from '@/components/layout/AppLayout';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 // Páginas carregadas sob demanda: o pacote inicial fica menor (importante na WebView do app).
 // Auth pages
@@ -100,7 +101,9 @@ function App() {
         <QueryClientProvider client={queryClientInstance}>
           <Router>
             <ScrollToTop />
-            <AuthenticatedApp />
+            <ErrorBoundary>
+              <AuthenticatedApp />
+            </ErrorBoundary>
           </Router>
           <Toaster />
         </QueryClientProvider>
