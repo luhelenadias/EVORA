@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Outlet, Navigate, useLocation } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
@@ -90,7 +90,16 @@ export default function AppLayout() {
             </div>
           ) : liberada ? (
             <div key={location.pathname} className="animate-page-in">
-              <Outlet context={{ user, recarregarUsuario }} />
+              {/* A página carrega sob demanda; o menu e a barra inferior continuam na tela. */}
+              <Suspense
+                fallback={
+                  <div className="flex justify-center py-24">
+                    <div className="h-8 w-8 animate-spin rounded-full border-4 border-muted border-t-primary" />
+                  </div>
+                }
+              >
+                <Outlet context={{ user, recarregarUsuario }} />
+              </Suspense>
             </div>
           ) : location.pathname === '/' && abas[0] ? (
             <Navigate to={abas[0].path} replace />
