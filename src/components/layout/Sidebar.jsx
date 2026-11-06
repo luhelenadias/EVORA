@@ -187,7 +187,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
           <div className="pt-safe relative w-64 bg-sidebar text-sidebar-foreground shadow-xl">
             <button
             onClick={() => setMobileOpen(false)}
-            className="absolute top-3 right-3 text-sidebar-foreground/70">
+            className="top-safe absolute right-3 z-10 text-sidebar-foreground/70">
             
               <X className="w-5 h-5" />
             </button>
