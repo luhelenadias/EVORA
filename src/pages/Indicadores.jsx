@@ -329,7 +329,7 @@ export default function Indicadores() {
             <BlocoIndicador
               titulo="Custos"
               icone={Coins}
-              resumo={custos.semCustos ? 'custos não preenchidos no período' : `Gasto no período: ${custos.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })}`}
+              resumo={custos.semCustos ? 'custos não preenchidos no período' : `Gasto no período: ${custos.total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 })}`}
             >
               <SecaoCustos custos={custos} />
             </BlocoIndicador>
