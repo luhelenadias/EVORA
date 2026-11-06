@@ -108,7 +108,7 @@ export const formatarHoras = (valor) => {
 export const formatarDias = (valor) => (valor == null ? '—' : `${valor.toFixed(valor < 10 ? 1 : 0)} d`);
 
 export const formatarMoeda = (valor) =>
-  valor == null ? '—' : Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 });
+  valor == null ? '—' : Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
 export const formatarPct = (valor) => (valor == null ? '—' : `${valor}%`);
 
