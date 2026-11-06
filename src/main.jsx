@@ -16,6 +16,25 @@ window.addEventListener('vite:preloadError', (evento) => {
   window.location.reload();
 });
 
+// App em tela cheia (WebView/PWA) que não informa a área segura do topo: reserva espaço para a
+// barra de status, senão o cabeçalho fica por baixo do relógio e da bateria.
+try {
+  const modoApp = ['standalone', 'fullscreen', 'minimal-ui'].some(
+    (modo) => window.matchMedia(`(display-mode: ${modo})`).matches,
+  );
+  const webview = /; wv\)|\bwv\b/.test(navigator.userAgent);
+  if ((modoApp || webview) && window.innerWidth < 1024) {
+    const sonda = document.createElement('div');
+    sonda.style.cssText = 'position:fixed;visibility:hidden;padding-top:env(safe-area-inset-top,0px)';
+    document.body.appendChild(sonda);
+    const inset = parseFloat(getComputedStyle(sonda).paddingTop) || 0;
+    sonda.remove();
+    if (inset < 1) document.documentElement.setAttribute('data-app-embutido', '');
+  }
+} catch {
+  // sem detecção: mantém o layout padrão
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <App />
 )
