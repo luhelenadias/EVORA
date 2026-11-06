@@ -29,6 +29,9 @@ const ICONES = {
   configuracoes: Settings
 };
 
+/** Abas que já estão na barra inferior do celular: não se repetem no menu lateral (abaixo de 768px). */
+const ABAS_NA_BARRA_INFERIOR = ['indicadores', 'chamados', 'equipamentos'];
+
 export default function Sidebar({ user, onCollapsedChange }) {
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
@@ -51,6 +54,8 @@ export default function Sidebar({ user, onCollapsedChange }) {
     icon: ICONES[aba.key] || ClipboardList
   }));
 
+  const temExtras = menuItems.some((item) => !ABAS_NA_BARRA_INFERIOR.includes(item.key));
+
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
@@ -72,6 +77,14 @@ export default function Sidebar({ user, onCollapsedChange }) {
 
       {/* Navigation */}
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto">
+        <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-wider text-sidebar-foreground/60 md:hidden">
+          Mais opções
+        </p>
+        {!temExtras && (
+          <p className="px-3 text-xs text-sidebar-foreground/70 md:hidden">
+            Início, chamados e perfil estão na barra inferior.
+          </p>
+        )}
         {menuItems.map((item) => {
         const Icon = item.icon;
         const active = isActive(item.path);
@@ -82,6 +95,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
             onClick={() => setMobileOpen(false)}
             className={cn(
               "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+              ABAS_NA_BARRA_INFERIOR.includes(item.key) && "max-md:hidden",
               active ?
               "bg-sidebar-primary text-sidebar-primary-foreground shadow-md" :
               "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -106,7 +120,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
               type="button"
               title="Menu do usuário"
               className={cn(
-                "flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left transition-colors hover:bg-sidebar-accent",
+                "flex w-full items-center gap-2 rounded-lg bg-transparent px-2 py-2 text-left transition-colors hover:bg-sidebar-accent",
                 collapsed && "justify-center px-1"
               )}>
               <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-sidebar-primary text-[11px] font-semibold text-sidebar-primary-foreground">
@@ -127,7 +141,7 @@ export default function Sidebar({ user, onCollapsedChange }) {
               <span className="block truncate font-normal text-muted-foreground">{user?.email || ''}</span>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild className="gap-2 text-xs">
+            <DropdownMenuItem asChild className="gap-2 text-xs max-md:hidden">
               <Link to="/meu-perfil" onClick={() => setMobileOpen(false)}>
                 <UserRound className="h-3.5 w-3.5" /> Meu perfil
               </Link>
