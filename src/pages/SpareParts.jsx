@@ -14,6 +14,8 @@ import EmptyState from '@/components/shared/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PedidosPecaPainel from '@/components/spareparts/PedidosPecaPainel';
+import PecaCard from '@/components/spareparts/PecaCard';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
 export default function SpareParts() {
@@ -21,6 +23,8 @@ export default function SpareParts() {
   const [showForm, setShowForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const queryClient = useQueryClient();
+  // No celular a lista é para consulta: cadastro e edição ficam no desktop.
+  const isMobile = useIsMobile();
 
   const { data: parts = [], isLoading } = useQuery({
     queryKey: ['spareParts'],
@@ -97,7 +101,12 @@ export default function SpareParts() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Peças de Reposição" subtitle={`${parts.length} itens`} onAdd={() => openForm(null)} addLabel="Nova Peça">
+      <PageHeader
+        title="Peças de Reposição"
+        subtitle={`${parts.length} itens`}
+        onAdd={isMobile ? undefined : () => openForm(null)}
+        addLabel="Nova Peça"
+      >
         {lowStock > 0 && (
           <div className="flex items-center gap-1.5 text-xs text-destructive bg-destructive/10 px-3 py-1.5 rounded-full">
             <AlertTriangle className="w-3.5 h-3.5" />
@@ -122,10 +131,15 @@ export default function SpareParts() {
         </CardContent>
       </Card>
 
+      {/* Celular: um cartão por peça */}
+      <div className="space-y-2 md:hidden">
+        {filtered.map((p) => <PecaCard key={p.id} peca={p} />)}
+      </div>
+
       {filtered.length === 0 ? (
         <EmptyState icon={Package} title="Nenhuma peça encontrada" />
       ) : (
-        <Card>
+        <Card className="hidden md:block">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>

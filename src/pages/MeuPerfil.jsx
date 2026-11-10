@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { Link, useOutletContext } from 'react-router-dom';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
-import { Lock } from 'lucide-react';
+import { Lock, ScrollText, Settings } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -153,6 +153,20 @@ export default function MeuPerfil() {
           </p>
         </CardContent>
       </Card>
+
+      {/* No celular, as telas administrativas não ficam na barra inferior: atalhos aqui. */}
+      {user.role === 'admin' && (
+        <Card className="md:hidden">
+          <CardContent className="grid grid-cols-2 gap-2 p-4">
+            <Button asChild variant="outline" className="h-11 justify-start gap-2">
+              <Link to="/configuracoes"><Settings className="h-4 w-4" /> Configurações</Link>
+            </Button>
+            <Button asChild variant="outline" className="h-11 justify-start gap-2">
+              <Link to="/auditoria"><ScrollText className="h-4 w-4" /> Auditoria</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <ExcluirContaCard />
     </div>

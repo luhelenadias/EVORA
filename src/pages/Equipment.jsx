@@ -20,6 +20,9 @@ import EquipmentForm from '@/components/equipment/EquipmentForm';
 import EquipmentDetail from '@/components/equipment/EquipmentDetail';
 import QrCodeDialog from '@/components/equipment/QrCodeDialog';
 import QrScannerDialog from '@/components/equipment/QrScannerDialog';
+import EquipmentCard from '@/components/equipment/EquipmentCard';
+import FiltrosPanel from '@/components/maintenance/FiltrosPanel';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { equipmentIdFromQr } from '@/lib/equipmentQr';
 import PrioridadeBadge from '@/components/equipment/PrioridadeBadge';
 import TermoTooltip from '@/components/shared/TermoTooltip';
@@ -46,8 +49,10 @@ export default function Equipment() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { config } = useConfiguracao();
+  // No celular a lista é para consulta: cadastro e edição ficam no desktop.
+  const isMobile = useIsMobile();
 
-  const isReadOnly = user?.role === 'tecnico' || user?.role === 'gestor';
+  const isReadOnly = user?.role === 'tecnico' || user?.role === 'gestor' || isMobile;
 
   const { data: equipment = [], isLoading } = useQuery({
     queryKey: ['equipment'],
@@ -154,7 +159,11 @@ export default function Equipment() {
         onAdd={isReadOnly ? undefined : () => { setEditingItem(null); setShowForm(true); }}
         addLabel="Novo Equipamento"
       >
-        <Button variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => setShowScanner(true)}>
+        <Button
+          variant="outline"
+          className="h-11 w-full gap-1.5 sm:h-9 sm:w-auto"
+          onClick={() => setShowScanner(true)}
+        >
           <ScanLine className="w-4 h-4" /> Ler QR Code
         </Button>
       </PageHeader>
@@ -169,47 +178,61 @@ export default function Equipment() {
         </div>
       )}
 
-      {/* Filters */}
+      {/* Busca sempre visível; os demais filtros ficam no painel recolhível. */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar por nome, série ou patrimônio..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Status</SelectItem>
-                <SelectItem value="Ativo">Ativo</SelectItem>
-                <SelectItem value="Em Manutenção">Em Manutenção</SelectItem>
-                <SelectItem value="Parado">Parado</SelectItem>
-                <SelectItem value="Inativo/Baixado">Inativo/Baixado</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={criticalityFilter} onValueChange={setCriticalityFilter}>
-              <SelectTrigger className="w-full sm:w-44">
-                <SelectValue placeholder="Criticidade" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="Suporte à Vida">Suporte à Vida</SelectItem>
-                <SelectItem value="Terapêutico">Terapêutico</SelectItem>
-                <SelectItem value="Diagnóstico">Diagnóstico</SelectItem>
-                <SelectItem value="Apoio">Apoio</SelectItem>
-              </SelectContent>
-            </Select>
+        <CardContent className="space-y-2 p-3 sm:p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input placeholder="Buscar por nome, série ou patrimônio..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10" />
           </div>
+          <FiltrosPanel ativos={(statusFilter !== 'all' ? 1 : 0) + (criticalityFilter !== 'all' ? 1 : 0)}>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos Status</SelectItem>
+                  <SelectItem value="Ativo">Ativo</SelectItem>
+                  <SelectItem value="Em Manutenção">Em Manutenção</SelectItem>
+                  <SelectItem value="Parado">Parado</SelectItem>
+                  <SelectItem value="Inativo/Baixado">Inativo/Baixado</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={criticalityFilter} onValueChange={setCriticalityFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Criticidade" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="Suporte à Vida">Suporte à Vida</SelectItem>
+                  <SelectItem value="Terapêutico">Terapêutico</SelectItem>
+                  <SelectItem value="Diagnóstico">Diagnóstico</SelectItem>
+                  <SelectItem value="Apoio">Apoio</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </FiltrosPanel>
         </CardContent>
       </Card>
+
+      {/* Celular: um cartão por equipamento */}
+      <div className="space-y-2 md:hidden">
+        {filtered.map((eq) => (
+          <EquipmentCard
+            key={eq.id}
+            equipment={eq}
+            total={totalRanking}
+            onOpen={() => abrirEquipamento(eq.id)}
+          />
+        ))}
+      </div>
 
       {/* Table */}
       {filtered.length === 0 ? (
         <EmptyState icon={Monitor} title="Nenhum equipamento encontrado" description="Ajuste os filtros ou cadastre um novo equipamento." />
       ) : (
-        <Card>
+        <Card className="hidden md:block">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>

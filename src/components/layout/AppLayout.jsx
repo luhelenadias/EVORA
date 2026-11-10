@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense } from 'react';
-import { Outlet, Navigate, useLocation } from 'react-router-dom';
+import { Outlet, Navigate, useLocation, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { base44 } from '@/api/base44Client';
 import { cn } from '@/lib/utils';
@@ -9,6 +9,8 @@ import Sidebar from './Sidebar';
 import MobileTabBar from './MobileTabBar';
 import SemAcesso from './SemAcesso';
 import AlertasBell from '@/components/alertas/AlertasBell';
+import { nomeDaPessoa } from '@/lib/tecnicos';
+import { iniciaisDoNome } from '@/lib/preventivas';
 
 /** Rotas que não são abas da barra lateral, mas todo mundo acessa. */
 const ROTAS_SEMPRE_LIBERADAS = ['/meu-perfil'];
@@ -69,8 +71,21 @@ export default function AppLayout() {
       <main
         className={cn('min-h-screen transition-all duration-300', sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-60')}
       >
-        <header className="pt-safe sticky top-0 z-30 flex min-h-14 items-center justify-end border-b border-border bg-background/90 px-4 backdrop-blur sm:px-6 lg:px-8">
-          <AlertasBell />
+        <header className="pt-safe sticky top-0 z-30 flex min-h-14 items-center justify-between border-b border-border bg-background/90 px-4 backdrop-blur sm:px-6 lg:px-8">
+          {/* No celular a marca fica no topo; a navegação é a barra inferior. */}
+          <span className="font-display text-sm font-semibold uppercase leading-none tracking-[0.3em] text-primary md:hidden">
+            EVORA
+          </span>
+          <div className="ml-auto flex items-center gap-1">
+            <AlertasBell />
+            <Link
+              to="/meu-perfil"
+              aria-label="Meu perfil"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground md:hidden"
+            >
+              {user ? iniciaisDoNome(nomeDaPessoa(user)) : ''}
+            </Link>
+          </div>
         </header>
         <div className="p-4 pb-24 sm:p-6 sm:pb-24 md:pb-6 lg:p-8">
           {perfilPendente ? (

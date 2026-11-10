@@ -9,14 +9,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ClipboardList, Search, Pencil, Sparkles, ListOrdered, Clock, UserRound } from 'lucide-react';
+import { ClipboardList, Search, Pencil, Sparkles, ListOrdered, Clock, UserRound, ScanLine } from 'lucide-react';
 import StatusBadge from '@/components/shared/StatusBadge';
 import PageHeader from '@/components/shared/PageHeader';
 import EmptyState from '@/components/shared/EmptyState';
 import OrderForm from '@/components/orders/OrderForm';
 import ChamadoAbertoDialog from '@/components/orders/ChamadoAbertoDialog';
+import ChamadoCard from '@/components/orders/ChamadoCard';
 import MeusChamadosLista from '@/components/orders/MeusChamadosLista';
 import OrderDetailDialog from '@/components/maintenance/OrderDetailDialog';
+import FiltrosPanel from '@/components/maintenance/FiltrosPanel';
+import QrScannerDialog from '@/components/equipment/QrScannerDialog';
+import { equipmentIdFromQr } from '@/lib/equipmentQr';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'sonner';
@@ -41,6 +45,8 @@ export default function ServiceOrders() {
   const [editingItem, setEditingItem] = useState(null);
   // Chamado recém-aberto: abre o aviso de sucesso com número e envio de e-mail.
   const [chamadoAberto, setChamadoAberto] = useState(null);
+  // Leitura da etiqueta QR do equipamento para abrir o chamado já vinculado a ele.
+  const [showScanner, setShowScanner] = useState(false);
   // Chamado aberto em modo leitura: o id fica na URL (?os=id) para que o gesto
   // "voltar" do Android/iOS feche o diálogo em vez de sair do aplicativo.
   const [osAbertaId, abrirOS, fecharOS] = useUrlModal('os');
@@ -216,6 +222,19 @@ export default function ServiceOrders() {
     return false;
   };
 
+  // Etiqueta do equipamento: abre o formulário já vinculado ao equipamento lido.
+  const tratarQrLido = (texto) => {
+    const id = equipmentIdFromQr(texto);
+    const alvo = id ? equipment.find((e) => e.id === id) : null;
+    if (!alvo) {
+      toast.error('QR Code não corresponde a um equipamento cadastrado.');
+      return;
+    }
+    setShowScanner(false);
+    setEditingItem(null);
+    setSearchParams({ equipamento: alvo.id });
+  };
+
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -227,6 +246,8 @@ export default function ServiceOrders() {
   }
 
   const title = isClinical ? 'Meus Chamados' : isTechnician ? 'Meus Chamados' : 'Chamados';
+  const filtrosAtivos =
+    (statusFilter !== 'all' ? 1 : 0) + (typeFilter !== 'all' ? 1 : 0);
 
   const renderSlaBadge = (order) => {
     const contract = findContractForEquipment(contracts, order.equipment_id);
@@ -240,139 +261,253 @@ export default function ServiceOrders() {
     );
   };
 
+  // Lista completa (todos os chamados do recorte) — em cartões no celular e tabela no desktop.
+  const listaTodos = (
+    <>
+      <div className="space-y-2 md:hidden">
+        {filtered.map((o) => (
+          <ChamadoCard
+            key={o.id}
+            order={o}
+            contracts={contracts}
+            onOpen={() => abrirOS(o.id)}
+          />
+        ))}
+      </div>
+
+      <Card className="hidden md:block">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50">
+                <TableHead className="text-xs font-semibold">Código</TableHead>
+                <TableHead className="text-xs font-semibold">Tipo</TableHead>
+                <TableHead className="text-xs font-semibold hidden md:table-cell">Equipamento</TableHead>
+                <TableHead className="text-xs font-semibold hidden lg:table-cell">Setor</TableHead>
+                <TableHead className="text-xs font-semibold">Prioridade</TableHead>
+                <TableHead className="text-xs font-semibold hidden xl:table-cell">SLA</TableHead>
+                <TableHead className="text-xs font-semibold">Status</TableHead>
+                <TableHead className="text-xs font-semibold hidden md:table-cell">Abertura</TableHead>
+                <TableHead className="text-xs font-semibold w-20">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((o) => (
+                <TableRow
+                  key={o.id}
+                  className="cursor-pointer hover:bg-muted/30"
+                  onClick={() => abrirOS(o.id)}
+                >
+                  <TableCell className="font-mono text-xs font-medium">
+                    <div className="flex items-center gap-1.5">
+                      {o.code || `OS-${o.id?.substring(0, 6)}`}
+                      {o.origin === 'Sugerida por IA' && <Sparkles className="w-3 h-3 text-primary" />}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">{o.type}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{o.equipment_name || '—'}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{o.sector || '—'}</TableCell>
+                  <TableCell><StatusBadge value={o.priority} type="priority" /></TableCell>
+                  <TableCell className="hidden xl:table-cell">{renderSlaBadge(o)}</TableCell>
+                  <TableCell><StatusBadge value={o.status} rotulo={rotuloStatusOS(o)} /></TableCell>
+                  <TableCell className="text-xs text-muted-foreground hidden md:table-cell">
+                    {o.open_date ? format(parseISO(o.open_date), 'dd/MM/yy HH:mm') : '—'}
+                  </TableCell>
+                  <TableCell>
+                    {canEdit(o) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-11 w-11 sm:h-8 sm:w-8"
+                        onClick={(e) => { e.stopPropagation(); setEditingItem(o); setShowForm(true); }}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </Card>
+    </>
+  );
+
   return (
     <PullToRefresh onRefresh={atualizarListas}>
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader
         title={title}
         subtitle={`${filtered.length} chamado${filtered.length !== 1 ? 's' : ''}`}
         onAdd={() => { setEditingItem(null); setShowForm(true); }}
         addLabel={isClinical ? 'Abrir Chamado' : 'Novo Chamado'}
-      />
+      >
+        <Button variant="outline" className="h-11 gap-1.5 sm:h-9" onClick={() => setShowScanner(true)}>
+          <ScanLine className="w-4 h-4" /> Ler QR
+        </Button>
+      </PageHeader>
 
-      {/* Filters */}
+      {/* Busca sempre visível; os demais filtros ficam no painel recolhível. */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input placeholder="Buscar por código, equipamento..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-10" />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-44"><SelectValue placeholder="Status" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos Status</SelectItem>
-                <SelectItem value="Novo">Novo</SelectItem>
-                <SelectItem value="Em Andamento">Em Andamento</SelectItem>
-                <SelectItem value="Aguardando Peça">Aguardando Peça</SelectItem>
-                <SelectItem value="Aguardando Fornecedor">Aguardando Fornecedor</SelectItem>
-                <SelectItem value="Pendente">Pendente</SelectItem>
-                <SelectItem value="Concluído">Concluído</SelectItem>
-              </SelectContent>
-            </Select>
-            {!isClinical && (
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="Tipo" /></SelectTrigger>
+        <CardContent className="space-y-2 p-3 sm:p-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por código ou equipamento..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <FiltrosPanel ativos={filtrosAtivos}>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos Tipos</SelectItem>
-                  <SelectItem value="Preventiva">Preventiva</SelectItem>
-                  <SelectItem value="Corretiva">Corretiva</SelectItem>
-                  <SelectItem value="Calibração">Calibração</SelectItem>
-                  <SelectItem value="Instalação">Instalação</SelectItem>
+                  <SelectItem value="all">Todos Status</SelectItem>
+                  <SelectItem value="Novo">Novo</SelectItem>
+                  <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                  <SelectItem value="Aguardando Peça">Aguardando Peça</SelectItem>
+                  <SelectItem value="Aguardando Fornecedor">Aguardando Fornecedor</SelectItem>
+                  <SelectItem value="Pendente">Pendente</SelectItem>
+                  <SelectItem value="Concluído">Concluído</SelectItem>
                 </SelectContent>
               </Select>
-            )}
-          </div>
+              {!isClinical && (
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger><SelectValue placeholder="Tipo" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos Tipos</SelectItem>
+                    <SelectItem value="Preventiva">Preventiva</SelectItem>
+                    <SelectItem value="Corretiva">Corretiva</SelectItem>
+                    <SelectItem value="Calibração">Calibração</SelectItem>
+                    <SelectItem value="Instalação">Instalação</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </FiltrosPanel>
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="queue">
-        <TabsList>
-          <TabsTrigger value="queue" className="gap-1.5">
-            <ListOrdered className="w-3.5 h-3.5" /> Fila de Atendimento
-            {queue.length > 0 && (
-              <span className="ml-1 h-5 px-1.5 text-[10px] rounded-full bg-primary text-primary-foreground flex items-center">{queue.length}</span>
-            )}
-          </TabsTrigger>
-          {!isClinical && (
+      {/* A equipe clínica vê só os próprios chamados: uma lista, sem abas. */}
+      {isClinical ? (
+        filtered.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title="Nenhum chamado encontrado"
+            description="Abra um novo chamado corretivo quando necessário."
+          />
+        ) : (
+          listaTodos
+        )
+      ) : (
+        <Tabs defaultValue="queue">
+          <TabsList className="h-auto flex-wrap">
+            <TabsTrigger value="queue" className="gap-1.5">
+              <ListOrdered className="w-3.5 h-3.5" />
+              <span className="sm:hidden">Fila</span>
+              <span className="hidden sm:inline">Fila de Atendimento</span>
+              {queue.length > 0 && (
+                <span className="ml-1 h-5 px-1.5 text-[10px] rounded-full bg-primary text-primary-foreground flex items-center">{queue.length}</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="meus" className="gap-1.5">
-              <UserRound className="w-3.5 h-3.5" /> Meus Chamados
+              <UserRound className="w-3.5 h-3.5" />
+              <span className="sm:hidden">Meus</span>
+              <span className="hidden sm:inline">Meus Chamados</span>
               {meusChamados.length > 0 && (
                 <span className="ml-1 h-5 px-1.5 text-[10px] rounded-full bg-accent text-accent-foreground flex items-center">{meusChamados.length}</span>
               )}
             </TabsTrigger>
-          )}
-          <TabsTrigger value="all">Todos os Chamados</TabsTrigger>
-        </TabsList>
+            <TabsTrigger value="all">
+              <span className="sm:hidden">Todos</span>
+              <span className="hidden sm:inline">Todos os Chamados</span>
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Fila de Atendimento */}
-        <TabsContent value="queue" className="mt-4">
-          {queue.length === 0 ? (
-            <EmptyState
-              icon={ListOrdered}
-              title="Fila vazia"
-              description="Nenhum chamado aberto no momento."
-            />
-          ) : (
-            <Card>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="text-xs font-semibold w-10">#</TableHead>
-                      <TableHead className="text-xs font-semibold">Código</TableHead>
-                      <TableHead className="text-xs font-semibold">Equipamento</TableHead>
-                      <TableHead className="text-xs font-semibold hidden md:table-cell">Criticidade</TableHead>
-                      <TableHead className="text-xs font-semibold">Prioridade</TableHead>
-                      <TableHead className="text-xs font-semibold">SLA</TableHead>
-                      <TableHead className="text-xs font-semibold">Status</TableHead>
-                      <TableHead className="text-xs font-semibold w-20">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {queue.map(({ order, equipment: eq }, idx) => (
-                      <TableRow
-                        key={order.id}
-                        className={`cursor-pointer ${idx === 0 ? 'bg-primary/5' : ''}`}
-                        onClick={() => abrirOS(order.id)}
-                      >
-                        <TableCell className="text-xs font-bold text-primary">{idx + 1}</TableCell>
-                        <TableCell className="font-mono text-xs font-medium">
-                          <div className="flex items-center gap-1.5">
-                            {order.code || `OS-${order.id?.substring(0, 6)}`}
-                            {order.origin === 'Sugerida por IA' && <Sparkles className="w-3 h-3 text-primary" />}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">{order.equipment_name || '—'}</TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {eq?.criticality ? <StatusBadge value={eq.criticality} type="criticality" /> : '—'}
-                        </TableCell>
-                        <TableCell><StatusBadge value={order.priority} type="priority" /></TableCell>
-                        <TableCell>{renderSlaBadge(order)}</TableCell>
-                        <TableCell><StatusBadge value={order.status} rotulo={rotuloStatusOS(order)} /></TableCell>
-                        <TableCell>
-                          {canEdit(order) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-11 w-11 sm:h-8 sm:w-8"
-                              onClick={(e) => { e.stopPropagation(); setEditingItem(order); setShowForm(true); }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          )}
-        </TabsContent>
+          {/* Fila de Atendimento */}
+          <TabsContent value="queue" className="mt-4">
+            {queue.length === 0 ? (
+              <EmptyState
+                icon={ListOrdered}
+                title="Fila vazia"
+                description="Nenhum chamado aberto no momento."
+              />
+            ) : (
+              <>
+                <div className="space-y-2 md:hidden">
+                  {queue.map(({ order }, idx) => (
+                    <ChamadoCard
+                      key={order.id}
+                      order={order}
+                      contracts={contracts}
+                      posicao={idx + 1}
+                      onOpen={() => abrirOS(order.id)}
+                    />
+                  ))}
+                </div>
 
-        {/* Meus Chamados — abertos pelo usuário logado */}
-        {!isClinical && (
+                <Card className="hidden md:block">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-muted/50">
+                          <TableHead className="text-xs font-semibold w-10">#</TableHead>
+                          <TableHead className="text-xs font-semibold">Código</TableHead>
+                          <TableHead className="text-xs font-semibold">Equipamento</TableHead>
+                          <TableHead className="text-xs font-semibold hidden md:table-cell">Criticidade</TableHead>
+                          <TableHead className="text-xs font-semibold">Prioridade</TableHead>
+                          <TableHead className="text-xs font-semibold">SLA</TableHead>
+                          <TableHead className="text-xs font-semibold">Status</TableHead>
+                          <TableHead className="text-xs font-semibold w-20">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {queue.map(({ order, equipment: eq }, idx) => (
+                          <TableRow
+                            key={order.id}
+                            className={`cursor-pointer ${idx === 0 ? 'bg-primary/5' : ''}`}
+                            onClick={() => abrirOS(order.id)}
+                          >
+                            <TableCell className="text-xs font-bold text-primary">{idx + 1}</TableCell>
+                            <TableCell className="font-mono text-xs font-medium">
+                              <div className="flex items-center gap-1.5">
+                                {order.code || `OS-${order.id?.substring(0, 6)}`}
+                                {order.origin === 'Sugerida por IA' && <Sparkles className="w-3 h-3 text-primary" />}
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-sm">{order.equipment_name || '—'}</TableCell>
+                            <TableCell className="hidden md:table-cell">
+                              {eq?.criticality ? <StatusBadge value={eq.criticality} type="criticality" /> : '—'}
+                            </TableCell>
+                            <TableCell><StatusBadge value={order.priority} type="priority" /></TableCell>
+                            <TableCell>{renderSlaBadge(order)}</TableCell>
+                            <TableCell><StatusBadge value={order.status} rotulo={rotuloStatusOS(order)} /></TableCell>
+                            <TableCell>
+                              {canEdit(order) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-11 w-11 sm:h-8 sm:w-8"
+                                  onClick={(e) => { e.stopPropagation(); setEditingItem(order); setShowForm(true); }}
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </Card>
+              </>
+            )}
+          </TabsContent>
+
+          {/* Meus Chamados — abertos pelo usuário logado */}
           <TabsContent value="meus" className="mt-4">
             <MeusChamadosLista
               orders={meusChamados}
@@ -382,76 +517,21 @@ export default function ServiceOrders() {
               onAbrir={(o) => abrirOS(o.id)}
             />
           </TabsContent>
-        )}
 
-        {/* Todos os Chamados */}
-        <TabsContent value="all" className="mt-4">
-          {filtered.length === 0 ? (
-            <EmptyState
-              icon={ClipboardList}
-              title="Nenhum chamado encontrado"
-              description={isClinical ? 'Abra um novo chamado corretivo quando necessário.' : 'Ajuste os filtros ou crie um novo chamado.'}
-            />
-          ) : (
-            <Card>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="bg-muted/50">
-                      <TableHead className="text-xs font-semibold">Código</TableHead>
-                      <TableHead className="text-xs font-semibold">Tipo</TableHead>
-                      <TableHead className="text-xs font-semibold hidden md:table-cell">Equipamento</TableHead>
-                      <TableHead className="text-xs font-semibold hidden lg:table-cell">Setor</TableHead>
-                      <TableHead className="text-xs font-semibold">Prioridade</TableHead>
-                      <TableHead className="text-xs font-semibold hidden xl:table-cell">SLA</TableHead>
-                      <TableHead className="text-xs font-semibold">Status</TableHead>
-                      <TableHead className="text-xs font-semibold hidden md:table-cell">Abertura</TableHead>
-                      <TableHead className="text-xs font-semibold w-20">Ações</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((o) => (
-                      <TableRow
-                        key={o.id}
-                        className="cursor-pointer hover:bg-muted/30"
-                        onClick={() => abrirOS(o.id)}
-                      >
-                        <TableCell className="font-mono text-xs font-medium">
-                          <div className="flex items-center gap-1.5">
-                            {o.code || `OS-${o.id?.substring(0, 6)}`}
-                            {o.origin === 'Sugerida por IA' && <Sparkles className="w-3 h-3 text-primary" />}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-sm">{o.type}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground hidden md:table-cell">{o.equipment_name || '—'}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground hidden lg:table-cell">{o.sector || '—'}</TableCell>
-                        <TableCell><StatusBadge value={o.priority} type="priority" /></TableCell>
-                        <TableCell className="hidden xl:table-cell">{renderSlaBadge(o)}</TableCell>
-                        <TableCell><StatusBadge value={o.status} rotulo={rotuloStatusOS(o)} /></TableCell>
-                        <TableCell className="text-xs text-muted-foreground hidden md:table-cell">
-                          {o.open_date ? format(parseISO(o.open_date), 'dd/MM/yy HH:mm') : '—'}
-                        </TableCell>
-                        <TableCell>
-                          {canEdit(o) && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-11 w-11 sm:h-8 sm:w-8"
-                              onClick={(e) => { e.stopPropagation(); setEditingItem(o); setShowForm(true); }}
-                            >
-                              <Pencil className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+          {/* Todos os Chamados */}
+          <TabsContent value="all" className="mt-4">
+            {filtered.length === 0 ? (
+              <EmptyState
+                icon={ClipboardList}
+                title="Nenhum chamado encontrado"
+                description="Ajuste os filtros ou crie um novo chamado."
+              />
+            ) : (
+              listaTodos
+            )}
+          </TabsContent>
+        </Tabs>
+      )}
 
       {/* Form Dialog */}
       <Dialog open={showForm} onOpenChange={fecharFormulario}>
@@ -484,6 +564,8 @@ export default function ServiceOrders() {
         email={chamadoAberto?.email}
         onClose={() => setChamadoAberto(null)}
       />
+
+      <QrScannerDialog open={showScanner} onOpenChange={setShowScanner} onDetect={tratarQrLido} />
     </div>
     </PullToRefresh>
   );

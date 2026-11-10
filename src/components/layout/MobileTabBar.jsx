@@ -1,18 +1,22 @@
 import React, { useEffect } from 'react';
 import { Link, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
-import { Home, ClipboardList, Monitor, UserRound } from 'lucide-react';
+import { Home, ClipboardList, Monitor, Wrench, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { abasDoUsuario } from '@/lib/roles';
 import { destinoDaAba, raizDaAba, registrarLocal, reiniciarAba } from '@/lib/tabStack';
 
-/** Destinos da barra inferior (o Perfil é sempre liberado). */
+/**
+ * Destinos da barra inferior — os cinco módulos do aplicativo portátil.
+ * Contratos, usuários e configurações ficam no desktop; o perfil abre pelo
+ * atalho no topo da tela.
+ */
 const DESTINOS = [
   { key: 'indicadores', label: 'Início', path: '/', icon: Home },
   { key: 'chamados', label: 'Chamados', path: '/chamados', icon: ClipboardList },
-  { key: 'equipamentos', label: 'Equipamentos', path: '/equipamentos', icon: Monitor },
+  { key: 'equipamentos', label: 'Equip.', path: '/equipamentos', icon: Monitor },
+  { key: 'manutencoes', label: 'Manutenção', path: '/manutencoes', icon: Wrench },
+  { key: 'pecas', label: 'Peças', path: '/pecas', icon: Package },
 ];
-
-const PERFIL = { key: 'perfil', label: 'Perfil', path: '/meu-perfil', icon: UserRound };
 
 /**
  * Barra de navegação inferior do aplicativo (Android/iOS).
@@ -27,10 +31,7 @@ export default function MobileTabBar({ user, config }) {
   const tipoNavegacao = useNavigationType();
   const chaves = abasDoUsuario(config, user).map((aba) => aba.key);
 
-  const itens = [
-    ...DESTINOS.filter((item) => chaves.includes(item.key)),
-    PERFIL,
-  ];
+  const itens = DESTINOS.filter((item) => chaves.includes(item.key));
 
   // Registra cada local visitado na pilha da aba a que ele pertence.
   useEffect(() => {
@@ -68,12 +69,12 @@ export default function MobileTabBar({ user, config }) {
               onClick={(evento) => abrirAba(evento, item)}
               aria-current={atual ? 'page' : undefined}
               className={cn(
-                'flex flex-1 select-none touch-manipulation flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
+                'flex min-w-0 flex-1 select-none touch-manipulation flex-col items-center justify-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
                 atual ? 'text-primary' : 'text-muted-foreground'
               )}
             >
               <Icon className="h-5 w-5" strokeWidth={atual ? 2.4 : 1.8} />
-              <span className="truncate px-1">{item.label}</span>
+              <span className="max-w-full truncate px-0.5 leading-none">{item.label}</span>
             </Link>
           );
         })}
