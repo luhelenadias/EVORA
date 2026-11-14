@@ -89,5 +89,6 @@ REGRAS OBRIGATÓRIAS
 6. Não invente números de medição: use apenas os ditados pelo técnico.
 7. campos_revisar aceita somente as chaves: "causa_falha", "acao_realizada", "testes_finais", "pendencias", "pecas".`;
 
-  return base44.integrations.Core.InvokeLLM({ prompt, response_json_schema: ESQUEMA });
+  // Modelo fixado para que o comportamento seja reprodutível (documentado no TCC).
+  return base44.integrations.Core.InvokeLLM({ prompt, response_json_schema: ESQUEMA, model: 'gemini_3_8_flash' });
 }
