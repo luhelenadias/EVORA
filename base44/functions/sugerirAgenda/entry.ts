@@ -92,7 +92,9 @@ export default async function (req: Request): Promise<Response> {
         prioridade_ordem: s.criterios?.prioridade_ordem,
       }));
 
+      // Modelo fixado para que o comportamento seja reprodutível (documentado no TCC).
       const resposta = await base44.asServiceRole.integrations.Core.InvokeLLM({
+        model: 'gemini_3_8_flash',
         prompt: `Você explica, em português do Brasil, por que uma data foi sugerida para uma manutenção hospitalar.
 Os fatos abaixo já foram decididos por REGRAS determinísticas. Não proponha outra data, outro técnico nem outra prioridade, e não invente dados.
 
