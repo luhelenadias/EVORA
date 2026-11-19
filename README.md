@@ -3,9 +3,29 @@
 > Trabalho de Conclusão de Curso — Engenharia Biomédica
 > Instituto de Ciências e Tecnologia, Universidade Federal de São Paulo (ICT-UNIFESP)
 
-**Título do trabalho:** Desenvolvimento de Plataforma Inteligente para Gestão de Engenharia Clínica com Apoio à Tomada de Decisão Baseada em Inteligência Artificial
+**Título do trabalho:** EVORA — Plataforma Inteligente para Gestão de Engenharia Clínica com Apoio à Tomada de Decisão Baseada em Inteligência Artificial
 **Discente:** Lucia Helena Dias
 **Orientador:** Prof. Dr. Matheus Cardoso Moraes
+
+---
+
+## Acesso e demonstração
+
+| Recurso | Acesso |
+|---|---|
+| Plataforma web | [yourevora.com](https://yourevora.com) |
+| Aplicativo Android (APK) | [Release v1.0](https://github.com/luhelenadias/EVORA/releases/tag/v1.0) |
+| Tutorial de uso da plataforma | [youtu.be/75JenC-VIAk](https://youtu.be/75JenC-VIAk) |
+| Vídeo explicativo do trabalho | [youtu.be/3nzqj_7eqpo](https://youtu.be/3nzqj_7eqpo) |
+
+### Vídeos demonstrativos
+
+| Tutorial de uso da plataforma | Vídeo explicativo do trabalho |
+|:---:|:---:|
+| [![Tutorial de uso do EVORA](https://img.youtube.com/vi/75JenC-VIAk/hqdefault.jpg)](https://youtu.be/75JenC-VIAk) | [![Vídeo explicativo do EVORA](https://img.youtube.com/vi/3nzqj_7eqpo/hqdefault.jpg)](https://youtu.be/3nzqj_7eqpo) |
+| Apresenta os principais fluxos de uso: indicadores, triagem e execução de chamados, uso em campo pelo aplicativo e recursos de IA. | Apresenta o trabalho de forma resumida, navegando em mais detalhes pela plataforma. |
+
+O aplicativo Android reúne os cinco módulos usados em campo (Indicadores, Chamados, Equipamentos, Manutenções e Peças). Para instalá-lo, baixe o arquivo `.apk` da Release e permita a instalação de apps de fontes desconhecidas quando o Android solicitar.
 
 ---
 
@@ -175,6 +195,8 @@ Alterações enviadas a este repositório são refletidas no editor da Base44, o
 6. JIANG, F. et al. Artificial intelligence in healthcare: past, present and future. *Stroke and Vascular Neurology*, v. 2, n. 4, p. 230–243, 2017.
 7. PEFFERS, K. et al. A design science research methodology for information systems research. *Journal of Management Information Systems*, v. 24, n. 3, p. 45–77, 2007.
 8. FENNIGKOH, L.; SMITH, B. Clinical equipment management. *JCAHO Plant, Technology & Safety Management Series*, n. 2, p. 5–14, 1989.
+9. DIAS, L. H. *EVORA: tutorial de uso da plataforma*. YouTube, 2026. Disponível em: <https://youtu.be/75JenC-VIAk>.
+10. DIAS, L. H. *EVORA: vídeo explicativo do trabalho*. YouTube, 2026. Disponível em: <https://youtu.be/3nzqj_7eqpo>.
 
 ---
 
